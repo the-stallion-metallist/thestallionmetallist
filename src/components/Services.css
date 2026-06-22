@@ -1,0 +1,331 @@
+.services-modern-section {
+  padding: 4rem 0;
+  position: relative;
+  background: var(--color-secondary);
+}
+
+.services-header {
+  text-align: center;
+  margin-bottom: 2rem;
+  max-width: 700px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.section-title {
+  font-size: 3.5rem;
+  font-weight: 800;
+  margin-bottom: 1rem;
+  background: linear-gradient(135deg, #ffffff, #bcbcbc);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: -1px;
+}
+
+@media (max-width: 768px) {
+  .section-title {
+    font-size: 2.5rem;
+  }
+}
+
+[data-theme='light'] .section-title {
+  background: linear-gradient(135deg, #131417, #3e404c);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.section-subtitle {
+  color: var(--color-text-muted);
+  font-size: 1.1rem;
+  line-height: 1.6;
+}
+
+/* SLIDER LAYOUT */
+.slider-container {
+  width: 100%;
+  overflow: hidden;
+  padding: 1rem 0; /* Room for hover shadows */
+}
+
+.slider-track {
+  display: flex;
+  gap: 1.5rem;
+  width: max-content;
+  touch-action: pan-y;
+}
+
+.modern-card {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: #111;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  height: 320px; /* Reduced for smaller appearance */
+  flex-shrink: 0;
+}
+
+.col-span-1 {
+  width: 280px;
+}
+
+.col-span-2 {
+  width: 500px;
+}
+
+@media (max-width: 768px) {
+  .col-span-1, .col-span-2 {
+    width: 260px;
+    height: 280px;
+  }
+}
+
+.card-bg-wrapper {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.card-bg-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .modern-card:hover .card-bg-img {
+    transform: scale(1.05);
+  }
+}
+
+.card-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(to bottom, rgba(12, 12, 14, 0.75) 0%, rgba(12, 12, 14, 0.25) 50%, rgba(12, 12, 14, 0) 100%);
+  transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .modern-card:hover .card-overlay {
+    background: linear-gradient(to bottom, rgba(12, 12, 14, 0.85) 0%, rgba(12, 12, 14, 0.4) 60%, rgba(12, 12, 14, 0.1) 100%);
+  }
+}
+
+.card-content {
+  position: relative;
+  z-index: 2;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.card-content h3 {
+  color: #fff !important;
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.5px;
+  margin: 0;
+  line-height: 1.2;
+  text-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.explore-btn {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  gap: 0.5rem;
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 0.5rem 1rem;
+  border-radius: 50px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  opacity: 0;
+  transform: translateY(15px);
+  transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .modern-card:hover .explore-btn {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (hover: none) {
+  .explore-btn {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* MODAL STYLES */
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  z-index: 100;
+}
+
+.modal-container-wrapper {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 101;
+  pointer-events: none;
+  padding: 1rem;
+}
+
+.modern-modal {
+  width: 100%;
+  max-width: 800px;
+  background: var(--color-secondary);
+  border-radius: 24px;
+  overflow: hidden;
+  pointer-events: auto;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  border: 1px solid var(--glass-border);
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+}
+
+@media (max-width: 768px) {
+  .modern-modal {
+    max-height: 95vh;
+    border-radius: 16px;
+  }
+}
+
+.close-btn {
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
+  z-index: 10;
+  background: rgba(0,0,0,0.5);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255,255,255,0.2);
+  color: white;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .close-btn:hover {
+    background: rgba(255,255,255,0.1);
+    transform: scale(1.1);
+  }
+}
+
+.modal-hero {
+  position: relative;
+  height: 350px;
+  width: 100%;
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .modal-hero {
+    height: 250px;
+  }
+}
+
+.modal-hero-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.modal-hero-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(to top, rgba(19, 20, 23, 0.9) 0%, rgba(19, 20, 23, 0.3) 50%, transparent 100%);
+  z-index: 1;
+}
+
+.modal-title {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  padding: 2rem;
+  margin: 0;
+  color: #fff !important;
+  font-size: 2.5rem;
+  font-weight: 800;
+  z-index: 2;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+}
+
+@media (max-width: 768px) {
+  .modal-title {
+    font-size: 2rem;
+    padding: 1.5rem;
+  }
+}
+
+/* Removed light theme title override to ensure it stays white over the dark overlay */
+
+.modal-body {
+  padding: 2rem;
+  background: var(--color-secondary);
+  overflow-y: auto;
+  flex-grow: 1;
+}
+
+@media (max-width: 768px) {
+  .modal-body {
+    padding: 1.5rem;
+  }
+}
+
+.modal-desc {
+  font-size: 1.15rem;
+  line-height: 1.8;
+  color: var(--color-text-dark);
+  margin-bottom: 2rem;
+}
+
+.modal-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem 2.5rem;
+}

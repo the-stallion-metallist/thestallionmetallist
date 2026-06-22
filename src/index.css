@@ -1,0 +1,265 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap');
+
+:root {
+  --color-primary: #3e404c;      /* Primary */
+  --color-accent: #8f613a;       /* Primary Accent */
+  --color-secondary: #131417;    /* Secondary Dark */
+  --color-text-muted: #bcbcbc;   /* Secondary Light */
+  
+  --color-text-dark: #ffffff;
+  --color-border: rgba(188, 188, 188, 0.15);
+  
+  /* Fast Glassmorphism */
+  --glass-bg: rgba(62, 64, 76, 0.35); /* Based on #3e404c */
+  --glass-border: rgba(188, 188, 188, 0.1); /* Based on #bcbcbc */
+  --glass-blur: blur(12px); 
+  --glass-shadow: 0 8px 32px 0 rgba(19, 20, 23, 0.5); /* Based on #131417 */
+
+  /* Inverted Section (When main is Dark, inverted is Light) */
+  --inv-bg: #f4f4f4;
+  --inv-text: #131417;
+  --inv-text-muted: rgba(62, 64, 76, 0.6);
+  --inv-card-bg: rgba(62, 64, 76, 0.05);
+  --inv-border: rgba(62, 64, 76, 0.15);
+  --inv-grid-line: rgba(62, 64, 76, 0.08);
+}
+
+[data-theme='light'] {
+  --color-secondary: #f4f4f4;    /* Light Background */
+  --color-text-dark: #131417;    /* Dark text for light bg */
+  --color-text-muted: #3e404c;   /* Darker muted text */
+  --color-border: rgba(62, 64, 76, 0.15);
+  
+  --glass-bg: rgba(255, 255, 255, 0.7); 
+  --glass-border: rgba(62, 64, 76, 0.1); 
+  --glass-shadow: 0 8px 32px 0 rgba(62, 64, 76, 0.15); 
+
+  /* Inverted Section (When main is Light, inverted is Dark) */
+  --inv-bg: #0a0a0c;
+  --inv-text: #ffffff;
+  --inv-text-muted: rgba(255, 255, 255, 0.6);
+  --inv-card-bg: rgba(255, 255, 255, 0.02);
+  --inv-border: rgba(255, 255, 255, 0.08);
+  --inv-grid-line: rgba(255, 255, 255, 0.04);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Gotham', 'Montserrat', sans-serif;
+  color: var(--color-text-dark);
+  background-color: var(--color-secondary);
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Montserrat', 'Gotham', sans-serif;
+  color: var(--color-text-dark);
+  margin-bottom: 1rem;
+}
+
+.container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 2rem;
+  position: relative;
+  z-index: 10;
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 0 1rem;
+  }
+}
+
+.section {
+  padding: 3.5rem 0;
+  position: relative;
+}
+
+@media (max-width: 768px) {
+  .section {
+    padding: 2.5rem 0;
+  }
+}
+
+.hero-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4rem;
+  align-items: center;
+}
+
+.hero-section {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  padding-top: 90px;
+  overflow: hidden;
+}
+
+.hero-3d-container {
+  position: relative;
+  height: 600px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1;
+  cursor: grab;
+  background: transparent;
+}
+
+@media (max-width: 900px) {
+  .hero-grid {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+  
+  .hero-section {
+    position: relative;
+    height: auto;
+    min-height: 100vh;
+    padding-top: 120px;
+    padding-bottom: 40px;
+    align-items: flex-start;
+    overflow: visible;
+  }
+  
+  .hero-3d-container {
+    height: 400px;
+  }
+}
+
+.responsive-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 4rem;
+  align-items: stretch;
+}
+
+@media (max-width: 768px) {
+  .responsive-grid {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+}
+
+.why-us-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .why-us-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.glass-panel {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  border-radius: 32px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  padding: 1rem 2.5rem;
+  font-weight: 700;
+  text-decoration: none;
+  border-radius: 50px;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-size: 0.85rem;
+  font-family: 'Montserrat', sans-serif;
+  z-index: 1;
+}
+
+/* Shine sweep animation element */
+.btn::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.25) 50%, rgba(255,255,255,0) 100%);
+  transform: skewX(-25deg);
+  z-index: -1;
+  transition: all 0.6s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .btn:hover::after {
+    left: 150%;
+  }
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--color-accent), #6e4828);
+  color: #ffffff !important;
+  box-shadow: 0 4px 15px rgba(143, 97, 58, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .btn-primary:hover {
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 8px 25px rgba(143, 97, 58, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  }
+}
+
+.btn-primary:active {
+  transform: translateY(1px) scale(0.98);
+  box-shadow: 0 2px 10px rgba(143, 97, 58, 0.4);
+}
+
+.link-animated {
+  position: relative;
+  color: var(--color-text-dark);
+  text-decoration: none;
+  font-weight: 700;
+  font-family: 'Montserrat', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  font-size: 0.85rem;
+  transition: color 0.3s;
+}
+
+.link-animated::after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  transform: scaleX(0);
+  height: 2px;
+  bottom: -6px;
+  left: 0;
+  background-color: var(--color-accent);
+  transform-origin: bottom right;
+  transition: transform 0.4s cubic-bezier(0.86, 0, 0.07, 1);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .link-animated:hover::after {
+    transform: scaleX(1);
+    transform-origin: bottom left;
+  }
+}
