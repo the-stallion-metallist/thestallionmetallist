@@ -94,7 +94,7 @@ const WhyUs = () => {
 
   const cards = [
     { title: 'Global Structure', desc: 'Canada-incorporated entity with a credible, internationally recognised legal and corporate structure.' },
-    { title: 'Local Presence', desc: 'On-the-ground presence in both India and the West — bridging global supply with Indian industrial demand.' },
+    { title: 'Local Presence', desc: 'On-the-ground presence in both India and the West, bridging global supply with Indian industrial demand.' },
     { title: 'Market Expertise', desc: 'Deep knowledge of the Rajkot and Gujarat scrap buyer ecosystem built through direct trade relationships.' },
     { title: 'Compliant Process', desc: 'Structured, compliant payment processes that meet the expectations of international exporters.' }
   ];
