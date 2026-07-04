@@ -9,7 +9,7 @@ const Footer = ({ theme }) => {
           <div>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }} className="footer-brand-container">
               <img 
-                src="/brand/stallion-text-1234.png" 
+                src="/brand/stallion-text-1234-optimized.png" 
                 alt="Stallion Metallist Logo" 
                 className="footer-logo"
                 style={{ height: '120px', objectFit: 'contain', marginBottom: '1rem' }} 

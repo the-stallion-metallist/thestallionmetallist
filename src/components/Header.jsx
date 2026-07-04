@@ -30,7 +30,7 @@ const Header = ({ theme, toggleTheme }) => {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', height: '60px', padding: '0 2rem' }} className="header-inner">
           <Link to="/" onClick={closeMenu} style={{ display: 'flex', alignItems: 'center', gap: '1rem', textDecoration: 'none' }}>
             <img 
-              src="/brand/stallion-1234.png" 
+              src="/brand/stallion-1234-optimized.png" 
               alt="Stallion Metallist Logo" 
               style={{ 
                 height: '60px', 
