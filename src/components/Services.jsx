@@ -261,7 +261,7 @@ const Services = () => {
                             <a href="mailto:trade@stallionmetallist.com" className="btn btn-primary" style={{ flex: 1, textAlign: 'center', justifyContent: 'center' }}>
                               Email Us
                             </a>
-                            <a href="tel:+14165550198" className="btn" style={{ flex: 1, textAlign: 'center', justifyContent: 'center', background: 'var(--color-border)', color: 'var(--color-text-dark)', border: 'none' }}>
+                            <a href="tel:+15878933420" className="btn" style={{ flex: 1, textAlign: 'center', justifyContent: 'center', background: 'var(--color-border)', color: 'var(--color-text-dark)', border: 'none' }}>
                               Call Us
                             </a>
                           </motion.div>

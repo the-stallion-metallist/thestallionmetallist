@@ -40,7 +40,7 @@ const Contact = () => {
               <h3 style={{ fontSize: '1.2rem', color: 'var(--color-accent)', marginBottom: '0.5rem' }}>Contact Details</h3>
               <p style={{ fontSize: '1rem', color: 'var(--color-text-dark)', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 <span><strong>Email:</strong> trade@stallionmetallist.com</span>
-                <span><strong>Phone (Global):</strong> +1 (416) 555-0198</span>
+                <span><strong>Phone (Global):</strong> +1 587 8933 420</span>
                 <span><strong>Phone (India):</strong> +91 98765 43210</span>
               </p>
             </div>
