@@ -415,8 +415,9 @@ const Hero = () => {
         {isMobile && (
           <div style={{ position: 'absolute', inset: 0, zIndex: 0, overflow: 'hidden' }}>
             <motion.img 
-              src="/images/aesthetic_hero_bg.png" 
+              src="/images/aesthetic_hero_bg.webp" 
               alt="Premium Scrap Metal Background" 
+              decoding="async"
               style={{ width: '100%', height: '125%', objectFit: 'cover', opacity: 0.4, y: yBg, transformOrigin: 'top' }} 
               draggable={false} 
             />
