@@ -12,6 +12,8 @@ const Footer = ({ theme }) => {
                 src="/brand/stallion-text-1234-optimized.png" 
                 alt="Stallion Metallist Logo" 
                 className="footer-logo"
+                loading="lazy"
+                decoding="async"
                 style={{ height: '120px', objectFit: 'contain', marginBottom: '1rem' }} 
               />
               <div style={{ 

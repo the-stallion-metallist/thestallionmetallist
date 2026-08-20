@@ -163,6 +163,8 @@ const Services = () => {
                       src={service.image} 
                       alt={service.title} 
                       className="card-bg-img"
+                      loading="lazy"
+                      decoding="async"
                       draggable={false}
                     />
                     <div className="card-overlay"></div>

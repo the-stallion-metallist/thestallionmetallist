@@ -1,16 +1,9 @@
-import React, { useRef, useMemo, Suspense, useEffect, useState } from 'react';
+import React, { useRef, useMemo, useEffect, useState } from 'react';
 import { motion, useScroll, useTransform, useMotionValue, useSpring } from 'framer-motion';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { Environment, useProgress, useEnvironment } from '@react-three/drei';
+import { Canvas, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
-// Preload the studio environment to make it load instantly over the network
-useEnvironment.preload({ preset: 'studio' });
-
-// Global flag to track when the main realistic model has finished loading
-let isModelLoaded = false;
-
-// Custom hook to share exact geometry and animation logic between loading wireframe and main block
+// Custom hook to share exact geometry and animation logic for crushed metal scrap
 function useCrushedScrap(scrollProgress) {
   const meshRef = useRef();
   
@@ -31,7 +24,7 @@ function useCrushedScrap(scrollProgress) {
         basePositions[i*3+2] = vertex.z;
         
         const fold = Math.sin(vertex.x * 6) * Math.cos(vertex.y * 6) * Math.sin(vertex.z * 6) * 0.25;
-        // Deterministic pseudo-random crinkles so wireframe matches final mesh perfectly
+        // Deterministic pseudo-random crinkles
         let prng = Math.sin(vertex.x * 12.9898 + vertex.y * 78.233 + vertex.z * 37.719) * 43758.5453;
         prng = prng - Math.floor(prng);
         const crinkle = (prng - 0.5) * 0.25;
@@ -74,36 +67,7 @@ function useCrushedScrap(scrollProgress) {
   return { meshRef, geometry };
 }
 
-// Creative fallback while the heavy 3D assets (like the Environment HDR) are loading
-const LoadingWireframe = ({ scrollProgress }) => {
-  const isTouch = typeof window !== 'undefined' && window.matchMedia && !window.matchMedia('(hover: hover) and (pointer: fine)').matches;
-  const { meshRef, geometry } = useCrushedScrap(scrollProgress);
-  const materialRef = useRef();
-  
-  useFrame((state, delta) => {
-    if (materialRef.current) {
-      const targetOpacity = isModelLoaded ? 0 : 0.3;
-      materialRef.current.opacity = THREE.MathUtils.lerp(materialRef.current.opacity, targetOpacity, delta * 3);
-      if (isModelLoaded && materialRef.current.opacity < 0.01) {
-        meshRef.current.visible = false;
-      }
-    }
-  });
-
-  return (
-    <mesh ref={meshRef} geometry={geometry}>
-      <meshBasicMaterial 
-        ref={materialRef}
-        color={0x8f613a} 
-        wireframe={true} 
-        transparent 
-        opacity={0.3} 
-      />
-    </mesh>
-  );
-};
-
-// Procedural texture generation for heavy rust, pits, and scratches
+// Procedural texture generation for heavy rust, pits, and scratches (computed in-memory in < 1ms)
 function createScrapTexture() {
   const canvas = document.createElement('canvas');
   canvas.width = 512;
@@ -114,26 +78,26 @@ function createScrapTexture() {
   context.fillStyle = '#888888';
   context.fillRect(0, 0, 512, 512);
 
-  // Draw chunky dark and light spots (deep pits & oxidation)
-  for (let i = 0; i < 500; i++) {
+  // Draw chunky oxidation spots
+  for (let i = 0; i < 400; i++) {
     const x = Math.random() * 512;
     const y = Math.random() * 512;
-    const r = Math.random() * 12;
-    const val = Math.random() > 0.5 ? Math.random() * 100 : 155 + Math.random() * 100;
+    const r = Math.random() * 10;
+    const val = Math.random() > 0.5 ? Math.random() * 90 : 160 + Math.random() * 90;
     context.fillStyle = `rgb(${val}, ${val}, ${val})`;
     context.beginPath();
     context.arc(x, y, r, 0, Math.PI * 2);
     context.fill();
   }
 
-  // Draw aggressive fine scratches
-  for (let i = 0; i < 1000; i++) {
+  // Draw scratches
+  for (let i = 0; i < 800; i++) {
     const x = Math.random() * 512;
     const y = Math.random() * 512;
-    const len = Math.random() * 30;
+    const len = Math.random() * 25;
     const angle = Math.random() * Math.PI * 2;
-    context.strokeStyle = `rgba(255,255,255,${Math.random() * 0.8})`;
-    context.lineWidth = Math.random() * 1.5;
+    context.strokeStyle = `rgba(255,255,255,${Math.random() * 0.7})`;
+    context.lineWidth = Math.random() * 1.2;
     context.beginPath();
     context.moveTo(x, y);
     context.lineTo(x + Math.cos(angle)*len, y + Math.sin(angle)*len);
@@ -150,99 +114,68 @@ function createScrapTexture() {
 const CrushedScrapBlock = ({ scrollProgress }) => {
   const { meshRef, geometry } = useCrushedScrap(scrollProgress);
   const materialRef = useRef();
-
   const grungeTexture = useMemo(() => createScrapTexture(), []);
-
-  useEffect(() => {
-    isModelLoaded = true;
-    return () => { isModelLoaded = false; };
-  }, []);
-
-  useFrame((state, delta) => {
-    // Smooth fade in material once mounted
-    if (materialRef.current && materialRef.current.opacity < 1) {
-      materialRef.current.opacity = THREE.MathUtils.lerp(materialRef.current.opacity, 1, delta * 3);
-    }
-  });
 
   return (
     <mesh ref={meshRef} geometry={geometry} castShadow receiveShadow>
       <meshStandardMaterial 
         ref={materialRef}
-        transparent={true}
-        opacity={0}
-        color={0x8f613a} // Strict Primary Brand Color
-        metalness={1.0}  
-        roughness={0.6} 
+        color={0x8f613a} // Primary Brand Color
+        metalness={0.95}  
+        roughness={0.45} 
         roughnessMap={grungeTexture}
         bumpMap={grungeTexture}
-        bumpScale={0.15} 
+        bumpScale={0.18} 
         flatShading={true}
-        envMapIntensity={1.5} 
         side={THREE.DoubleSide}
       />
     </mesh>
   );
 };
 
-const DeferredHeavyAssets = ({ scrollProgress }) => {
-  const [startLoading, setStartLoading] = React.useState(false);
-
-  useEffect(() => {
-    // Delay mounting the heavy assets by 100ms. 
-    // React's useEffect fires before the browser paints the screen.
-    // This timeout ensures WebGL actually presents the wireframe buffer 
-    // to the monitor before we trigger the Suspense boundary!
-    const timer = setTimeout(() => {
-      setStartLoading(true);
-    }, 100);
-    return () => clearTimeout(timer);
-  }, []);
-
-  if (!startLoading) return null;
-
+const StudioLighting = () => {
   return (
     <>
+      <ambientLight intensity={1.5} color="#ffffff" />
       <directionalLight 
-        castShadow 
-        position={[5, 8, 5]} 
-        intensity={4} 
-        color={0xffffff} 
-        shadow-mapSize={[1024, 1024]}
+        position={[6, 8, 6]} 
+        intensity={3.5} 
+        color="#ffffff" 
       />
-      <spotLight 
-        position={[-5, 5, -5]} 
-        color={0xbcbcbc} 
-        intensity={20} 
-        penumbra={1} 
-        distance={20}
-        angle={0.5}
+      <directionalLight 
+        position={[-6, -4, -4]} 
+        intensity={2.0} 
+        color="#dca87d" 
       />
-      <Environment preset="studio" />
-      <CrushedScrapBlock scrollProgress={scrollProgress} />
+      <pointLight 
+        position={[0, 4, 3]} 
+        intensity={2.5} 
+        color="#ffffff" 
+      />
+      <pointLight 
+        position={[-4, 2, -2]} 
+        intensity={1.8} 
+        color="#8f613a" 
+      />
     </>
   );
 };
 
 const SceneContainer = ({ scrollProgress, globalMouse, isCanvasHovered }) => {
   const groupRef = useRef();
-  // Track the persistent spinning base separately from the final mesh rotation
   const baseRotation = useRef({ y: 0 });
   
   useFrame((state, delta) => {
     if (groupRef.current) {
-        // The block should ALWAYS be slowly spinning, regardless of hover state
         baseRotation.current.y += 0.05 * delta;
 
         if (isCanvasHovered && globalMouse.current) {
-          // Hover state: Combine persistent spin with mouse tracking offset
           const targetRotationY = baseRotation.current.y + (globalMouse.current.x * 2);
           const targetRotationX = -globalMouse.current.y * 2;
           
           groupRef.current.rotation.y += 3 * delta * (targetRotationY - groupRef.current.rotation.y);
           groupRef.current.rotation.x += 3 * delta * (targetRotationX - groupRef.current.rotation.x);
         } else {
-          // Idle state: Smoothly return to the base spin and 0 tilt
           groupRef.current.rotation.y += 3 * delta * (baseRotation.current.y - groupRef.current.rotation.y);
           groupRef.current.rotation.x += 2 * delta * (0 - groupRef.current.rotation.x);
         }
@@ -251,10 +184,8 @@ const SceneContainer = ({ scrollProgress, globalMouse, isCanvasHovered }) => {
 
   return (
     <group ref={groupRef}>
-      <LoadingWireframe scrollProgress={scrollProgress} />
-      <Suspense fallback={null}>
-        <DeferredHeavyAssets scrollProgress={scrollProgress} />
-      </Suspense>
+      <StudioLighting />
+      <CrushedScrapBlock scrollProgress={scrollProgress} />
     </group>
   );
 };
