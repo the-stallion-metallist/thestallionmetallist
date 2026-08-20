@@ -30,8 +30,9 @@ const Contact = () => {
             <div>
               <h3 style={{ fontSize: '1.2rem', color: 'var(--color-accent)', marginBottom: '0.5rem' }}>India Operations</h3>
               <p style={{ fontSize: '1rem', color: 'var(--color-text-dark)' }}>
-                Plot No. 45, GIDC Industrial Estate<br />
-                Rajkot, Gujarat 360003<br />
+                115A, Iksana Workspace, IT Park<br />
+                Sahastradhara Road<br />
+                Dehradun, Uttarakhand 248001<br />
                 India
               </p>
             </div>
@@ -39,9 +40,9 @@ const Contact = () => {
             <div style={{ gridColumn: '1 / -1', borderTop: '1px solid var(--color-border)', paddingTop: '2rem' }}>
               <h3 style={{ fontSize: '1.2rem', color: 'var(--color-accent)', marginBottom: '0.5rem' }}>Contact Details</h3>
               <p style={{ fontSize: '1rem', color: 'var(--color-text-dark)', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <span><strong>Email:</strong> trade@stallionmetallist.com</span>
-                <span><strong>Phone (Global):</strong> +1 587 8933 420</span>
-                <span><strong>Phone (India):</strong> +91 98765 43210</span>
+                <span><strong>Email:</strong> <a href="mailto:trade@stallionmetallist.com" style={{ color: 'inherit', textDecoration: 'none' }}>trade@stallionmetallist.com</a></span>
+                <span><strong>Phone (Global):</strong> <a href="tel:+15878933420" style={{ color: 'inherit', textDecoration: 'none' }}>+1 587 8933 420</a></span>
+                <span><strong>Phone (India):</strong> <a href="tel:+918439748394" style={{ color: 'inherit', textDecoration: 'none' }}>+91 84397 48394</a></span>
               </p>
             </div>
           </div>

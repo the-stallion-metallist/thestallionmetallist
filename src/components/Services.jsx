@@ -24,21 +24,7 @@ const services = [
     description: 'Secure and certified destruction of proprietary equipment and off-spec products utilizing heavy-duty industrial shredders. We provide complete video verification and certificates of destruction.',
     image: '/images/product_destruction.png',
     span: 'col-span-1'
-  },
-  {
-    id: 'transport',
-    title: 'Transportation & Logistics',
-    description: 'A dedicated fleet of modern heavy-duty vehicles providing seamless pickup and transport of bulk scrap materials. Real-time tracking and flexible scheduling ensure your operations never slow down.',
-    image: '/images/transport_logistics.png',
-    span: 'col-span-2'
-  },
-  {
-    id: 'demolition',
-    title: 'Demolition Services',
-    description: 'Safe and professional demolition of industrial metal structures, coupled with immediate site cleanup and scrap processing. Our specialized team handles complex tear-downs with zero operational disruption.',
-    image: '/images/demolition_services.png',
-    span: 'col-span-1'
-  },
+  }
 ];
 
 const Services = () => {

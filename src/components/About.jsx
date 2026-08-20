@@ -25,7 +25,7 @@ const About = () => {
               </li>
               <li style={{ padding: '1rem 0', borderBottom: '1px solid var(--color-border)', display: 'flex', gap: '1rem' }}>
                 <strong style={{ minWidth: '150px', color: 'var(--color-accent)' }}>India Operations:</strong> 
-                <span>Rajkot, Gujarat & Dehradun, Uttarakhand</span>
+                <span>Dehradun, Uttarakhand</span>
               </li>
               <li style={{ padding: '1rem 0', borderBottom: '1px solid var(--color-border)', display: 'flex', gap: '1rem' }}>
                 <strong style={{ minWidth: '150px', color: 'var(--color-accent)' }}>Industry:</strong> 

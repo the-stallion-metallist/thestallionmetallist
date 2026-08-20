@@ -4,7 +4,7 @@ import About from '../components/About';
 import Services from '../components/Services';
 import Trade from '../components/Trade';
 import Stats from '../components/Stats';
-import Catalogue from '../components/Catalogue';
+import DehradunInitiative from '../components/DehradunInitiative';
 import WhyUs from '../components/WhyUs';
 
 const Home = () => {
@@ -15,7 +15,7 @@ const Home = () => {
       <Services />
       <Trade />
       <Stats />
-      <Catalogue />
+      <DehradunInitiative />
       <WhyUs />
     </main>
   );
