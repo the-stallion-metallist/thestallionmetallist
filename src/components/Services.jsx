@@ -184,7 +184,7 @@ const Services = () => {
                 transition={{ type: "spring", stiffness: 360, damping: 28 }}
                 style={{ borderRadius: 24 }}
               >
-                <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
+                <div className="modern-modal-inner">
                   <button 
                     className="close-btn" 
                     onClick={() => { setSelectedService(null); setShowContact(false); }}
@@ -232,10 +232,10 @@ const Services = () => {
                             transition={{ duration: 0.2 }}
                             style={{ display: 'flex', gap: '1rem', width: '100%', flexWrap: 'wrap' }}
                           >
-                            <a href="mailto:trade@stallionmetallist.com" className="btn btn-primary" style={{ flex: 1, textAlign: 'center', justifyContent: 'center' }}>
+                            <a href="mailto:contact@thestallionmetallist.com" className="btn btn-primary" style={{ flex: 1, textAlign: 'center', justifyContent: 'center' }}>
                               Email Us
                             </a>
-                            <a href="tel:+15878933420" className="btn" style={{ flex: 1, textAlign: 'center', justifyContent: 'center', background: 'var(--color-border)', color: 'var(--color-text-dark)', border: 'none' }}>
+                            <a href="tel:+919997348394" className="btn" style={{ flex: 1, textAlign: 'center', justifyContent: 'center', background: 'var(--color-border)', color: 'var(--color-text-dark)', border: 'none' }}>
                               Call Us
                             </a>
                           </motion.div>

@@ -17,19 +17,10 @@ const Contact = () => {
             We're here to help answer any questions you might have about our metal recycling and trading operations.
           </p>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '3rem' }}>
-            <div>
-              <h3 style={{ fontSize: '1.2rem', color: 'var(--color-accent)', marginBottom: '0.5rem' }}>Global Headquarters</h3>
-              <p style={{ fontSize: '1rem', color: 'var(--color-text-dark)' }}>
-                123 Industrial Avenue, Suite 400<br />
-                Toronto, ON M5V 2T6<br />
-                Canada
-              </p>
-            </div>
-            
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '3rem' }}>
             <div>
               <h3 style={{ fontSize: '1.2rem', color: 'var(--color-accent)', marginBottom: '0.5rem' }}>India Operations</h3>
-              <p style={{ fontSize: '1rem', color: 'var(--color-text-dark)' }}>
+              <p style={{ fontSize: '1rem', color: 'var(--color-text-dark)', lineHeight: 1.6 }}>
                 115A, Iksana Workspace, IT Park<br />
                 Sahastradhara Road<br />
                 Dehradun, Uttarakhand 248001<br />
@@ -37,12 +28,11 @@ const Contact = () => {
               </p>
             </div>
 
-            <div style={{ gridColumn: '1 / -1', borderTop: '1px solid var(--color-border)', paddingTop: '2rem' }}>
+            <div>
               <h3 style={{ fontSize: '1.2rem', color: 'var(--color-accent)', marginBottom: '0.5rem' }}>Contact Details</h3>
-              <p style={{ fontSize: '1rem', color: 'var(--color-text-dark)', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <span><strong>Email:</strong> <a href="mailto:trade@stallionmetallist.com" style={{ color: 'inherit', textDecoration: 'none' }}>trade@stallionmetallist.com</a></span>
-                <span><strong>Phone (Global):</strong> <a href="tel:+15878933420" style={{ color: 'inherit', textDecoration: 'none' }}>+1 587 8933 420</a></span>
-                <span><strong>Phone (India):</strong> <a href="tel:+918439748394" style={{ color: 'inherit', textDecoration: 'none' }}>+91 84397 48394</a></span>
+              <p style={{ fontSize: '1rem', color: 'var(--color-text-dark)', display: 'flex', flexDirection: 'column', gap: '0.75rem', lineHeight: 1.6 }}>
+                <span><strong>Email:</strong> <a href="mailto:contact@thestallionmetallist.com" style={{ color: 'inherit', textDecoration: 'none' }}>contact@thestallionmetallist.com</a></span>
+                <span><strong>Phone:</strong> <a href="tel:+919997348394" style={{ color: 'inherit', textDecoration: 'none' }}>+91 99973 48394</a></span>
               </p>
             </div>
           </div>

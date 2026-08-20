@@ -36,7 +36,6 @@ const Footer = ({ theme }) => {
           </div>
           <div>
             <h4 className="footer-heading">Operations</h4>
-            <p className="footer-text"><strong>Corporate HQ:</strong> Calgary, Alberta, Canada</p>
             <p className="footer-text"><strong>India Operations:</strong> Dehradun, Uttarakhand</p>
             <p className="footer-text"><strong>Indian Entry Ports:</strong> Mundra · Kandla · JNPT</p>
           </div>
