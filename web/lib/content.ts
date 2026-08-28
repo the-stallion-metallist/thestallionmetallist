@@ -1,0 +1,202 @@
+/* ============================================================================
+ * THE STALLION METALLIST — SITE CONTENT
+ * ----------------------------------------------------------------------------
+ * This is the ONE file to edit when you want to change wording, numbers, grades,
+ * routes, phone/email, etc. You do NOT need to touch any other file for content.
+ *
+ * Rules of thumb:
+ *   • Text goes inside "quotes".
+ *   • Keep the commas and curly braces where they are.
+ *   • If you add an item to a list, copy an existing { ... } block and edit it.
+ *   • TypeScript will warn if something is mistyped, so a typo can't silently
+ *     break the page.
+ * ========================================================================== */
+
+export const site = {
+  name: "The Stallion Metallist",
+  shortName: "Stallion Metallist",
+  // Used for the browser tab title + search engines.
+  tagline: "Raw scrap. Refined trade.",
+  description:
+    "The Stallion Metallist is an international metal-scrap trading company — sourcing ferrous & non-ferrous scrap across UAE, China, Europe and North America and delivering to India's furnaces, foundries and mills.",
+  url: "https://www.thestallionmetallist.com", // canonical site URL (update when the domain is live)
+  email: "contact@thestallionmetallist.com",
+  phoneDisplay: "+91 99973 48394",
+  phoneHref: "+919997348394",
+  ubcAppUrl: "https://thestallionmetalist.com", // the live can-collection PWA (note: one "l")
+  location: "Dehradun, Uttarakhand · India",
+  incorporation: "Incorporated in Calgary, AB · Canada",
+  copyrightYear: 2026,
+};
+
+// Top navigation links (anchor to section ids on the page).
+export const nav = [
+  { label: "About", href: "#about" },
+  { label: "Recycle Cans", href: "#ubc" },
+  { label: "Solutions", href: "#services" },
+  { label: "Trade", href: "#trade" },
+];
+
+export const hero = {
+  badge: "International Scrap Trading",
+  wordmark: "STALLION", // the giant metallic centerpiece
+  tagLead: "Raw scrap.",
+  tagAccent: "Refined trade.", // shown in copper
+  ctaPrimary: { label: "Explore our trade", href: "#trade" },
+  ctaGhost: { label: "How we operate", href: "#about" },
+  marketsLabel: "Sourcing across global markets",
+  markets: ["UAE", "China", "Europe", "North America"],
+};
+
+// Scrolling "grades" ticker under the hero.
+export const ticker = [
+  { name: "HMS 1&2", meta: "Ferrous" },
+  { name: "Shredded", meta: "Fe ≥ 92%" },
+  { name: "Cast Iron", meta: "Foundry" },
+  { name: "Structural", meta: "Industrial" },
+  { name: "Aluminium", meta: "UBC · Zorba" },
+  { name: "Copper", meta: "Millberry" },
+  { name: "Brass", meta: "Honey" },
+  { name: "Stainless", meta: "304 / 316" },
+];
+
+export const about = {
+  eyebrow: "About us",
+  heading: "A Canadian trade house, built for Indian industry.",
+  lead: "Stallion Metallist Ltd. is an international metal-scrap trading company, incorporated in Calgary and operating on the ground in Dehradun — bridging global supply with India's furnaces and foundries.",
+  ratingNote: "Full-cycle trade — sourcing, clearance & delivery",
+  cta: { label: "Learn more", href: "#why" },
+  chipA: { num: "50", unit: "K+", label: "Tons traded / year" },
+  chipB: { num: "03", unit: "", label: "Ports cleared · MUN·KDL·NSA" },
+};
+
+// Trade-route globe: source markets converging on India (the hub).
+export const routes = {
+  eyebrow: "Global sourcing",
+  heading: "The world's scrap, routed to India.",
+  sub: "We source across four global markets and channel it directly to India's furnaces, foundries and mills.",
+  // lat/lng place the node on the 3D globe; v is the tonnage shown on the chip/label.
+  nodes: [
+    { id: "nam", lat: 39, lng: -98, label: "North America", v: "12k T" },
+    { id: "eur", lat: 50, lng: 9, label: "Europe", v: "9k T" },
+    { id: "chn", lat: 34, lng: 108, label: "China", v: "16k T" },
+    { id: "uae", lat: 24, lng: 54, label: "UAE", v: "13k T" },
+    { id: "ind", lat: 22, lng: 79, label: "India", v: "50K+ T/yr", hub: true },
+  ] as GlobeNode[],
+};
+
+export type GlobeNode = {
+  id: string;
+  lat: number;
+  lng: number;
+  label: string;
+  v: string;
+  hub?: boolean;
+};
+
+export const ubc = {
+  eyebrow: "UBC Collection · The app",
+  heading: "Turn waste aluminium cans into cash.",
+  body: "Our progressive web app makes recycling pay. Book a doorstep pickup for your used beverage cans and get paid on collection — no fees, no fuss. Live in Dehradun now, with more cities coming soon.",
+  liveBadge: "Now serving Dehradun",
+  soonBadge: "More cities soon",
+  cta: { label: "Get started", href: site.ubcAppUrl },
+  // The phone mockup mirrors the real app. Neutral demo identity (not a real member).
+  demo: {
+    greetingName: "Ravi",
+    memberName: "Ravi Kumar",
+    memberSince: "2026",
+  },
+};
+
+export const services = {
+  eyebrow: "What we do",
+  heading: "Our solutions",
+  lead: "Beyond trading — full-cycle material recovery, from sorting and recycling to certified destruction.",
+  cta: { label: "View all services", href: "#trade" },
+  items: [
+    { tag: "Recovery", title: "Metal Recycling", img: "/images/metal_recycling.webp", alt: "Metal recycling" },
+    { tag: "Zero-waste", title: "Waste Diversion", img: "/images/waste_diversion.webp", alt: "Industrial waste diversion" },
+    { tag: "Certified", title: "Product Destruction", img: "/images/product_destruction.webp", alt: "Certified product destruction" },
+  ],
+};
+
+export const process = {
+  eyebrow: "How we operate",
+  heading: "Full-cycle trade, five moves.",
+  steps: [
+    { n: "01", title: "Source", body: "Direct exporter relationships across UAE, China, Europe & North America." },
+    { n: "02", title: "Negotiate", body: "Contracts executed to international trade standards with global exporters." },
+    { n: "03", title: "Clear", body: "Documentation, customs & logistics at Mundra, Kandla and JNPT." },
+    { n: "04", title: "Deliver", body: "To recyclers, furnaces & manufacturers across the Gujarat belt." },
+    { n: "05", title: "Settle", body: "Structured terms — LC at sight and T/T arrangements." },
+  ],
+};
+
+export const trade = {
+  eyebrow: "What we trade",
+  heading: "Internationally graded scrap.",
+  lead: "A full range of ferrous and non-ferrous grades, sourced from established exporters and delivered to India's processors and mills.",
+  tapHint: "Tap a grade for its spec.",
+  ferrous: {
+    title: "Ferrous",
+    count: "04 grades",
+    grades: [
+      { name: "Heavy Melting Scrap", code: "HMS 1&2", specs: ["Origin: UAE · Europe", "Fe ≥ 92%", "LC at sight", "For steel mills & foundries"] },
+      { name: "Shredded Scrap", code: "FE ≥ 92%", specs: ["Low copper content", "Density-optimised", "Fast melt"] },
+      { name: "Cast Iron Scrap", code: "FOUNDRY", specs: ["High carbon", "Remelt-ready", "Foundry grade"] },
+      { name: "Structural & Industrial", code: "STRUCT", specs: ["Beams & plate", "Demolition-sourced", "Cut-to-size"] },
+    ],
+  },
+  nonFerrous: {
+    title: "Non-Ferrous",
+    count: "04 grades",
+    grades: [
+      { name: "Aluminium — UBC · Zorba", code: "AL", specs: ["Baled UBC", "Zorba shred", "Twitch available"] },
+      { name: "Copper — Millberry", code: "CU", specs: ["99%+ bright", "Bare bright", "Electrical grade"] },
+      { name: "Brass — Honey", code: "BR", specs: ["Yellow brass", "Plumbing & eng.", "Low attachments"] },
+      { name: "Stainless Steel", code: "304/316", specs: ["Solids & turnings", "Ni-bearing", "Grade-sorted"] },
+    ],
+  },
+};
+
+export type Grade = { name: string; code: string; specs: string[] };
+
+export const stats = {
+  eyebrow: "Scale",
+  heading: "Volume, routes and relationships that move material at scale.",
+  // "to" is the number it counts up to; "pad" left-pads with zeros (e.g. 4 -> 04).
+  items: [
+    { to: 50, unit: "K+", pad: 0, label: "Tons / year", desc: "High-grade scrap moved across borders." },
+    { to: 4, unit: "", pad: 2, label: "Global markets", desc: "UAE · China · Europe · N. America." },
+    { to: 3, unit: "", pad: 2, label: "Major ports", desc: "Mundra · Kandla · JNPT clearance." },
+    { to: 100, unit: "+", pad: 0, label: "Trusted partners", desc: "Vetted exporters and recyclers." },
+  ],
+};
+
+export const why = {
+  eyebrow: "Why Stallion Metallist",
+  heading: "Global structure. Local execution.",
+  cards: [
+    { icon: "◇", title: "Global entity", body: "Canada-incorporated with a credible, internationally recognised corporate structure." },
+    { icon: "◈", title: "On the ground", body: "Active in both India and the West, bridging global supply with Indian demand." },
+    { icon: "▤", title: "Buyer network", body: "Deep knowledge of the Rajkot and Gujarat scrap-buyer ecosystem." },
+    { icon: "◆", title: "Compliant terms", body: "Structured payment processes that meet international exporter expectations." },
+  ],
+};
+
+export const cta = {
+  heading: "Let's move your material.",
+};
+
+export const footer = {
+  blurb: "International metal scrap trading — sourcing the raw materials of the world for India's heavy industry.",
+  navHeading: "Navigate",
+  navLinks: [
+    { label: "About", href: "#about" },
+    { label: "Solutions", href: "#services" },
+    { label: "Trade", href: "#trade" },
+    { label: "Why Us", href: "#why" },
+  ],
+  contactHeading: "Contact",
+};
