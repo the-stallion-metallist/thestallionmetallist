@@ -40,24 +40,17 @@ export default function Trade() {
           </p>
         </div>
         <div className="trade-grid">
-          <div className="trade-card reveal">
-            <div className="cat">
-              <h3>{trade.ferrous.title}</h3>
-              <span className="n">{trade.ferrous.count}</span>
+          {trade.groups.map((group) => (
+            <div className={`trade-card reveal${group.dark ? " dark" : ""}`} key={group.title}>
+              <div className="cat">
+                <h3 className={group.dark ? "copper" : undefined}>{group.title}</h3>
+                <span className="n">{group.count}</span>
+              </div>
+              {group.grades.map((g) => (
+                <GradeRow g={g} key={g.name} />
+              ))}
             </div>
-            {trade.ferrous.grades.map((g) => (
-              <GradeRow g={g} key={g.name} />
-            ))}
-          </div>
-          <div className="trade-card dark reveal">
-            <div className="cat">
-              <h3 className="copper">{trade.nonFerrous.title}</h3>
-              <span className="n">{trade.nonFerrous.count}</span>
-            </div>
-            {trade.nonFerrous.grades.map((g) => (
-              <GradeRow g={g} key={g.name} />
-            ))}
-          </div>
+          ))}
         </div>
       </div>
     </section>

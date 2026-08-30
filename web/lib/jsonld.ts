@@ -26,11 +26,11 @@ export function organizationJsonLd() {
     },
     areaServed: ["IN", "AE", "CN", "EU", "US", "CA"],
     knowsAbout: [
-      "Ferrous scrap trading",
       "Non-ferrous scrap trading",
-      "HMS 1&2",
       "Aluminium UBC",
       "Copper Millberry",
+      "Brass scrap",
+      "Stainless steel scrap",
       "Metal recycling",
     ],
     sameAs: [site.ubcAppUrl],

@@ -18,7 +18,7 @@ export const site = {
   // Used for the browser tab title + search engines.
   tagline: "Raw scrap. Refined trade.",
   description:
-    "The Stallion Metallist is an international metal-scrap trading company — sourcing ferrous & non-ferrous scrap across UAE, China, Europe and North America and delivering to India's furnaces, foundries and mills.",
+    "The Stallion Metallist is an international non-ferrous metal-scrap trading company, sourcing aluminium, copper, brass and stainless scrap across UAE, China, Europe and North America and delivering to India's furnaces, foundries and mills.",
   url: "https://www.thestallionmetallist.com", // canonical site URL (update when the domain is live)
   email: "contact@thestallionmetallist.com",
   phoneDisplay: "+91 99973 48394",
@@ -48,15 +48,15 @@ export const hero = {
   markets: ["UAE", "China", "Europe", "North America"],
 };
 
-// Scrolling "grades" ticker under the hero.
+// Scrolling "grades" ticker under the hero. (Non-ferrous only.)
 export const ticker = [
-  { name: "HMS 1&2", meta: "Ferrous" },
-  { name: "Shredded", meta: "Fe ≥ 92%" },
-  { name: "Cast Iron", meta: "Foundry" },
-  { name: "Structural", meta: "Industrial" },
-  { name: "Aluminium", meta: "UBC · Zorba" },
+  { name: "Aluminium UBC", meta: "Baled" },
+  { name: "Zorba", meta: "Al shred" },
+  { name: "Twitch", meta: "Al float" },
   { name: "Copper", meta: "Millberry" },
+  { name: "Bare Bright", meta: "Cu 99%+" },
   { name: "Brass", meta: "Honey" },
+  { name: "Zurik", meta: "Recovery" },
   { name: "Stainless", meta: "304 / 316" },
 ];
 
@@ -135,32 +135,34 @@ export const process = {
 
 export const trade = {
   eyebrow: "What we trade",
-  heading: "Internationally graded scrap.",
-  lead: "A full range of ferrous and non-ferrous grades, sourced from established exporters and delivered to India's processors and mills.",
+  heading: "Internationally graded non-ferrous scrap.",
+  lead: "A full range of non-ferrous grades, sourced from established exporters and delivered to India's processors and mills.",
   tapHint: "Tap a grade for its spec.",
-  ferrous: {
-    title: "Ferrous",
-    count: "04 grades",
-    grades: [
-      { name: "Heavy Melting Scrap", code: "HMS 1&2", specs: ["Origin: UAE · Europe", "Fe ≥ 92%", "LC at sight", "For steel mills & foundries"] },
-      { name: "Shredded Scrap", code: "FE ≥ 92%", specs: ["Low copper content", "Density-optimised", "Fast melt"] },
-      { name: "Cast Iron Scrap", code: "FOUNDRY", specs: ["High carbon", "Remelt-ready", "Foundry grade"] },
-      { name: "Structural & Industrial", code: "STRUCT", specs: ["Beams & plate", "Demolition-sourced", "Cut-to-size"] },
-    ],
-  },
-  nonFerrous: {
-    title: "Non-Ferrous",
-    count: "04 grades",
-    grades: [
-      { name: "Aluminium — UBC · Zorba", code: "AL", specs: ["Baled UBC", "Zorba shred", "Twitch available"] },
-      { name: "Copper — Millberry", code: "CU", specs: ["99%+ bright", "Bare bright", "Electrical grade"] },
-      { name: "Brass — Honey", code: "BR", specs: ["Yellow brass", "Plumbing & eng.", "Low attachments"] },
-      { name: "Stainless Steel", code: "304/316", specs: ["Solids & turnings", "Ni-bearing", "Grade-sorted"] },
-    ],
-  },
+  // Two non-ferrous groups (keeps the two-column layout balanced). Add/remove a
+  // whole group by copying a { ... } block; set `dark: true` for the darker card.
+  groups: [
+    {
+      title: "Aluminium & Copper",
+      count: "02 grades",
+      grades: [
+        { name: "Aluminium — UBC · Zorba", code: "AL", specs: ["Baled UBC", "Zorba shred", "Twitch available"] },
+        { name: "Copper — Millberry", code: "CU", specs: ["99%+ bright", "Bare bright", "Electrical grade"] },
+      ],
+    },
+    {
+      title: "Brass & Stainless",
+      count: "02 grades",
+      dark: true,
+      grades: [
+        { name: "Brass — Honey", code: "BR", specs: ["Yellow brass", "Plumbing & eng.", "Low attachments"] },
+        { name: "Stainless Steel", code: "304/316", specs: ["Solids & turnings", "Ni-bearing", "Grade-sorted"] },
+      ],
+    },
+  ] as TradeGroup[],
 };
 
 export type Grade = { name: string; code: string; specs: string[] };
+export type TradeGroup = { title: string; count: string; dark?: boolean; grades: Grade[] };
 
 export const stats = {
   eyebrow: "Scale",

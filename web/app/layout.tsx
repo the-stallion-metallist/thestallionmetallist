@@ -7,18 +7,18 @@ import "./globals.css";
 export const metadata: Metadata = {
   metadataBase: new URL(site.url),
   title: {
-    default: `${site.name} — International Metal Scrap Trading`,
+    default: `${site.name} — International Non-Ferrous Scrap Trading`,
     template: `%s · ${site.shortName}`,
   },
   description: site.description,
   applicationName: site.name,
   keywords: [
-    "metal scrap trading",
-    "ferrous scrap",
-    "non-ferrous scrap",
-    "HMS 1&2",
+    "non-ferrous scrap trading",
+    "aluminium scrap",
     "aluminium UBC",
     "copper scrap India",
+    "brass scrap",
+    "stainless steel scrap",
     "scrap importer Dehradun",
     "scrap supplier India",
   ],
