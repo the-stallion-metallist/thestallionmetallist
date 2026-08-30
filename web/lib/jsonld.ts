@@ -14,6 +14,19 @@ const GBP_URL = "https://share.google/O9ESXisAZPqJxZR8t";
 // Operating address (matches the verified Google Business Profile in Dehradun).
 const streetAddress = "Iksana Workspace, IT Park, 115A, Sahastradhara Rd, Kasturi Nagar, Danda Lakhond";
 
+// Map coordinates + opening hours, taken from the verified Google Business Profile.
+// (Keep these in sync if the GBP hours/location ever change.)
+const geo = { latitude: 30.3581708, longitude: 78.0878097 };
+// Open Monday–Saturday 11:00–17:00; closed Sunday.
+const openingHours = [
+  {
+    "@type": "OpeningHoursSpecification",
+    dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+    opens: "11:00",
+    closes: "17:00",
+  },
+];
+
 export function organizationJsonLd() {
   const orgId = `${site.url}/#organization`;
   const siteId = `${site.url}/#website`;
@@ -74,6 +87,8 @@ export function organizationJsonLd() {
         email: site.email,
         image: `${site.url}/opengraph-image`,
         hasMap: GBP_URL,
+        geo: { "@type": "GeoCoordinates", latitude: geo.latitude, longitude: geo.longitude },
+        openingHoursSpecification: openingHours,
         address: {
           "@type": "PostalAddress",
           streetAddress,

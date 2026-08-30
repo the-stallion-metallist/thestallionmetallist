@@ -14,9 +14,17 @@ export default function Ubc() {
                 <span className="ubc-badge"><span className="live" /> {ubc.liveBadge}</span>
                 <span className="ubc-badge soon">◷ {ubc.soonBadge}</span>
               </div>
-              <a className="btn btn-steel" href={ubc.cta.href} target="_blank" rel="noopener">
-                {ubc.cta.label} <span className="circ" style={{ background: "rgba(255,255,255,0.2)" }}>→</span>
-              </a>
+              <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.6rem 1.3rem" }}>
+                <a className="btn btn-steel" href={ubc.cta.href} target="_blank" rel="noopener">
+                  {ubc.cta.label} <span className="circ" style={{ background: "rgba(255,255,255,0.2)" }}>→</span>
+                </a>
+                <a
+                  href="/aluminium-can-collection-dehradun"
+                  style={{ color: "var(--copper)", fontWeight: 600, textDecoration: "none", fontSize: "0.95rem" }}
+                >
+                  Doorstep can collection in Dehradun →
+                </a>
+              </div>
             </div>
 
             <div className="ubc-app">

@@ -4,7 +4,7 @@ import { products } from "@/lib/products";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();
-  const staticPaths = ["/", "/non-ferrous-scrap", "/services", "/about", "/contact"];
+  const staticPaths = ["/", "/non-ferrous-scrap", "/services", "/about", "/contact", "/aluminium-can-collection-dehradun"];
   const productPaths = products.map((p) => `/${p.slug}`);
 
   return [...staticPaths, ...productPaths].map((path) => ({
