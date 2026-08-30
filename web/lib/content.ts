@@ -46,7 +46,10 @@ export const nav = [
 ];
 
 export const hero = {
-  badge: "International Scrap Trading",
+  badge: "International Non-Ferrous Scrap Trading",
+  // Read by screen readers and search engines as the real H1 text (the giant
+  // "STALLION" below is decorative for them). Keep it an accurate, plain sentence.
+  seoHeading: "The Stallion Metallist. International non-ferrous scrap trading in Dehradun, India.",
   wordmark: "STALLION", // the giant metallic centerpiece
   tagLead: "Raw scrap.",
   tagAccent: "Refined trade.", // shown in copper

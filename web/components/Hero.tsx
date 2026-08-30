@@ -15,7 +15,10 @@ export default function Hero() {
             <span className="sp">✦</span> {hero.badge}
           </span>
           <h1 className="hero-h1">
-            <span className="mega hero-rise" style={v(".26s")}>{hero.wordmark}</span>
+            {/* Real, descriptive H1 text for search engines & screen readers.
+                Visually hidden so the design (the big STALLION) is unchanged. */}
+            <span className="hero-seo">{hero.seoHeading}</span>
+            <span className="mega hero-rise" aria-hidden="true" style={v(".26s")}>{hero.wordmark}</span>
             <span className="hero-tag hero-rise" style={v(".44s")}>
               {hero.tagLead} <span className="copper">{hero.tagAccent}</span>
             </span>
@@ -74,6 +77,14 @@ export default function Hero() {
           </div>
         </div>
       </div>
+
+      <style>{`
+        .hero-seo {
+          position: absolute; width: 1px; height: 1px; padding: 0;
+          margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0);
+          white-space: nowrap; border: 0;
+        }
+      `}</style>
     </section>
   );
 }
