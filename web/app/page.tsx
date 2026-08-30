@@ -11,6 +11,7 @@ import Process from "@/components/Process";
 import Trade from "@/components/Trade";
 import Stats from "@/components/Stats";
 import Why from "@/components/Why";
+import Faq from "@/components/Faq";
 import Cta from "@/components/Cta";
 import Footer from "@/components/Footer";
 import Effects from "@/components/Effects";
@@ -32,6 +33,7 @@ export default function Home() {
         <Trade />
         <Stats />
         <Why />
+        <Faq />
         <Cta />
       </main>
       <Footer />

@@ -20,7 +20,7 @@ export default function Footer() {
         <div className="col">
           <span className="h">{footer.contactHeading}</span>
           <a href={`mailto:${site.email}`}>{site.email}</a>
-          <a href={`tel:+${site.phoneHref}`}>{site.phoneDisplay}</a>
+          <a href={`tel:${site.phoneHref}`}>{site.phoneDisplay}</a>
           <a href="#">{site.location}</a>
         </div>
       </div>

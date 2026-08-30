@@ -12,7 +12,7 @@ export default function Cta() {
                 Email us{" "}
                 <span className="circ" style={{ background: "var(--copper-tt2)", color: "var(--copper-dk)" }}>→</span>
               </a>
-              <a className="btn btn-out magnetic" href={`tel:+${site.phoneHref}`}>{site.phoneDisplay}</a>
+              <a className="btn btn-out magnetic" href={`tel:${site.phoneHref}`}>{site.phoneDisplay}</a>
             </div>
           </div>
         </div>
