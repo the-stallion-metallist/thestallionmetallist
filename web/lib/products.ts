@@ -112,6 +112,7 @@ export const products: Product[] = [
       "The Stallion Metallist supplies grade-sorted stainless steel scrap (304 and 316 solids and turnings) to Indian mills and foundries, on international LC and T/T terms.",
     intro:
       "Nickel-bearing stainless steel scrap, grade-sorted for India's mills and foundries. Sourced from vetted international exporters, cleared at Mundra, Kandla and JNPT, and delivered across the Gujarat belt.",
+    photos: [{ src: "/images/stainless-steel-scrap.webp", alt: "Grade-sorted stainless steel scrap, 304 and 316 solids and turnings" }],
     grades: [
       { name: "SS 304", specs: ["Solids and turnings", "Nickel-bearing", "Grade-sorted"] },
       { name: "SS 316", specs: ["Solids and turnings", "Higher nickel and molybdenum", "Grade-sorted"] },
