@@ -3,14 +3,16 @@
 import { useEffect, useState } from "react";
 import { nav } from "@/lib/content";
 
-// Mobile menu shows a few more anchors than the desktop pill.
+// Mobile menu shows a few more links than the desktop pill.
 const mobileNav = [
-  { label: "About", href: "#about" },
-  { label: "Recycle Cans", href: "#ubc" },
-  { label: "Solutions", href: "#services" },
-  { label: "How we operate", href: "#process" },
-  { label: "Trade", href: "#trade" },
-  { label: "Why Us", href: "#why" },
+  { label: "Non-ferrous scrap", href: "/non-ferrous-scrap" },
+  { label: "Aluminium", href: "/aluminium-scrap" },
+  { label: "Copper", href: "/copper-scrap" },
+  { label: "Brass", href: "/brass-scrap" },
+  { label: "Stainless", href: "/stainless-steel-scrap" },
+  { label: "Services", href: "/services" },
+  { label: "About", href: "/about" },
+  { label: "Recycle Cans", href: "/#ubc" },
 ];
 
 export default function Header() {
@@ -26,7 +28,7 @@ export default function Header() {
       <header>
         <div className="nav">
           <div className="nav-inner">
-            <a className="brand" href="#top">
+            <a className="brand" href="/">
               <img className="mk" src="/brand/logo-mark.png" alt="Stallion Metallist logo" />
               <b>STALLION <span>METALLIST</span></b>
             </a>
@@ -35,7 +37,7 @@ export default function Header() {
                 <a href={l.href} key={l.href}>{l.label}</a>
               ))}
             </nav>
-            <a className="btn btn-primary nav-cta" href="#contact" style={{ padding: "0.65rem 1.3rem" }}>
+            <a className="btn btn-primary nav-cta" href="/contact" style={{ padding: "0.65rem 1.3rem" }}>
               Get in touch
             </a>
             <button
@@ -54,7 +56,7 @@ export default function Header() {
         {mobileNav.map((l) => (
           <a href={l.href} key={l.href} onClick={() => setOpen(false)}>{l.label}</a>
         ))}
-        <a className="btn btn-primary" href="#contact" style={{ marginTop: "1rem" }} onClick={() => setOpen(false)}>
+        <a className="btn btn-primary" href="/contact" style={{ marginTop: "1rem" }} onClick={() => setOpen(false)}>
           Get in touch
         </a>
       </div>

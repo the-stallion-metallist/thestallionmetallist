@@ -52,6 +52,11 @@ export default function Trade() {
             </div>
           ))}
         </div>
+        <div style={{ textAlign: "center", marginTop: "2.2rem" }} className="reveal">
+          <a className="btn btn-primary magnetic" href="/non-ferrous-scrap">
+            Explore all non-ferrous grades <span className="circ">→</span>
+          </a>
+        </div>
       </div>
     </section>
   );

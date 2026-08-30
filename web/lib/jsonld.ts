@@ -100,3 +100,74 @@ export function organizationJsonLd() {
     ],
   };
 }
+
+const orgRef = { "@id": `${site.url}/#organization` };
+
+/** BreadcrumbList for a sub-page. Pass items in order (Home first). */
+export function breadcrumbJsonLd(items: { name: string; path: string }[]) {
+  return {
+    "@type": "BreadcrumbList",
+    itemListElement: items.map((it, i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      name: it.name,
+      item: `${site.url}${it.path}`,
+    })),
+  };
+}
+
+type FaqItem = { q: string; a: string };
+
+/** Full structured-data @graph for a non-ferrous product page. */
+export function productPageJsonLd(p: {
+  slug: string;
+  metal: string;
+  h1: string;
+  description: string;
+  faqs: FaqItem[];
+}) {
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      breadcrumbJsonLd([
+        { name: "Home", path: "/" },
+        { name: "Non-ferrous scrap", path: "/non-ferrous-scrap" },
+        { name: p.metal, path: `/${p.slug}` },
+      ]),
+      {
+        "@type": "Product",
+        name: p.h1,
+        description: p.description,
+        category: `${p.metal} scrap`,
+        brand: orgRef,
+        url: `${site.url}/${p.slug}`,
+        seller: orgRef,
+      },
+      {
+        "@type": "FAQPage",
+        mainEntity: p.faqs.map((f) => ({
+          "@type": "Question",
+          name: f.q,
+          acceptedAnswer: { "@type": "Answer", text: f.a },
+        })),
+      },
+    ],
+  };
+}
+
+/** Simpler @graph for a content page (Breadcrumb + WebPage). */
+export function pageJsonLd(name: string, path: string, breadcrumbTail: { name: string; path: string }[]) {
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      breadcrumbJsonLd([{ name: "Home", path: "/" }, ...breadcrumbTail]),
+      {
+        "@type": "WebPage",
+        name,
+        url: `${site.url}${path}`,
+        isPartOf: { "@id": `${site.url}/#website` },
+        about: orgRef,
+      },
+    ],
+  };
+}

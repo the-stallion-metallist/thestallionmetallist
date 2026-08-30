@@ -1,4 +1,5 @@
 import { footer, site, socials } from "@/lib/content";
+import { products } from "@/lib/products";
 
 // Minimal inline icons (currentColor so they inherit the link colour).
 function SocialIcon({ label }: { label: string }) {
@@ -24,7 +25,7 @@ export default function Footer() {
     <footer>
       <div className="wrap foot">
         <div className="about">
-          <a className="brand" href="#top">
+          <a className="brand" href="/">
             <img className="mk" src="/brand/logo-mark.png" alt="Stallion Metallist logo" />
             <b>STALLION <span>METALLIST</span></b>
           </a>
@@ -45,6 +46,13 @@ export default function Footer() {
           </div>
         </div>
         <div className="col">
+          <span className="h">Grades</span>
+          {products.map((p) => (
+            <a href={`/${p.slug}`} key={p.slug}>{p.metal}</a>
+          ))}
+          <a href="/non-ferrous-scrap">All grades</a>
+        </div>
+        <div className="col">
           <span className="h">{footer.navHeading}</span>
           {footer.navLinks.map((l) => (
             <a href={l.href} key={l.href}>{l.label}</a>
@@ -54,7 +62,7 @@ export default function Footer() {
           <span className="h">{footer.contactHeading}</span>
           <a href={`mailto:${site.email}`}>{site.email}</a>
           <a href={`tel:${site.phoneHref}`}>{site.phoneDisplay}</a>
-          <a href="#">{site.location}</a>
+          <a href="/contact">{site.location}</a>
         </div>
       </div>
       <div className="wrap">

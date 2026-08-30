@@ -37,12 +37,13 @@ export const socials = [
   { label: "Instagram", href: "https://www.instagram.com/thestallionmetallist/" },
 ];
 
-// Top navigation links (anchor to section ids on the page).
+// Top navigation links. Real pages where they exist; "/#id" jumps to a section
+// on the home page (works from any sub-page).
 export const nav = [
-  { label: "About", href: "#about" },
-  { label: "Recycle Cans", href: "#ubc" },
-  { label: "Solutions", href: "#services" },
-  { label: "Trade", href: "#trade" },
+  { label: "Trade", href: "/non-ferrous-scrap" },
+  { label: "Services", href: "/services" },
+  { label: "About", href: "/about" },
+  { label: "Recycle Cans", href: "/#ubc" },
 ];
 
 export const hero = {
@@ -206,10 +207,10 @@ export const footer = {
   blurb: "International non-ferrous scrap trading, sourcing the raw materials of the world for India's heavy industry.",
   navHeading: "Navigate",
   navLinks: [
-    { label: "About", href: "#about" },
-    { label: "Solutions", href: "#services" },
-    { label: "Trade", href: "#trade" },
-    { label: "Why Us", href: "#why" },
+    { label: "Non-ferrous scrap", href: "/non-ferrous-scrap" },
+    { label: "Services", href: "/services" },
+    { label: "About", href: "/about" },
+    { label: "Contact", href: "/contact" },
   ],
   contactHeading: "Contact",
 };
