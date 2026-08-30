@@ -8,6 +8,7 @@
 
 export type ProductGrade = { name: string; specs: string[] };
 export type ProductFaq = { q: string; a: string };
+export type ProductPhoto = { src: string; alt: string };
 
 export type Product = {
   slug: string; // URL, also the canonical path
@@ -17,6 +18,7 @@ export type Product = {
   title: string; // <title> tag
   description: string; // meta description
   intro: string; // opening paragraph
+  photos?: ProductPhoto[]; // product images (also used as the hub thumbnail)
   grades: ProductGrade[];
   applications: string[];
   sourcing: string;
@@ -34,6 +36,10 @@ export const products: Product[] = [
       "The Stallion Metallist supplies electrical-grade copper scrap (Millberry and bare bright) to Indian smelters and mills, sourced from vetted exporters in the UAE, China, Europe and North America.",
     intro:
       "We supply high-purity copper scrap to India's smelters, refineries and mills. Our copper is sourced directly from established exporters across the UAE, China, Europe and North America, cleared at Mundra, Kandla and JNPT, and delivered on international trade terms.",
+    photos: [
+      { src: "/images/copper-scrap.webp", alt: "Bright copper wire scrap, Millberry grade" },
+      { src: "/images/copper-bright.webp", alt: "Bare bright cut copper scrap pieces" },
+    ],
     grades: [
       { name: "Copper Millberry (99%+)", specs: ["Bright, uncoated wire", "99%+ copper content", "Electrical grade", "Baled or loose"] },
       { name: "Bare Bright", specs: ["Clean, bare, uncoated wire", "1/16 inch and thicker", "Highest-value copper grade"] },
@@ -57,6 +63,7 @@ export const products: Product[] = [
       "The Stallion Metallist supplies aluminium scrap (baled UBC, Zorba and Twitch) to Indian foundries and secondary smelters, sourced internationally and delivered on LC and T/T terms.",
     intro:
       "Baled used beverage cans (UBC), Zorba shred and Twitch, supplied to India's foundries and secondary aluminium smelters. We source from vetted exporters and, increasingly, from our own doorstep can-collection service in Dehradun.",
+    photos: [{ src: "/images/aluminium-scrap.webp", alt: "Baled aluminium used beverage cans (UBC) scrap" }],
     grades: [
       { name: "UBC (Used Beverage Cans)", specs: ["Baled aluminium cans", "Clean, dry, low moisture", "Secondary smelting feed"] },
       { name: "Zorba", specs: ["Shredded, aluminium-rich mix", "Density-sorted", "Consistent chemistry"] },
@@ -81,6 +88,7 @@ export const products: Product[] = [
       "The Stallion Metallist supplies brass scrap (honey and yellow brass) to Indian foundries and engineering units, sourced from vetted exporters and delivered on LC and T/T terms.",
     intro:
       "Clean brass scrap for India's foundries, valve makers and engineering units. Sourced from established exporters across the UAE, China, Europe and North America, cleared at major Indian ports and delivered on international terms.",
+    photos: [{ src: "/images/brass-scrap.webp", alt: "Yellow honey brass scrap granules" }],
     grades: [
       { name: "Honey Brass", specs: ["Clean yellow brass", "Low attachments", "Remelt-ready"] },
       { name: "Yellow Brass", specs: ["Mixed plumbing and engineering brass", "Sorted", "Foundry grade"] },

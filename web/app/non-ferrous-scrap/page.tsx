@@ -47,9 +47,16 @@ export default function Page() {
           <div className="nf-grid">
             {products.map((p) => (
               <a className="nf-card" href={`/${p.slug}`} key={p.slug}>
-                <div className="nf-metal">{p.metal}</div>
-                <p>{p.grades.map((g) => g.name).join(", ")}</p>
-                <span className="nf-go">View grades <span aria-hidden="true">→</span></span>
+                {p.photos?.[0] ? (
+                  <img className="nf-thumb" src={p.photos[0].src} alt={p.photos[0].alt} width={1400} height={1050} loading="lazy" />
+                ) : (
+                  <span className="nf-thumb nf-ph" aria-hidden="true">{p.metal}</span>
+                )}
+                <div className="nf-body">
+                  <div className="nf-metal">{p.metal}</div>
+                  <p>{p.grades.map((g) => g.name).join(", ")}</p>
+                  <span className="nf-go">View grades <span aria-hidden="true">→</span></span>
+                </div>
               </a>
             ))}
           </div>
@@ -83,13 +90,18 @@ export default function Page() {
         .nf-head h2 { font-size: clamp(1.7rem, 3.4vw, 2.5rem); }
         .nf-mt { margin-top: clamp(3rem, 6vw, 4.6rem); }
         .nf-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.1rem; }
-        .nf-card { display: flex; flex-direction: column; gap: 0.6rem; text-decoration: none;
+        .nf-card { display: flex; flex-direction: column; text-decoration: none; overflow: hidden;
           background: var(--card); border: 1px solid var(--line); border-radius: var(--r);
-          padding: 1.6rem 1.7rem; color: var(--ink); transition: border-color .2s, transform .2s, box-shadow .2s; }
+          color: var(--ink); transition: border-color .2s, transform .2s, box-shadow .2s; }
         .nf-card:hover { border-color: var(--copper); transform: translateY(-3px);
           box-shadow: 0 18px 40px -26px rgba(0,0,0,0.4); }
+        .nf-thumb { width: 100%; aspect-ratio: 16 / 10; object-fit: cover; display: block; }
+        .nf-ph { display: flex; align-items: center; justify-content: center;
+          background: linear-gradient(135deg, var(--paper-2), var(--copper-tint));
+          color: var(--copper-dk); font-family: var(--f-disp); font-weight: 700; font-size: 1.4rem; letter-spacing: -0.02em; }
+        .nf-body { display: flex; flex-direction: column; gap: 0.6rem; padding: 1.4rem 1.6rem 1.6rem; flex: 1; }
         .nf-metal { font-family: var(--f-disp); font-weight: 700; font-size: 1.5rem; letter-spacing: -0.02em; }
-        .nf-card p { color: var(--muted); font-size: 0.95rem; flex: 1; }
+        .nf-body p { color: var(--muted); font-size: 0.95rem; flex: 1; }
         .nf-go { color: var(--copper); font-weight: 600; font-size: 0.9rem; }
         .nf-steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
         .nf-steps > div { background: var(--paper-2); border-radius: var(--r-sm); padding: 1.2rem 1.4rem;

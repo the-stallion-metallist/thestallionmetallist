@@ -32,6 +32,23 @@ export default function ProductPage({ slug }: { slug: string }) {
 
       <section className="pp">
         <div className="wrap">
+          {/* Product photos */}
+          {p.photos && p.photos.length > 0 && (
+            <div className={`pp-photos${p.photos.length > 1 ? " two" : ""}`}>
+              {p.photos.map((ph) => (
+                <img
+                  key={ph.src}
+                  className="pp-photo"
+                  src={ph.src}
+                  alt={ph.alt}
+                  width={1400}
+                  height={1050}
+                  loading="lazy"
+                />
+              ))}
+            </div>
+          )}
+
           {/* Grades */}
           <div className="pp-head">
             <span className="eyebrow">Grades we supply</span>
@@ -109,6 +126,11 @@ export default function ProductPage({ slug }: { slug: string }) {
 
       <style>{`
         .pp { padding: clamp(3.4rem, 8vw, 6rem) 0; }
+        .pp-photos { display: grid; grid-template-columns: 1fr; gap: 1.1rem; margin-bottom: clamp(2.6rem, 6vw, 4rem); }
+        .pp-photos.two { grid-template-columns: 1fr 1fr; }
+        @media (max-width: 620px){ .pp-photos.two { grid-template-columns: 1fr; } }
+        .pp-photo { width: 100%; height: auto; aspect-ratio: 4 / 3; object-fit: cover;
+          border-radius: var(--r-lg); border: 1px solid var(--line); background: var(--paper-2); }
         .pp-head { margin-bottom: 1.6rem; }
         .pp-head .eyebrow { margin-bottom: 0.9rem; }
         .pp-head h2 { font-size: clamp(1.7rem, 3.4vw, 2.5rem); }
