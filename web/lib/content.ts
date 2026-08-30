@@ -29,6 +29,14 @@ export const site = {
   copyrightYear: 2026,
 };
 
+// Social profiles. Shown in the footer and listed in the site's structured data
+// (sameAs) so Google and AI engines link them to the company. Add or remove a
+// { ... } block to change what appears.
+export const socials = [
+  { label: "LinkedIn", href: "https://www.linkedin.com/company/the-stallion-metallist" },
+  { label: "Instagram", href: "https://www.instagram.com/thestallionmetallist/" },
+];
+
 // Top navigation links (anchor to section ids on the page).
 export const nav = [
   { label: "About", href: "#about" },
@@ -63,8 +71,8 @@ export const ticker = [
 export const about = {
   eyebrow: "About us",
   heading: "A Canadian trade house, built for Indian industry.",
-  lead: "Stallion Metallist Ltd. is an international metal-scrap trading company, incorporated in Calgary and operating on the ground in Dehradun — bridging global supply with India's furnaces and foundries.",
-  ratingNote: "Full-cycle trade — sourcing, clearance & delivery",
+  lead: "Stallion Metallist Ltd. is an international metal-scrap trading company, incorporated in Calgary and operating on the ground in Dehradun, bridging global supply with India's furnaces and foundries.",
+  ratingNote: "Full-cycle trade: sourcing, clearance and delivery",
   cta: { label: "Learn more", href: "#why" },
   chipA: { num: "50", unit: "K+", label: "Tons traded / year" },
   chipB: { num: "03", unit: "", label: "Ports cleared · MUN·KDL·NSA" },
@@ -97,7 +105,7 @@ export type GlobeNode = {
 export const ubc = {
   eyebrow: "UBC Collection · The app",
   heading: "Turn waste aluminium cans into cash.",
-  body: "Our progressive web app makes recycling pay. Book a doorstep pickup for your used beverage cans and get paid on collection — no fees, no fuss. Live in Dehradun now, with more cities coming soon.",
+  body: "Our progressive web app makes recycling pay. Book a doorstep pickup for your used beverage cans and get paid on collection. No fees, no fuss. Live in Dehradun now, with more cities coming soon.",
   liveBadge: "Now serving Dehradun",
   soonBadge: "More cities soon",
   cta: { label: "Get started", href: site.ubcAppUrl },
@@ -112,7 +120,7 @@ export const ubc = {
 export const services = {
   eyebrow: "What we do",
   heading: "Our solutions",
-  lead: "Beyond trading — full-cycle material recovery, from sorting and recycling to certified destruction.",
+  lead: "Beyond trading, full-cycle material recovery, from sorting and recycling to certified destruction.",
   cta: { label: "View all services", href: "#trade" },
   items: [
     { tag: "Recovery", title: "Metal Recycling", img: "/images/metal_recycling.webp", alt: "Metal recycling" },
@@ -129,7 +137,7 @@ export const process = {
     { n: "02", title: "Negotiate", body: "Contracts executed to international trade standards with global exporters." },
     { n: "03", title: "Clear", body: "Documentation, customs & logistics at Mundra, Kandla and JNPT." },
     { n: "04", title: "Deliver", body: "To recyclers, furnaces & manufacturers across the Gujarat belt." },
-    { n: "05", title: "Settle", body: "Structured terms — LC at sight and T/T arrangements." },
+    { n: "05", title: "Settle", body: "Structured terms: LC at sight and T/T arrangements." },
   ],
 };
 
@@ -145,8 +153,8 @@ export const trade = {
       title: "Aluminium & Copper",
       count: "02 grades",
       grades: [
-        { name: "Aluminium — UBC · Zorba", code: "AL", specs: ["Baled UBC", "Zorba shred", "Twitch available"] },
-        { name: "Copper — Millberry", code: "CU", specs: ["99%+ bright", "Bare bright", "Electrical grade"] },
+        { name: "Aluminium UBC · Zorba", code: "AL", specs: ["Baled UBC", "Zorba shred", "Twitch available"] },
+        { name: "Copper Millberry", code: "CU", specs: ["99%+ bright", "Bare bright", "Electrical grade"] },
       ],
     },
     {
@@ -154,7 +162,7 @@ export const trade = {
       count: "02 grades",
       dark: true,
       grades: [
-        { name: "Brass — Honey", code: "BR", specs: ["Yellow brass", "Plumbing & eng.", "Low attachments"] },
+        { name: "Brass Honey", code: "BR", specs: ["Yellow brass", "Plumbing & eng.", "Low attachments"] },
         { name: "Stainless Steel", code: "304/316", specs: ["Solids & turnings", "Ni-bearing", "Grade-sorted"] },
       ],
     },
@@ -192,7 +200,7 @@ export const cta = {
 };
 
 export const footer = {
-  blurb: "International metal scrap trading — sourcing the raw materials of the world for India's heavy industry.",
+  blurb: "International non-ferrous scrap trading, sourcing the raw materials of the world for India's heavy industry.",
   navHeading: "Navigate",
   navLinks: [
     { label: "About", href: "#about" },

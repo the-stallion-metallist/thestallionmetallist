@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { site } from "@/lib/content";
 
 // Branded 1200x630 card shown when the site is shared on WhatsApp/LinkedIn/X/etc.
-export const alt = "The Stallion Metallist — International Metal Scrap Trading";
+export const alt = "The Stallion Metallist · International Non-Ferrous Scrap Trading";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -64,7 +64,7 @@ export default async function OpengraphImage() {
 
         <div style={{ display: "flex", width: 132, height: 5, background: "#8f613a", borderRadius: 5, marginTop: 40 }} />
         <div style={{ display: "flex", fontSize: 27, fontWeight: 500, color: "#a99f92", marginTop: 26 }}>
-          International metal-scrap trading · {site.location}
+          International non-ferrous scrap trading · {site.location}
         </div>
       </div>
     ),

@@ -11,7 +11,7 @@ export type Faq = { q: string; a: string };
 export const faqs: Faq[] = [
   {
     q: "What does The Stallion Metallist trade?",
-    a: "Non-ferrous metal scrap — aluminium (UBC and Zorba), copper (Millberry and bare bright), brass (honey), and stainless steel 304 and 316. We source it from exporters in the UAE, China, Europe and North America and supply it to furnaces, foundries and mills in India.",
+    a: "Non-ferrous metal scrap: aluminium (UBC and Zorba), copper (Millberry and bare bright), brass (honey), and stainless steel 304 and 316. We source it from exporters in the UAE, China, Europe and North America and supply it to furnaces, foundries and mills in India.",
   },
   {
     q: "Where is the company based?",

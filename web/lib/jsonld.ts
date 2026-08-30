@@ -1,4 +1,4 @@
-import { site } from "./content";
+import { site, socials } from "./content";
 import { faqs } from "./faq";
 
 /**
@@ -53,7 +53,7 @@ export function organizationJsonLd() {
           "Stainless steel scrap",
           "Metal recycling",
         ],
-        sameAs: [GBP_URL, site.ubcAppUrl],
+        sameAs: [GBP_URL, ...socials.map((s) => s.href), site.ubcAppUrl],
       },
       {
         "@type": "WebSite",
