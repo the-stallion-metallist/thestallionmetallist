@@ -7,6 +7,13 @@ import { faqs } from "./faq";
  * answers. Emitted as one <script type="application/ld+json"> @graph in the
  * layout, with @id links so the nodes resolve to a single entity.
  */
+// Verified Google Business Profile (public share link). Add a LinkedIn company
+// page URL here too once it exists — more sameAs = stronger entity recognition.
+const GBP_URL = "https://share.google/O9ESXisAZPqJxZR8t";
+
+// Operating address (matches the verified Google Business Profile in Dehradun).
+const streetAddress = "Iksana Workspace, IT Park, 115A, Sahastradhara Rd, Kasturi Nagar, Danda Lakhond";
+
 export function organizationJsonLd() {
   const orgId = `${site.url}/#organization`;
   const siteId = `${site.url}/#website`;
@@ -31,8 +38,10 @@ export function organizationJsonLd() {
         },
         address: {
           "@type": "PostalAddress",
+          streetAddress,
           addressLocality: "Dehradun",
           addressRegion: "Uttarakhand",
+          postalCode: "248001",
           addressCountry: "IN",
         },
         areaServed: ["IN", "AE", "CN", "EU", "US", "CA"],
@@ -44,8 +53,7 @@ export function organizationJsonLd() {
           "Stainless steel scrap",
           "Metal recycling",
         ],
-        // Add the verified Google Business Profile + LinkedIn URLs here once live.
-        sameAs: [site.ubcAppUrl],
+        sameAs: [GBP_URL, site.ubcAppUrl],
       },
       {
         "@type": "WebSite",
@@ -65,16 +73,20 @@ export function organizationJsonLd() {
         telephone: site.phoneHref,
         email: site.email,
         image: `${site.url}/opengraph-image`,
+        hasMap: GBP_URL,
         address: {
           "@type": "PostalAddress",
+          streetAddress,
           addressLocality: "Dehradun",
           addressRegion: "Uttarakhand",
+          postalCode: "248001",
           addressCountry: "IN",
         },
         areaServed: [
           { "@type": "AdministrativeArea", name: "Uttarakhand" },
           { "@type": "Country", name: "India" },
         ],
+        sameAs: [GBP_URL],
       },
       {
         "@type": "FAQPage",
