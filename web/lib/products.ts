@@ -35,7 +35,7 @@ export const products: Product[] = [
     description:
       "The Stallion Metallist supplies electrical-grade copper scrap (Millberry and bare bright) to Indian smelters and mills, sourced from vetted exporters in the UAE, China, Europe and North America.",
     intro:
-      "We supply high-purity copper scrap to India's smelters, refineries and mills. Our copper is sourced directly from established exporters across the UAE, China, Europe and North America, cleared at Mundra, Kandla and JNPT, and delivered on international trade terms.",
+      "We supply high-purity copper scrap to India's smelters, refineries and mills. We source it directly from established exporters across the UAE, China, Europe and North America, clear it at Mundra, Kandla and JNPT, and deliver on international trade terms.",
     photos: [
       { src: "/images/copper-scrap.webp", alt: "Bright copper wire scrap, Millberry grade" },
       { src: "/images/copper-bright.webp", alt: "Bare bright cut copper scrap pieces" },

@@ -38,7 +38,7 @@ export default function Header() {
               ))}
             </nav>
             <a className="btn btn-primary nav-cta" href="/contact" style={{ padding: "0.65rem 1.3rem" }}>
-              Get in touch
+              Get a quote
             </a>
             <button
               className={`hamburger${open ? " open" : ""}`}

@@ -190,7 +190,7 @@ export const stats = {
 
 export const why = {
   eyebrow: "Why Stallion Metallist",
-  heading: "Global structure. Local execution.",
+  heading: "What makes us easy to trade with.",
   cards: [
     { icon: "◇", title: "Global entity", body: "Canada-incorporated, giving exporters a recognised corporate structure to contract with." },
     { icon: "◈", title: "On the ground", body: "Active in both India and the West, close to suppliers abroad and buyers at home." },

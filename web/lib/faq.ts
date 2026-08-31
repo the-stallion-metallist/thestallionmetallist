@@ -15,7 +15,7 @@ export const faqs: Faq[] = [
   },
   {
     q: "Where is the company based?",
-    a: "We operate on the ground in Dehradun, Uttarakhand, India, and are incorporated in Calgary, Canada.",
+    a: "We operate from Dehradun, Uttarakhand, India, and are incorporated in Calgary, Canada.",
   },
   {
     q: "Which ports do you clear scrap through?",
