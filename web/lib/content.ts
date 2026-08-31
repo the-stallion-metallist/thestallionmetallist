@@ -75,7 +75,7 @@ export const ticker = [
 export const about = {
   eyebrow: "About us",
   heading: "A Canadian trade house, built for Indian industry.",
-  lead: "Stallion Metallist Ltd. is an international metal-scrap trading company, incorporated in Calgary and operating on the ground in Dehradun, bridging global supply with India's furnaces and foundries.",
+  lead: "Stallion Metallist Ltd. is an international metal-scrap trading company, incorporated in Calgary and run from Dehradun. We buy non-ferrous scrap from exporters abroad and supply India's furnaces and foundries.",
   ratingNote: "Full-cycle trade: sourcing, clearance and delivery",
   cta: { label: "Learn more", href: "#why" },
   chipA: { num: "50", unit: "K+", label: "Tons traded / year" },
@@ -109,7 +109,7 @@ export type GlobeNode = {
 export const ubc = {
   eyebrow: "UBC Collection · The app",
   heading: "Turn waste aluminium cans into cash.",
-  body: "Our progressive web app makes recycling pay. Book a doorstep pickup for your used beverage cans and get paid on collection. No fees, no fuss. Live in Dehradun now, with more cities coming soon.",
+  body: "Our progressive web app makes recycling pay. Book a doorstep pickup for your used beverage cans and get paid on collection. The app is free to use. Live in Dehradun now, with more cities coming soon.",
   liveBadge: "Now serving Dehradun",
   soonBadge: "More cities soon",
   cta: { label: "Get started", href: site.ubcAppUrl },
@@ -178,7 +178,7 @@ export type TradeGroup = { title: string; count: string; dark?: boolean; grades:
 
 export const stats = {
   eyebrow: "Scale",
-  heading: "Volume, routes and relationships that move material at scale.",
+  heading: "The trade in numbers: tonnage, markets, ports and partners.",
   // "to" is the number it counts up to; "pad" left-pads with zeros (e.g. 4 -> 04).
   items: [
     { to: 50, unit: "K+", pad: 0, label: "Tons / year", desc: "High-grade scrap moved across borders." },
@@ -192,10 +192,10 @@ export const why = {
   eyebrow: "Why Stallion Metallist",
   heading: "Global structure. Local execution.",
   cards: [
-    { icon: "◇", title: "Global entity", body: "Canada-incorporated with a credible, internationally recognised corporate structure." },
-    { icon: "◈", title: "On the ground", body: "Active in both India and the West, bridging global supply with Indian demand." },
-    { icon: "▤", title: "Buyer network", body: "Deep knowledge of the Rajkot and Gujarat scrap-buyer ecosystem." },
-    { icon: "◆", title: "Compliant terms", body: "Structured payment processes that meet international exporter expectations." },
+    { icon: "◇", title: "Global entity", body: "Canada-incorporated, giving exporters a recognised corporate structure to contract with." },
+    { icon: "◈", title: "On the ground", body: "Active in both India and the West, close to suppliers abroad and buyers at home." },
+    { icon: "▤", title: "Buyer network", body: "Deep knowledge of the Rajkot and Gujarat scrap-buyer market." },
+    { icon: "◆", title: "Compliant terms", body: "Structured payments on the terms international exporters expect: LC at sight and T/T." },
   ],
 };
 
@@ -204,7 +204,7 @@ export const cta = {
 };
 
 export const footer = {
-  blurb: "International non-ferrous scrap trading, sourcing the raw materials of the world for India's heavy industry.",
+  blurb: "International non-ferrous scrap trading. We source aluminium, copper, brass and stainless worldwide and supply India's heavy industry.",
   navHeading: "Navigate",
   navLinks: [
     { label: "Non-ferrous scrap", href: "/non-ferrous-scrap" },
