@@ -139,6 +139,7 @@ export function productPageJsonLd(p: {
   metal: string;
   h1: string;
   description: string;
+  photos?: { src: string; alt: string }[];
   faqs: FaqItem[];
 }) {
   return {
@@ -156,7 +157,22 @@ export function productPageJsonLd(p: {
         category: `${p.metal} scrap`,
         brand: orgRef,
         url: `${site.url}/${p.slug}`,
-        seller: orgRef,
+        ...(p.photos && p.photos.length > 0
+          ? { image: p.photos.map((ph) => `${site.url}${ph.src}`) }
+          : {}),
+        // Scrap is traded per-tonne at market/LME-linked prices, so there is no
+        // fixed public price — this Offer states that we sell the grade and that
+        // price is given on quote. It satisfies Google's requirement that a
+        // Product carry offers/review/aggregateRating, without inventing a price.
+        offers: {
+          "@type": "Offer",
+          url: `${site.url}/${p.slug}`,
+          availability: "https://schema.org/InStock",
+          itemCondition: "https://schema.org/UsedCondition",
+          priceCurrency: "USD",
+          businessFunction: "http://purl.org/goodrelations/v1#Sell",
+          seller: orgRef,
+        },
       },
       {
         "@type": "FAQPage",
