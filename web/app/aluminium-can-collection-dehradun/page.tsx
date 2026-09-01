@@ -74,7 +74,7 @@ const jsonLd = {
       url: `${site.url}${path}`,
       provider: { "@id": `${site.url}/#organization` },
       areaServed: { "@type": "City", name: "Dehradun" },
-      offers: { "@type": "Offer", priceCurrency: "INR", description: "Free doorstep pickup, paid on collection by weight." },
+      offers: { "@type": "Offer", price: "0", priceCurrency: "INR", description: "Free doorstep pickup, paid on collection by weight." },
     },
     {
       "@type": "WebPage",

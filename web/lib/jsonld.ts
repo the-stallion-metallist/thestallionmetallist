@@ -133,15 +133,20 @@ export function breadcrumbJsonLd(items: { name: string; path: string }[]) {
 
 type FaqItem = { q: string; a: string };
 
-/** Full structured-data @graph for a non-ferrous product page. */
-export function productPageJsonLd(p: {
-  slug: string;
-  metal: string;
-  h1: string;
-  description: string;
-  photos?: { src: string; alt: string }[];
-  faqs: FaqItem[];
-}) {
+/**
+ * Structured-data @graph for a non-ferrous grade page.
+ *
+ * We intentionally do NOT emit a `Product` node here. Google requires every
+ * Product to carry a price, a review, or an aggregateRating. Scrap is traded
+ * per-tonne at daily market/LME-linked prices, so there is no fixed public
+ * price, and fabricating a price/review/rating violates Google's guidelines.
+ * A price-less Product only ever produced "Product snippets" errors and never a
+ * rich result, so the page instead relies on BreadcrumbList + FAQPage (both
+ * valid, both rich-result eligible) plus the site-wide Organization /
+ * LocalBusiness graph. `knowsAbout` on the Organization already names each grade
+ * for entity/topic understanding.
+ */
+export function productPageJsonLd(p: { slug: string; metal: string; faqs: FaqItem[] }) {
   return {
     "@context": "https://schema.org",
     "@graph": [
@@ -150,30 +155,6 @@ export function productPageJsonLd(p: {
         { name: "Non-ferrous scrap", path: "/non-ferrous-scrap" },
         { name: p.metal, path: `/${p.slug}` },
       ]),
-      {
-        "@type": "Product",
-        name: p.h1,
-        description: p.description,
-        category: `${p.metal} scrap`,
-        brand: orgRef,
-        url: `${site.url}/${p.slug}`,
-        ...(p.photos && p.photos.length > 0
-          ? { image: p.photos.map((ph) => `${site.url}${ph.src}`) }
-          : {}),
-        // Scrap is traded per-tonne at market/LME-linked prices, so there is no
-        // fixed public price — this Offer states that we sell the grade and that
-        // price is given on quote. It satisfies Google's requirement that a
-        // Product carry offers/review/aggregateRating, without inventing a price.
-        offers: {
-          "@type": "Offer",
-          url: `${site.url}/${p.slug}`,
-          availability: "https://schema.org/InStock",
-          itemCondition: "https://schema.org/UsedCondition",
-          priceCurrency: "USD",
-          businessFunction: "http://purl.org/goodrelations/v1#Sell",
-          seller: orgRef,
-        },
-      },
       {
         "@type": "FAQPage",
         mainEntity: p.faqs.map((f) => ({
