@@ -103,16 +103,25 @@ export function organizationJsonLd() {
         ],
         sameAs: [GBP_URL],
       },
-      {
-        "@type": "FAQPage",
-        "@id": `${site.url}/#faq`,
-        mainEntity: faqs.map((f) => ({
-          "@type": "Question",
-          name: f.q,
-          acceptedAnswer: { "@type": "Answer", text: f.a },
-        })),
-      },
     ],
+  };
+}
+
+/**
+ * FAQPage for the site-wide FAQ. Emitted by the visible <Faq/> section (home
+ * page only) so the markup always matches the Q&As actually on screen — it is
+ * never injected globally onto pages where these questions are not shown.
+ */
+export function faqPageJsonLd() {
+  return {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "@id": `${site.url}/#faq`,
+    mainEntity: faqs.map((f) => ({
+      "@type": "Question",
+      name: f.q,
+      acceptedAnswer: { "@type": "Answer", text: f.a },
+    })),
   };
 }
 

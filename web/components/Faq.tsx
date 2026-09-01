@@ -1,14 +1,21 @@
 import { faqs } from "@/lib/faq";
+import { faqPageJsonLd } from "@/lib/jsonld";
 
 /**
  * Visible FAQ section. Native <details>/<summary> so it works with zero JS and
- * is accessible. The same questions/answers feed the FAQPage schema in
- * lib/jsonld.ts, so the structured data always matches what's on screen.
+ * is accessible. The same questions/answers feed the FAQPage schema, which is
+ * emitted right here so the structured data only appears where the Q&As are
+ * actually on screen (this section renders on the home page only).
  * Styling is scoped here to keep it self-contained.
  */
 export default function Faq() {
   return (
     <section className="block faq-sec" id="faq">
+      <script
+        type="application/ld+json"
+        // eslint-disable-next-line react/no-danger
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqPageJsonLd()) }}
+      />
       <div className="wrap">
         <div className="sec-head center reveal">
           <span className="eyebrow">Questions</span>
