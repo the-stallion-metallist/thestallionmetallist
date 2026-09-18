@@ -100,11 +100,6 @@ export default function Hero() {
                   </div>
                 </div>
                 <div className="ch-schedule">+ Schedule a pickup</div>
-                <div className="ch-pstats">
-                  <div><b>820</b><small>CANS</small></div>
-                  <div><b>9</b><small>PICKUPS</small></div>
-                  <div><b>₹1.2k</b><small>EARNED</small></div>
-                </div>
               </div>
             </div>
           </div>
@@ -162,19 +157,19 @@ export default function Hero() {
         .ch-stage{position:relative;display:flex;justify-content:center;align-items:center}
         .ch-halo{position:absolute;width:min(440px,92%);aspect-ratio:1;border-radius:50%;z-index:0;
           background:radial-gradient(circle,rgba(224,177,132,.5),rgba(240,229,216,.35) 40%,transparent 68%);filter:blur(4px)}
-        .ch-phone{position:relative;z-index:2;width:304px;max-width:82vw;background:#0c0d11;border-radius:42px;padding:11px;
+        .ch-phone{position:relative;z-index:2;width:288px;max-width:80vw;background:#0c0d11;border-radius:40px;padding:10px;
           box-shadow:0 54px 90px -34px rgba(28,25,23,.5),0 0 0 1px rgba(28,25,23,.08);
-          transform:scale(.82);transform-origin:center;animation:ch-bob 7s ease-in-out infinite}
-        @keyframes ch-bob{0%,100%{transform:scale(.82) translateY(0)}50%{transform:scale(.82) translateY(-12px)}}
-        .ch-screen{background:linear-gradient(180deg,#16171d,#0f1015);border-radius:32px;overflow:hidden;padding:13px 13px 15px;position:relative;color:#ece9e3}
-        .ch-island{width:78px;height:20px;background:#000;border-radius:20px;margin:2px auto 12px}
-        .ch-phd{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+          animation:ch-bob 7s ease-in-out infinite}
+        @keyframes ch-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+        .ch-screen{background:linear-gradient(180deg,#16171d,#0f1015);border-radius:30px;overflow:hidden;padding:11px 12px 13px;position:relative;color:#ece9e3}
+        .ch-island{width:74px;height:18px;background:#000;border-radius:20px;margin:1px auto 10px}
+        .ch-phd{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
         .ch-u{display:flex;align-items:center;gap:9px}
         .ch-av{width:34px;height:34px;border-radius:50%;background:radial-gradient(circle at 32% 28%,var(--copper-lit),var(--copper-dk))}
         .ch-phd small{display:block;font-size:.6rem;color:#8f8a80}
         .ch-phd b{font-family:var(--f-disp);font-size:.92rem}
         .ch-bell{width:32px;height:32px;border-radius:10px;background:rgba(243,237,228,.06);display:grid;place-items:center;font-size:.82rem}
-        .ch-card{background:linear-gradient(150deg,#24252d,#151620);border:1px solid rgba(243,237,228,.06);border-radius:18px;padding:14px}
+        .ch-card{background:linear-gradient(150deg,#24252d,#151620);border:1px solid rgba(243,237,228,.06);border-radius:16px;padding:12px}
         .ch-row1{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
         .ch-bm{display:flex;align-items:center;gap:8px}
         .ch-bm img{width:26px;height:26px}
@@ -182,12 +177,12 @@ export default function Hero() {
         .ch-bm b span{color:var(--copper-lit)}
         .ch-wallet{width:26px;height:18px;border-radius:5px;background:linear-gradient(135deg,var(--copper-lit),var(--copper-dk))}
         .ch-lbl{font-size:.6rem;color:#8f8a80;text-transform:uppercase;letter-spacing:.1em}
-        .ch-earned{font-family:var(--f-disp);font-weight:700;font-size:2rem;margin:.1rem 0 .6rem;font-variant-numeric:tabular-nums}
-        .ch-earned span:first-child{font-size:1.05rem;color:#8f8a80;margin-right:2px}
-        .ch-meta{display:flex;gap:10px;border-top:1px solid rgba(243,237,228,.08);padding-top:10px}
+        .ch-earned{font-family:var(--f-disp);font-weight:700;font-size:1.7rem;margin:.05rem 0 .5rem;font-variant-numeric:tabular-nums}
+        .ch-earned span:first-child{font-size:1rem;color:#8f8a80;margin-right:2px}
+        .ch-meta{display:flex;gap:10px;border-top:1px solid rgba(243,237,228,.08);padding-top:8px}
         .ch-meta small{display:block;color:#8f8a80;font-size:.55rem;text-transform:uppercase;letter-spacing:.08em}
         .ch-meta b{font-family:var(--f-disp);font-size:.82rem}
-        .ch-sheet{margin-top:12px;background:rgba(243,237,228,.03);border:1px solid rgba(243,237,228,.06);border-radius:18px;padding:12px}
+        .ch-sheet{margin-top:10px;background:rgba(243,237,228,.03);border:1px solid rgba(243,237,228,.06);border-radius:16px;padding:11px}
         .ch-sh{display:flex;justify-content:space-between;align-items:center;margin-bottom:9px}
         .ch-sh b{font-family:var(--f-disp);font-size:.82rem}
         .ch-sh a{color:var(--copper-lit);font-size:.64rem;text-decoration:none}

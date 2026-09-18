@@ -5,7 +5,7 @@ import Hero from "@/components/Hero";
 import Ticker from "@/components/Ticker";
 import About from "@/components/About";
 import Routes from "@/components/Routes";
-import Ubc from "@/components/Ubc";
+import Impact from "@/components/Impact";
 import Services from "@/components/Services";
 import Process from "@/components/Process";
 import Trade from "@/components/Trade";
@@ -27,7 +27,7 @@ export default function Home() {
         <Ticker />
         <About />
         <Routes />
-        <Ubc />
+        <Impact />
         <Services />
         <Process />
         <Trade />
