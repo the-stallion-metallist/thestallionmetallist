@@ -4,15 +4,26 @@ import { site } from "@/lib/content";
 import { organizationJsonLd } from "@/lib/jsonld";
 import "./globals.css";
 
+// Homepage title + description. The homepage now leads with the can-collection
+// service, so its metadata covers BOTH that and the trade, and matches the H1
+// ("Cans into cash"). Every other page sets its own title/description, so this
+// default only affects the homepage.
+const homeTitle = `${site.name} · Cans for Cash & Non-Ferrous Scrap`;
+const homeDescription =
+  "Get paid for used aluminium cans in Dehradun with doorstep pickup, paid on collection. The Stallion Metallist also trades non-ferrous scrap (aluminium, copper, brass, stainless) internationally.";
+
 export const metadata: Metadata = {
   metadataBase: new URL(site.url),
   title: {
-    default: `${site.name} · International Non-Ferrous Scrap Trading`,
+    default: homeTitle,
     template: `%s · ${site.shortName}`,
   },
-  description: site.description,
+  description: homeDescription,
   applicationName: site.name,
   keywords: [
+    "aluminium can collection Dehradun",
+    "sell used cans Dehradun",
+    "cash for cans",
     "non-ferrous scrap trading",
     "aluminium scrap",
     "aluminium UBC",
@@ -27,15 +38,15 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     siteName: site.name,
-    title: `${site.name} · ${site.tagline}`,
-    description: site.description,
+    title: homeTitle,
+    description: homeDescription,
     url: site.url,
     locale: "en_IN",
   },
   twitter: {
     card: "summary_large_image",
-    title: `${site.name} · ${site.tagline}`,
-    description: site.description,
+    title: homeTitle,
+    description: homeDescription,
   },
   robots: { index: true, follow: true },
 };
