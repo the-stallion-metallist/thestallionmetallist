@@ -163,8 +163,9 @@ export default function Hero() {
         .ch-halo{position:absolute;width:min(440px,92%);aspect-ratio:1;border-radius:50%;z-index:0;
           background:radial-gradient(circle,rgba(224,177,132,.5),rgba(240,229,216,.35) 40%,transparent 68%);filter:blur(4px)}
         .ch-phone{position:relative;z-index:2;width:304px;max-width:82vw;background:#0c0d11;border-radius:42px;padding:11px;
-          box-shadow:0 54px 90px -34px rgba(28,25,23,.5),0 0 0 1px rgba(28,25,23,.08);animation:ch-bob 7s ease-in-out infinite}
-        @keyframes ch-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+          box-shadow:0 54px 90px -34px rgba(28,25,23,.5),0 0 0 1px rgba(28,25,23,.08);
+          transform:scale(.82);transform-origin:center;animation:ch-bob 7s ease-in-out infinite}
+        @keyframes ch-bob{0%,100%{transform:scale(.82) translateY(0)}50%{transform:scale(.82) translateY(-12px)}}
         .ch-screen{background:linear-gradient(180deg,#16171d,#0f1015);border-radius:32px;overflow:hidden;padding:13px 13px 15px;position:relative;color:#ece9e3}
         .ch-island{width:78px;height:20px;background:#000;border-radius:20px;margin:2px auto 12px}
         .ch-phd{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
