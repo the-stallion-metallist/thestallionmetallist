@@ -23,7 +23,7 @@ export const site = {
   email: "contact@thestallionmetallist.com",
   phoneDisplay: "+91 99973 48394",
   phoneHref: "+919997348394",
-  ubcAppUrl: "https://thestallionmetalist.com", // the live can-collection PWA (note: one "l")
+  ubcAppUrl: "https://app.thestallionmetallist.com", // the live can-collection PWA (app subdomain of the main site)
   location: "Dehradun, Uttarakhand · India",
   incorporation: "Incorporated in Calgary, AB · Canada",
   copyrightYear: 2026,
