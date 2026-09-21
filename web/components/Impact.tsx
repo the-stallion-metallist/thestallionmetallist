@@ -104,6 +104,10 @@ export default function Impact() {
             factors (recycling saves about 95% of the energy of new aluminium).
           </div>
         </div>
+
+        <a className="im-link" href="/aluminium-can-collection-dehradun">
+          How doorstep collection works in Dehradun <span aria-hidden="true">→</span>
+        </a>
       </div>
 
       <style>{`
@@ -166,6 +170,10 @@ export default function Impact() {
           text-transform:uppercase;color:var(--copper-lit)}
         .im-foot{border-top:1px solid rgba(243,237,228,.08);padding-top:1rem;
           color:var(--on-char-mut);font-size:.78rem;line-height:1.6;max-width:70ch}
+        .im-link{display:inline-flex;align-items:center;gap:.4rem;margin-top:1.4rem;
+          font-family:var(--f-body);font-weight:600;font-size:1rem;color:var(--copper);text-decoration:none;
+          border-bottom:1px solid transparent;transition:border-color .2s,color .2s}
+        .im-link:hover{color:var(--copper-dk);border-color:var(--copper)}
 
         /* staggered scroll-reveal (JS-gated via .im-anim so no-JS stays visible) */
         .im-panel.im-anim .im-stat{opacity:0;transform:translateY(18px)}
