@@ -69,11 +69,12 @@ export const SCREENS = [
 const MONTH_SCREENS = ["/admin", "/admin/venues", "/admin/pickups", "/admin/trips", "/admin/stock", "/admin/money"];
 const MORE = ["/admin/venues", "/admin/moves", "/admin/locations", "/admin/trips", "/admin/stock", "/admin/payouts", "/admin/staff", "/admin/history", "/admin/settings"];
 
-export default function Panel({ me, children }: { me: Member; children: React.ReactNode }) {
+export default function Panel({ children }: { children: React.ReactNode }) {
   const db = useMemo(() => adminDb(), []);
   const router = useRouter(); const path = usePathname();
   const today = todayIST();
   const [data, setData] = useState<Data | null>(null);
+  const [me, setMe] = useState<Member | null>(null); const [outsider, setOutsider] = useState("");
   const [loadErr, setLoadErr] = useState("");
   const [month, setMonth] = useState(monthOf(today));
   const [drawer, setDrawer] = useState<React.ReactNode>(null); const [drawerOn, setDrawerOn] = useState(false);
@@ -84,6 +85,12 @@ export default function Panel({ me, children }: { me: Member; children: React.Re
 
   const reload = useCallback(async () => {
     try {
+      // who is logged in (read from this browser's login, no server trip) and whether they're on the team
+      const { data: { session } } = await db.auth.getSession();
+      if (!session) { location.href = "/admin/login"; return; }
+      const { data: m } = await db.from("team").select("name, role, email").eq("user_id", session.user.id).maybeSingle();
+      if (!m) { setOutsider(session.user.email ?? "this account"); return; }
+      setMe(m as Member);
       const [venues, pickups, binlog, payments, log, s, trips, sales, expenses, staff, marks, advances, moves, spare, runs, ps, matrix] = await Promise.all([
         fetchAll<Venue>(db, "venues", "id"), fetchAll<Pickup>(db, "pickups", "id"), fetchAll<BinChange>(db, "bin_log", "id"), fetchAll<Payment>(db, "payments", "id"),
         one<LogRow[]>(db.from("change_log").select("*").order("id", { ascending: false }).limit(500)),
@@ -123,8 +130,11 @@ export default function Panel({ me, children }: { me: Member; children: React.Re
     toastT.current = setTimeout(() => setToastMsg(null), undo ? 5000 : 2600);
   }, []);
 
+  if (outsider) return <div className="content" style={{ maxWidth: 560, margin: "0 auto", paddingTop: 80 }}><div className="card"><h2>This account isn&apos;t on the team</h2>
+    <p className="muted" style={{ margin: "8px 0 14px" }}>You&apos;re logged in as {outsider}, but only people the owner has added can open the team panel. Ask the owner to add you.</p>
+    <button className="btn btn-g" onClick={async () => { await db.auth.signOut(); location.href = "/admin/login"; }}>Log out</button></div></div>;
   if (loadErr) return <div className="content"><div className="card"><h2>Couldn&apos;t load the panel</h2><p className="muted" style={{ margin: "8px 0 14px" }}>{loadErr}</p><button className="btn btn-p" onClick={reload}>Try again</button></div></div>;
-  if (!data) return <div className="content" aria-busy="true"><p className="muted" style={{ padding: "40px 0" }}>Loading your data…</p></div>;
+  if (!data || !me) return <div className="content" aria-busy="true"><p className="muted" style={{ padding: "40px 0" }}>Loading your data…</p></div>;
 
   return <Loaded {...{ data, setData, me, db, today, month, setMonth, reload, toast, closeLayers, closeModal, router, path }}
     openDrawer={(n) => { setModalOn(false); setDrawer(n); setDrawerOn(true); }}

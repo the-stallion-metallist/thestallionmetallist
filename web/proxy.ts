@@ -22,7 +22,9 @@ export async function proxy(request: NextRequest) {
       },
     },
   );
-  const { data: { user } } = await db.auth.getUser();
+  // checks the login locally against the project's public signing key (no round trip to Supabase on each click)
+  const { data } = await db.auth.getClaims();
+  const user = data?.claims?.sub ? data.claims : null;
   const path = request.nextUrl.pathname;
   if (!user && !OPEN.some((p) => path.startsWith(p))) {
     const url = request.nextUrl.clone();
