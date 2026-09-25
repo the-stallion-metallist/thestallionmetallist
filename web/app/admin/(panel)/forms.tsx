@@ -23,9 +23,9 @@ export function diffs<T extends Record<string, unknown>>(a: T, b: T, fields: [ke
 }
 
 // ---------- building blocks ----------
-export function FormModal({ title, onSave, children, meta, onDelete, saveLabel = "Save" }: {
+export function FormModal({ title, onSave, children, meta, onDelete, saveLabel = "Save", deleteLabel = "Delete" }: {
   title: string; onSave: (fd: FormData) => Promise<Errs | void | false>; children: (errs: Errs) => React.ReactNode;
-  meta?: string; onDelete?: () => void; saveLabel?: string;
+  meta?: string; onDelete?: () => void; saveLabel?: string; deleteLabel?: string;
 }) {
   const c = usePanel(); const [errs, setErrs] = useState<Errs>({}); const [busy, setBusy] = useState(false);
   const ref = useRef<HTMLFormElement>(null);
@@ -41,7 +41,7 @@ export function FormModal({ title, onSave, children, meta, onDelete, saveLabel =
       {children(errs)}
       {meta && <p className="meta">{meta}</p>}
       <div className="m-foot">
-        {onDelete && <><button type="button" className="btn btn-g btn-del" onClick={() => { c.closeModal(); onDelete(); }}>Delete</button><span className="sp" /></>}
+        {onDelete && <><button type="button" className="btn btn-g btn-del" onClick={() => { c.closeModal(); onDelete(); }}>{deleteLabel}</button><span className="sp" /></>}
         <button type="button" className="btn btn-g" onClick={c.closeModal}>Cancel</button>
         <button className="btn btn-p" type="submit" disabled={busy}>{busy ? "Saving…" : saveLabel}</button>
       </div>
@@ -218,11 +218,12 @@ const pinErr = (raw: string) => (raw ? parsePin(raw) : { p: undefined, err: unde
 
 export function EditVenue({ v }: { v: Venue }) {
   const c = usePanel(); const [status, setStatus] = useState(v.status);
+  const block = removeBlock(c, v);
   return (
-    <FormModal title={"Edit " + v.name} onSave={async (fd) => {
+    <FormModal title={"Edit " + v.name} deleteLabel="Remove venue" onDelete={block ? undefined : () => removeVenue(c, v)} onSave={async (fd) => {
       const e: Errs = {}; const name = String(fd.get("name")).trim();
       if (!name) e.name = "Enter the venue name.";
-      else if (c.venues.some((x) => x.id !== v.id && x.name.toLowerCase() === name.toLowerCase())) e.name = "Another venue already has this name.";
+      else { const o = [...c.vmap.values()].find((x) => x.id !== v.id && x.name.toLowerCase() === name.toLowerCase()); if (o) e.name = o.deleted ? "A removed venue has this name. Restore it from Change history, or pick another name." : "Another venue already has this name."; }
       const raw = String(fd.get("pin")).trim(); const cur = v.lat != null ? `${v.lat}, ${v.lng}` : "";
       const pp = raw && raw !== cur ? pinErr(raw) : { p: undefined as [number, number] | undefined, err: undefined as string | undefined };
       if (pp.err) e.pin = pp.err;
@@ -261,9 +262,32 @@ export function EditVenue({ v }: { v: Venue }) {
           <Field id="evR" label="Payout per can (₹)"><input id="evR" name="rate" type="number" step="any" defaultValue={v.can_rate} /></Field>
           <Field id="evPr" label="Plastic payout (₹/kg)"><input id="evPr" name="pr" type="number" step="any" defaultValue={v.plastic_rate ?? ""} placeholder={`Default ₹${c.set.plasticBuy}`} /></Field>
         </div>
+        {block && <p className="meta">To remove this venue, first {block}.</p>}
       </>}
     </FormModal>
   );
+}
+
+// Why a venue can't be removed yet (bins still out, money owed, or a bin move planned), or null.
+function removeBlock(c: Ctx, v: Venue) {
+  const n = bins(v), owed = c.pay(v).owed;
+  if (n) return `take its ${n} bin${n > 1 ? "s" : ""} back (Record bin change) so the spare-bin count stays right`;
+  if (owed > 0) return `pay the ${rs(owed)} it is still owed`;
+  if (c.moves.some((t) => t.status === "planned" && t.venue_id === v.id)) return "cancel its planned bin move in Bin moves";
+  return null;
+}
+// Removing hides the venue everywhere; its past pickups and payments stay and still count. Undo for 5 seconds, or restore later.
+export async function setVenueRemoved(c: Ctx, v: Venue, deleted: boolean) {
+  const { error } = await c.db.from("venues").update({ deleted }).eq("id", v.id);
+  if (c.fail(error)) return false;
+  c.patch((d) => ({ ...d, venues: d.venues.map((x) => (x.id === v.id ? { ...x, deleted } : x)) }));
+  await c.logIt(deleted ? "Removed" : "Restored", "Venue", v.name, "", { table: "venues", id: v.id });
+  return true;
+}
+async function removeVenue(c: Ctx, v: Venue) {
+  if (!(await setVenueRemoved(c, v, true))) return;
+  c.closeLayers();
+  c.toast(`${v.name} removed`, async () => { if (await setVenueRemoved(c, v, false)) c.toast(`${v.name} restored`); });
 }
 
 export function AddVenue() {
@@ -272,7 +296,7 @@ export function AddVenue() {
     <FormModal title="Add venue" onSave={async (fd) => {
       const e: Errs = {}; const name = String(fd.get("name")).trim();
       const steel = wait ? 0 : Number(fd.get("steel")) || 0, pb = wait ? 0 : Number(fd.get("pb")) || 0, hasBins = steel + pb > 0;
-      if (!name) e.name = "Enter the venue name."; else if (c.venues.some((x) => x.name.toLowerCase() === name.toLowerCase())) e.name = "A venue with this name already exists.";
+      if (!name) e.name = "Enter the venue name."; else { const o = [...c.vmap.values()].find((x) => x.name.toLowerCase() === name.toLowerCase()); if (o) e.name = o.deleted ? "A removed venue has this name. Restore it from Change history instead of adding it again." : "A venue with this name already exists."; }
       if (!fd.get("added")) e.added = "Enter the day they signed.";
       if (hasBins && !fd.get("bin")) e.bin = "Enter the day the bin was placed.";
       const pp = pinErr(String(fd.get("pin")).trim()); if (pp.err) e.pin = pp.err;

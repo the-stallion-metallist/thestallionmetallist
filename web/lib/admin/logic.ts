@@ -11,6 +11,7 @@ export type Venue = {
   lat: number | null; lng: number | null; pin_src: string | null; pin_by: string | null; g_name: string | null;
   contact: string | null; phone: string | null; terms: "On the spot" | "Per pickup" | "Monthly"; upi: string | null;
   opening: number | null; keep_until: string | null; skip_give: string | null; cut_on: string | null;
+  deleted: boolean; // removed from the panel; past pickups and payments still count
   created_by: string; updated_by: string | null;
 };
 export type Pickup = {
@@ -180,7 +181,7 @@ export type Trip = { id: number; code: string; d: string; vehicle: string; drive
 export type Sale = { id: number; code: string; d: string; buyer: string; material: "UBC" | "Plastic"; kg: number; rate: number; transport: number; paid_on: string | null; deleted: boolean; created_by: string; updated_by: string | null; created_at: string };
 export type Expense = { id: number; d: string; category: "Salaries" | "Rent" | "Bins & bags" | "Vehicle" | "Phone & misc"; staff_id: number | null; amount: number; note: string; mode: string; item: string; other: string; qty: number; deleted: boolean; created_by: string; updated_by: string | null; created_at: string };
 export type StaffRow = { id: number; name: string; salary: number | null; active: boolean };
-export type Advance = { id: number; d: string; staff_id: number; amount: number; note: string; deleted: boolean; created_by: string };
+export type Advance = { id: number; d: string; staff_id: number; amount: number; note: string; deleted: boolean; created_by: string; updated_by: string | null; created_at: string };
 export type Mark = { d: string; staff_id: number; mark: "P" | "H" | "A" };
 export const CATS = ["Salaries", "Rent", "Bins & bags", "Vehicle", "Phone & misc"] as const;
 export const ITEMS = ["Steel bin", "Plastic bin", "Garbage bags", "Other"];

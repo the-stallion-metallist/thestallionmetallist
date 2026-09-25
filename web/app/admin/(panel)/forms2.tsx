@@ -208,20 +208,23 @@ export function EditTrip({ rec }: { rec?: Trip }) {
 }
 
 // ---------- staff advances ----------
-export function AddAdvance() {
+const advLabel = (c: C) => (a: Advance) => `${c.staff.find((s) => s.id === a.staff_id)?.name ?? "Staff"} · ${rs(Number(a.amount))}`;
+export function EditAdvance({ rec }: { rec?: Advance }) {
   const c = usePanel();
+  const people = c.staff.filter((s) => s.active || s.id === rec?.staff_id);
   return (
-    <FormModal title="Record advance" onSave={async (fd) => {
+    <FormModal title={rec ? "Edit advance" : "Record advance"} meta={rec ? metaOf(rec) : undefined} onDelete={rec ? () => softDelete(c, "advances", rec, advLabel(c)(rec)) : undefined} onSave={async (fd) => {
       if (!(Number(fd.get("amt")) > 0)) return { amt: "Enter the amount." };
-      const s = c.staff.find((x) => x.id === Number(fd.get("n")))!;
-      const row = await saveRow<Advance>(c, "advances", { staff_id: s.id, amount: Number(fd.get("amt")), d: String(fd.get("d")) }, (a) => `${s.name} · ${rs(Number(a.amount))}`);
-      if (!row) return false; c.toast("Advance recorded. It comes off this month's pay.");
+      const vals = { staff_id: Number(fd.get("n")), amount: Number(fd.get("amt")), d: String(fd.get("d")) };
+      const staffName = (id: number) => c.staff.find((s) => s.id === id)?.name ?? "";
+      const row = await saveRow<Advance>(c, "advances", vals, advLabel(c), rec, [["staff_id", "Staff", staffName as never], ["amount", "Amount", ((x: number) => rs(Number(x))) as never], ["d", "Date", dnice as never]]);
+      if (!row) return false; if (!rec) c.toast("Advance recorded. It comes off this month's pay.");
     }}>
       {(errs) => <>
-        <Field id="aN" label="Staff"><select id="aN" name="n">{c.staff.filter((s) => s.active).map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></Field>
+        <Field id="aN" label="Staff"><select id="aN" name="n" defaultValue={rec?.staff_id}>{people.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></Field>
         <div className="two">
-          <Field id="aAmt" label="Amount (₹)" err={errs.amt}><input id="aAmt" name="amt" type="number" inputMode="numeric" min={0} /></Field>
-          <Field id="aD" label="Date"><input id="aD" name="d" type="date" defaultValue={c.today} max={c.today} /></Field>
+          <Field id="aAmt" label="Amount (₹)" err={errs.amt}><input id="aAmt" name="amt" type="number" inputMode="numeric" min={0} defaultValue={rec ? Number(rec.amount) : undefined} /></Field>
+          <Field id="aD" label="Date"><input id="aD" name="d" type="date" defaultValue={rec?.d ?? c.today} max={c.today} /></Field>
         </div>
       </>}
     </FormModal>

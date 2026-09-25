@@ -47,6 +47,8 @@
     overflow-x:hidden;
   }
   ::selection{ background:var(--copper); color:#fff; }
+  :focus-visible{ outline:2px solid var(--copper); outline-offset:3px; }
+  .nav-inner :focus-visible, footer :focus-visible{ outline-color:var(--copper-lit); }
   img{ display:block; max-width:100%; }
 
   .wrap{ width:100%; max-width:var(--maxw); margin-inline:auto; padding-inline:var(--pad-x); }
@@ -353,9 +355,9 @@
   .foot .about .brand{ color:var(--on-char); margin-bottom:0.9rem; }
   .foot .about .brand b span{ color:#e0a267; }
   .foot .about p{ color:var(--on-char-mut); font-size:0.9rem; }
-  .foot .col{ display:flex; flex-direction:column; gap:0.7rem; }
+  .foot .col{ display:flex; flex-direction:column; gap:0.1rem; }
   .foot .col .h{ font-size:0.72rem; letter-spacing:0.14em; text-transform:uppercase; color:var(--on-char-mut); font-weight:700; margin-bottom:0.3rem; }
-  .foot .col a{ color:var(--on-char); opacity:0.82; text-decoration:none; font-size:0.92rem; }
+  .foot .col a{ color:var(--on-char); opacity:0.82; text-decoration:none; font-size:0.92rem; padding-block:0.4rem; }
   .foot .col a:hover{ color:#e0a267; opacity:1; }
   .foot-btm{ max-width:var(--maxw); margin:2.6rem auto 0; padding-top:1.4rem; border-top:1px solid rgba(255,255,255,0.1); display:flex; justify-content:space-between; flex-wrap:wrap; gap:0.8rem; color:var(--on-char-mut); font-size:0.82rem; }
 
@@ -501,7 +503,7 @@
   .trade-card.dark .grow-spec .tag2{ color:#cbb39c; background:rgba(224,177,132,0.1); border-color:rgba(255,255,255,0.08); }
 
   /* hamburger + mobile menu */
-  .hamburger{ display:none; flex-direction:column; gap:5px; background:none; border:none; cursor:pointer; padding:6px; }
+  .hamburger{ display:none; flex-direction:column; align-items:center; justify-content:center; gap:5px; width:44px; height:44px; margin:-8px -6px -8px 0; background:none; border:none; cursor:pointer; padding:0; border-radius:999px; }
   .hamburger span{ width:22px; height:2px; background:#f4f2ed; border-radius:2px; transition:transform .3s, opacity .3s; }
   .hamburger.open span:nth-child(1){ transform:translateY(7px) rotate(45deg); }
   .hamburger.open span:nth-child(2){ opacity:0; }

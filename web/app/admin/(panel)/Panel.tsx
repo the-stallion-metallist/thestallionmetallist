@@ -151,6 +151,7 @@ function Loaded(props: {
 }) {
   const { data, setData, me, db, today, month, setMonth, reload, toast, closeLayers, closeModal, path, layers } = props;
   const vmap = useMemo(() => new Map(data.venues.map((v) => [v.id, v])), [data.venues]);
+  const venues = useMemo(() => data.venues.filter((v) => !v.deleted), [data.venues]);
   const byV = useMemo(() => byVenue(data.pickups), [data.pickups]);
   const per = useMemo(() => period(month, today), [month, today]);
   const now = useMemo(() => period(monthOf(today), today), [today]);
@@ -170,8 +171,8 @@ function Loaded(props: {
   // the route plan: zones are built once from road times and kept, so venues keep their day
   const god: Pin = data.set.godown ?? [30.27847, 78.00318];
   const waitingWithBin = useMemo(() => new Set(data.moves.filter((t) => t.status === "planned" && t.kind === "place").map((t) => t.venue_id)), [data.moves]);
-  const rctx = useMemo(() => ({ venues: data.venues, byV, set: data.set, matrix: data.matrix, zones: data.zones, areaRule: data.areaRule, today, waitingWithBin }),
-    [data.venues, byV, data.set, data.matrix, data.zones, data.areaRule, today, waitingWithBin]);
+  const rctx = useMemo(() => ({ venues, byV, set: data.set, matrix: data.matrix, zones: data.zones, areaRule: data.areaRule, today, waitingWithBin }),
+    [venues, byV, data.set, data.matrix, data.zones, data.areaRule, today, waitingWithBin]);
   const plan = useMemo(() => optimisePlan(rctx, areaName), [rctx]);
   const building = useRef(false);
   useEffect(() => { // first time (or after the road data arrives): build zones and save them for everyone
@@ -181,20 +182,20 @@ function Loaded(props: {
     if (z) db.from("plan_state").update({ value: z }).eq("key", "zones").then(({ error }) => { if (!error) patch((d) => ({ ...d, zones: z })); building.current = false; });
   }, [data.zones, data.matrix, rctx, db, patch]);
   const pay = useCallback((v: Venue) => payState(v, byV.get(v.id) ?? [], data.payments, vmap, data.set, today), [byV, data.payments, vmap, data.set, today]);
-  const sug = useMemo(() => movePlan({ venues: data.venues, stats, now, set: data.set, plan, moves: data.moves, spare: data.spare, today, vmap }),
-    [data.venues, stats, now, data.set, plan, data.moves, data.spare, today, vmap]);
+  const sug = useMemo(() => movePlan({ venues, stats, now, set: data.set, plan, moves: data.moves, spare: data.spare, today, vmap }),
+    [venues, stats, now, data.set, plan, data.moves, data.spare, today, vmap]);
 
   const badges = useMemo(() => {
     const b: Record<string, number | string> = {};
-    const od = data.venues.filter((v) => pay(v).st === "overdue").length; if (od) b["/admin/payouts"] = od;
-    const loc = data.venues.filter((v) => v.status !== "Pulled" && v.steel + v.plastic_bins > 0 && v.pin_src !== "google" && v.pin_src !== "manual").length; if (loc) b["/admin/locations"] = loc;
-    const act = data.venues.filter((v) => ["add", "pull", "quiet"].includes(stats(v, now).st)).length; if (act) b["/admin/venues"] = act;
+    const od = venues.filter((v) => pay(v).st === "overdue").length; if (od) b["/admin/payouts"] = od;
+    const loc = venues.filter((v) => v.status !== "Pulled" && v.steel + v.plastic_bins > 0 && v.pin_src !== "google" && v.pin_src !== "manual").length; if (loc) b["/admin/locations"] = loc;
+    const act = venues.filter((v) => ["add", "pull", "quiet"].includes(stats(v, now).st)).length; if (act) b["/admin/venues"] = act;
     const mv = sug.pulls.length + sug.give.length; if (mv) b["/admin/moves"] = mv;
     if (data.run) b["/admin/routes"] = "●";
     return b;
-  }, [data.venues, data.run, pay, stats, now, sug]);
+  }, [venues, data.run, pay, stats, now, sug]);
 
-  const ctx: Ctx = { ...data, me, today, db, vmap, byV, month, setMonth, per, now, stats, plan, sug, pay, god, patch, reload, logIt, toast,
+  const ctx: Ctx = { ...data, venues, me, today, db, vmap, byV, month, setMonth, per, now, stats, plan, sug, pay, god, patch, reload, logIt, toast,
     openDrawer: props.openDrawer, openModal: props.openModal, closeModal, closeLayers, fail, badges };
 
   useEffect(() => { // "/" opens search

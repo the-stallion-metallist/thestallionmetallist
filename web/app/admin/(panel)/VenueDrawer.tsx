@@ -4,7 +4,7 @@ import Link from "next/link";
 import { EditPayment } from "./forms2";
 import { usePanel } from "./Panel";
 import { I, Empty } from "./icons";
-import { BinChangeForm, DatesForm, EditVenue, openLogPickup } from "./forms";
+import { BinChangeForm, DatesForm, EditVenue, openLogPickup, setVenueRemoved } from "./forms";
 import { PST, ST, addDays, areaName, bins, dayName, dnice, fmt, kg, lowTxt, rs, vstatus, type State, type Venue } from "@/lib/admin/logic";
 import type { Plan } from "@/lib/admin/routes";
 
@@ -47,6 +47,8 @@ export default function VenueDrawer({ id, tab: tab0 = "sum" }: { id: number; tab
       <button className="x" onClick={c.closeLayers} aria-label="Close">{I.x}</button></div>
     <div className="dtabs" role="tablist">{tabs.map(([k, l]) => <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)}>{l}</button>)}</div>
     <div className="dr-b">
+      {v.deleted && <div className="note-bar" style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginBottom: 14 }}><span style={{ flex: "1 1 200px" }}>This venue was removed. Its past pickups and payments still count.</span>
+        <button className="btn btn-g btn-sm" onClick={async () => { if (await setVenueRemoved(c, v, false)) c.toast(`${v.name} restored`); }}>Restore venue</button></div>}
       {tab === "sum" && <>
         <div className={"advice a-" + s.st}>{adv[s.st]}</div>
         <div className="facts">

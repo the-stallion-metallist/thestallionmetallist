@@ -593,3 +593,42 @@ details.fold>summary{list-style:none;cursor:pointer;display:flex;align-items:bas
 .adm .lg-note b{display:block;margin-bottom:6px}
 .adm .btn[disabled]{opacity:.6;cursor:default}
 .adm .login{position:static;min-height:100vh}
+
+/* ---------- polish pass (25 Sep) ---------- */
+/* browser surfaces in the panel's own colours */
+.adm{caret-color:var(--copper);accent-color:var(--copper);scrollbar-color:rgba(28,25,23,.22) transparent}
+.adm .side{scrollbar-color:rgba(243,237,228,.18) transparent}
+.adm ::selection{background:var(--copper-tint);color:var(--ink)}
+/* "idle" chip text was just under readable contrast */
+.adm{--idle:#625b52}
+/* closed drawer: no shadow bleeding in from the right edge, and not reachable by Tab */
+.adm .drawer{visibility:hidden;box-shadow:none;transition:transform .25s cubic-bezier(.2,.8,.2,1),visibility 0s .25s,box-shadow 0s .25s}
+.adm .drawer.on{visibility:visible;box-shadow:-10px 0 40px rgba(23,20,15,.15);transition:transform .25s cubic-bezier(.2,.8,.2,1)}
+/* Save / Cancel stay in view at the bottom of long forms */
+.adm .m-foot{position:sticky;bottom:-20px;z-index:2;background:var(--card);margin:10px -22px -20px;padding:12px 22px 20px;border-top:1px solid var(--line-2)}
+/* the last card never hides under the floating Log pickup button */
+@media (max-width:720px){
+  .adm .content{padding-bottom:calc(150px + env(safe-area-inset-bottom,0px))}
+  .adm .m-foot{bottom:calc(-20px - env(safe-area-inset-bottom,0px));padding-bottom:calc(20px + env(safe-area-inset-bottom,0px))}
+  /* tables: names wrap so the numbers stay on screen */
+  .adm td{white-space:normal;padding:11px 8px}
+  .adm th{padding:9px 8px;white-space:normal;vertical-align:bottom}
+  .adm td .linkb{text-align:left}
+  .adm td:first-child,.adm td.n{white-space:nowrap}
+}
+/* team logins: actions sit on the right, and drop under the name on phones */
+.adm .team-row{flex-wrap:wrap}
+.adm .team-act{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:flex-end}
+@media (max-width:720px){.adm .team-act{margin-left:44px;justify-content:flex-start}}
+/* thumb-sized controls on touch screens */
+@media (pointer:coarse){
+  .adm .btn,.adm .btn-sm,.adm .seg button,.adm .fchip,.adm .pa button,.adm .inl{min-height:44px}
+  .adm details.fold>summary{min-height:44px;align-items:center}
+  .adm .mtop .av,.adm .mtop .search{position:relative}
+  .adm .mtop .av::after,.adm .mtop .search::after{content:"";position:absolute;inset:-7px}
+  .adm .linkb,.adm .rt-name{padding-block:11px;margin-block:-11px}
+  .adm .cal{grid-template-columns:96px repeat(30,32px)!important;min-width:100%;width:max-content;gap:4px}
+  .adm .cal .c{height:32px;border-radius:7px}
+  .adm .cal .nm{position:sticky;left:0;z-index:1;background:var(--card);padding-right:6px;align-self:stretch;display:flex;align-items:center}
+  .adm .cal>span:first-child{position:sticky;left:0;background:var(--card)}
+}

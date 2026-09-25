@@ -87,3 +87,21 @@ export async function teamLink(input: { name: string; role: string; email: strin
   await db.from("change_log").insert({ action: "Sent", what: "Login link", label: `${name} · ${email}`, who: member.name });
   return { link: res.data.properties.action_link };
 }
+
+// Owner only: take away someone's login when they leave. Their account is deleted, so they can't log in again,
+// and the database stops answering them straight away. Everything they added stays, with their name on it.
+export async function removeTeamMember(email: string): Promise<{ ok?: true; err?: string }> {
+  const { user, member } = await currentMember();
+  if (member?.role !== "Owner") return { err: "Only the owner can remove team logins." };
+  const e = email.trim().toLowerCase();
+  if (e === user?.email?.toLowerCase()) return { err: "You can't remove your own login." };
+  const db = adminDbSecret();
+  const { data: t } = await db.from("team").select("user_id, name, role").eq("email", e).maybeSingle();
+  if (!t) return { err: "That person isn't on the team." };
+  if (t.role === "Owner") return { err: "The owner's login can't be removed here." };
+  const { error } = await db.auth.admin.deleteUser(t.user_id);   // also removes their team row
+  if (error) return { err: error.message };
+  await db.from("team").delete().eq("user_id", t.user_id);
+  await db.from("change_log").insert({ action: "Removed", what: "Team login", label: `${t.name} · ${e}`, who: member.name });
+  return { ok: true };
+}

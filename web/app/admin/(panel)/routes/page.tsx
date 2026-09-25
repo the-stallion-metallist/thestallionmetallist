@@ -88,7 +88,7 @@ export default function Routes() {
             <li key={k}><span className="rt-dot" style={{ background: d.color, color: ZT[d.zone % 6] }}>{k + 1}</span><div className="rt-main">
               <button className="rt-name" onClick={() => c.openDrawer(<VenueDrawer id={s.v.id} />)}>{s.v.name}</button>
               <div className="d">{s.eta} · {s.legKm.toFixed(1)} km, {Math.round(s.legMin)} min drive{s.real ? "" : " (estimate)"}{s.v.pin_src === "googleCheck" ? " · check pin" : ""}</div>
-              <div className="d">{s.extra && <span className="chip c-new">Extra visit</span>} {s.bi && <span className="chip c-idle">Every 2 weeks</span>} ~{fmt(s.exp)} cans</div>
+              <div className="d">{s.extra && <span className="chip c-new">Extra visit</span>} {s.bi && <span className="chip c-idle">Every 2 weeks</span>} {s.exp ? `~${fmt(s.exp)} cans` : ""}</div>
               {taskChips(movesOn(s.v.id, d.date))}</div></li>,
           ])}
           <li className="rt-end"><span className="rt-dot" /><div className="rt-main"><b>Back at godown</b><div className="d">{d.end} · {d.backKm.toFixed(1)} km, {Math.round(d.backMin)} min</div></div></li>

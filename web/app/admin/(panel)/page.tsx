@@ -60,7 +60,7 @@ export default function Overview() {
     <section className="grid2">
       <div className="card"><div className="card-h"><h2>Today&apos;s route</h2>{route && route.stops.length > 0 && <span className="hint">{route.label} · {route.stops.length} stops · ~{fmt(route.load)} cans · back by {route.end}</span>}</div>
         {route && route.stops.length ? <>
-          <div className="due">{route.stops.slice(0, 5).map((s, k) => <div key={k} className="due-row"><div><div className="t">{k + 1}. {s.v.name}</div><div className="d">{s.eta} · ~{fmt(s.exp)} cans{s.extra ? " · extra visit" : ""}</div></div>
+          <div className="due">{route.stops.slice(0, 5).map((s, k) => <div key={k} className="due-row"><div><div className="t">{k + 1}. {s.v.name}</div><div className="d">{s.eta}{s.exp ? ` · ~${fmt(s.exp)} cans` : ""}{s.extra ? " · extra visit" : ""}</div></div>
             <button className="btn btn-g btn-sm" onClick={() => openLogPickup(c, s.v.id)}>Log</button></div>)}</div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12 }}>
             {c.run ? <Link className="btn btn-p" href="/admin/run">Continue route</Link>

@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { usePanel } from "../Panel";
-import { syncAppPickups, teamLink } from "../../actions";
+import { removeTeamMember, syncAppPickups, teamLink } from "../../actions";
 import { type Settings, areaName, parsePin, vstatus } from "@/lib/admin/logic";
 import { downloadWorkbook } from "@/lib/admin/excel";
 import { vname } from "../forms";
@@ -50,7 +50,7 @@ export default function SettingsPage() {
         <Godown />
         <div className="kv"><div><span>Working days</span><b>Mon–Sat, 1 run a day</b></div><div><span>Road data</span><b>OpenRouteService</b></div></div>
       </div>
-      <TeamCard team={team} onAdded={(t) => setTeam((l) => [...l.filter((x) => x.email !== t.email), t])} />
+      <TeamCard team={team} onAdded={(t) => setTeam((l) => [...l.filter((x) => x.email !== t.email), t])} onRemoved={(email) => setTeam((l) => l.filter((x) => x.email !== email))} />
       <ExcelCard />
     </section>
   );
@@ -103,10 +103,17 @@ function AppSyncCard() {
 
 const LABEL: Partial<Record<K, string>> = { ubcRate: "Can sale rate", cansPerKg: "Cans per kg", plasticSale: "Plastic sale rate", canRate: "Default payout per can", plasticBuy: "Default plastic payout", add: "Add a bin at", pull: "Take a bin back under", grace: "New venue grace days", vehCap: "Vehicle capacity", capSteel: "Full steel bin holds", capPl: "Full plastic bin holds", routeHours: "Route length", stopMin: "Time per stop", traffic: "Traffic buffer" };
 
-function TeamCard({ team, onAdded }: { team: { name: string; role: string; email: string }[]; onAdded: (t: { name: string; role: string; email: string }) => void }) {
+function TeamCard({ team, onAdded, onRemoved }: { team: { name: string; role: string; email: string }[]; onAdded: (t: { name: string; role: string; email: string }) => void; onRemoved: (email: string) => void }) {
   const c = usePanel(); const owner = c.me.role === "Owner";
   const [form, setForm] = useState<{ name: string; role: string; email: string } | null>(null);
   const [link, setLink] = useState(""); const [err, setErr] = useState(""); const [busy, setBusy] = useState(false);
+  const [ask, setAsk] = useState(""); // email of the login waiting for "Yes, remove"
+  async function remove(t: { name: string; email: string }) {
+    setBusy(true); setErr(""); setLink("");
+    const r = await removeTeamMember(t.email); setBusy(false); setAsk("");
+    if (r.err) { setErr(r.err); return; }
+    onRemoved(t.email); c.toast(`${t.name}'s login removed`);
+  }
   async function go(t: { name: string; role: string; email: string }) {
     setBusy(true); setErr(""); setLink("");
     const r = await teamLink(t); setBusy(false);
@@ -116,7 +123,11 @@ function TeamCard({ team, onAdded }: { team: { name: string; role: string; email
   return (
     <div className="card"><div className="card-h"><h2>Team</h2><span className="hint">Everyone has full access</span></div>
       <div>{team.map((t) => <div key={t.email} className="team-row"><span className="av">{t.name[0]}</span><div><b>{t.name}</b><br /><span className="muted" style={{ fontSize: 12.5 }}>{t.role} · {t.email}</span></div>
-        {owner && <button className="btn btn-g btn-sm r" style={{ marginLeft: "auto" }} disabled={busy} onClick={() => go(t)}>New password link</button>}</div>)}</div>
+        {owner && (ask === t.email
+          ? <div className="team-act"><span className="muted" style={{ fontSize: 12.5 }}>They won&apos;t be able to log in.</span>
+              <button className="btn btn-g btn-sm" disabled={busy} onClick={() => setAsk("")}>Keep</button><button className="btn btn-g btn-sm btn-del" disabled={busy} onClick={() => remove(t)}>{busy ? "Removing…" : "Yes, remove login"}</button></div>
+          : <div className="team-act"><button className="btn btn-g btn-sm" disabled={busy} onClick={() => go(t)}>New password link</button>
+              {t.role !== "Owner" && t.email !== c.me.email && <button className="btn btn-g btn-sm btn-del" disabled={busy} onClick={() => { setAsk(t.email); setErr(""); }}>Remove</button>}</div>)}</div>)}</div>
       {owner && !form && <button className="btn btn-g btn-sm" style={{ marginTop: 12 }} onClick={() => setForm({ name: "", role: "", email: "" })}>+ Add team member</button>}
       {form && <form style={{ marginTop: 12 }} onSubmit={(e) => { e.preventDefault(); go(form); }}>
         <div className="two">
@@ -132,7 +143,7 @@ function TeamCard({ team, onAdded }: { team: { name: string; role: string; email
         <input readOnly value={link} onFocus={(e) => e.target.select()} style={{ width: "100%" }} className="inl" />
         <button type="button" className="btn btn-g btn-sm" onClick={() => navigator.clipboard.writeText(link).then(() => c.toast("Link copied"), () => c.toast("Select the link and copy it"))}>Copy link</button>
       </div>}
-      {!owner && <p className="muted" style={{ fontSize: 12.5, marginTop: 10 }}>Only the owner can add people or send new password links.</p>}
+      {!owner && <p className="muted" style={{ fontSize: 12.5, marginTop: 10 }}>Only the owner can add or remove people and send new password links.</p>}
     </div>
   );
 }
