@@ -69,7 +69,9 @@ export async function syncAppPickups(force = false): Promise<{ added?: number; u
 }
 
 // Owner only: add a team member (or give an existing one a new password link).
-// Returns a one-time link the owner sends them; it opens /admin/welcome, where they set their password.
+// Returns a link the owner sends them; it opens /admin/welcome, where they set their password.
+// The link carries the token for our own page, not Supabase's verify URL: WhatsApp opens links to build a preview,
+// which used up the one-time verify link before the person could tap it. The token is only used when they press Save.
 export async function teamLink(input: { name: string; role: string; email: string }): Promise<{ link?: string; err?: string }> {
   const { member } = await currentMember();
   if (member?.role !== "Owner") return { err: "Only the owner can add team members or reset their passwords." };
@@ -85,7 +87,8 @@ export async function teamLink(input: { name: string; role: string; email: strin
   const { error } = await db.from("team").upsert({ user_id: res.data.user.id, name, role, email }, { onConflict: "user_id" });
   if (error) return { err: error.message };
   await db.from("change_log").insert({ action: "Sent", what: "Login link", label: `${name} · ${email}`, who: member.name });
-  return { link: res.data.properties.action_link };
+  const kind = res.data.properties.verification_type === "invite" ? "invite" : "recovery";
+  return { link: `${origin}/admin/welcome?t=${encodeURIComponent(res.data.properties.hashed_token)}&k=${kind}` };
 }
 
 // Owner only: take away someone's login when they leave. Their account is deleted, so they can't log in again,
@@ -103,5 +106,31 @@ export async function removeTeamMember(email: string): Promise<{ ok?: true; err?
   if (error) return { err: error.message };
   await db.from("team").delete().eq("user_id", t.user_id);
   await db.from("change_log").insert({ action: "Removed", what: "Team login", label: `${t.name} · ${e}`, who: member.name });
+  return { ok: true };
+}
+
+// Owner only: give a team member a password directly (instead of a link). New people are added in the same step.
+// The password goes straight to Supabase; it is never stored or logged here.
+export async function setTeamPassword(input: { name?: string; role?: string; email: string; password: string }): Promise<{ ok?: true; err?: string }> {
+  const { member } = await currentMember();
+  if (member?.role !== "Owner") return { err: "Only the owner can set passwords." };
+  const email = input.email.trim().toLowerCase(), password = input.password;
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return { err: "Enter a valid email." };
+  if (password.length < 10) return { err: "Use at least 10 characters for the password." };
+  const db = adminDbSecret();
+  const { data: t } = await db.from("team").select("user_id, name").eq("email", email).maybeSingle();
+  if (t) { // already on the team: just change the password
+    const { error } = await db.auth.admin.updateUserById(t.user_id, { password, email_confirm: true });
+    if (error) return { err: error.message };
+    await db.from("change_log").insert({ action: "Set", what: "Password", label: t.name, who: member.name });
+    return { ok: true };
+  }
+  const name = (input.name ?? "").trim(), role = (input.role ?? "").trim() || "Team";
+  if (!name) return { err: "Enter their name." };
+  const { data, error } = await db.auth.admin.createUser({ email, password, email_confirm: true });
+  if (error || !data.user) return { err: /already|registered|exists/i.test(error?.message ?? "") ? "This email already has an account. Remove it from the team list first, or ask for help." : error?.message ?? "Couldn't create the login." };
+  const { error: e2 } = await db.from("team").insert({ user_id: data.user.id, name, role, email });
+  if (e2) return { err: e2.message };
+  await db.from("change_log").insert({ action: "Added", what: "Team login", label: `${name} · ${email} · password set by owner`, who: member.name });
   return { ok: true };
 }

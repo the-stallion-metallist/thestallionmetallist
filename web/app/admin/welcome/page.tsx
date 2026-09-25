@@ -10,10 +10,16 @@ export default function Welcome() {
   const [why, setWhy] = useState("");
   const [pw, setPw] = useState(""); const [pw2, setPw2] = useState("");
   const [err, setErr] = useState(""); const [busy, setBusy] = useState(false);
+  const [tok, setTok] = useState<{ t: string; k: "invite" | "recovery" } | null>(null); // link from the owner, used on Save
 
   useEffect(() => {
     (async () => {
       const db = adminDb();
+      const qs = new URLSearchParams(location.search);
+      if (qs.get("t")) { // link made in Settings → Team: nothing is used until they press Save
+        setTok({ t: qs.get("t")!, k: qs.get("k") === "invite" ? "invite" : "recovery" });
+        history.replaceState(null, "", location.pathname); setState("ready"); return;
+      }
       const hash = new URLSearchParams(location.hash.slice(1));
       if (hash.get("error_description")) { setWhy(hash.get("error_description")!); setState("bad"); return; }
       if (hash.get("access_token") && hash.get("refresh_token")) {
@@ -33,6 +39,11 @@ export default function Welcome() {
     if (pw.length < 10) { setErr("Use at least 10 characters."); return; }
     if (pw !== pw2) { setErr("The two passwords don't match."); return; }
     setBusy(true);
+    if (tok) {
+      const v = await adminDb().auth.verifyOtp({ token_hash: tok.t, type: tok.k });
+      if (v.error) { setBusy(false); setWhy("This link has expired or was already used."); setState("bad"); return; }
+      setTok(null);
+    }
     const { error } = await adminDb().auth.updateUser({ password: pw });
     setBusy(false);
     if (error) { setErr(error.message); return; }

@@ -605,11 +605,11 @@ details.fold>summary{list-style:none;cursor:pointer;display:flex;align-items:bas
 .adm .drawer{visibility:hidden;box-shadow:none;transition:transform .25s cubic-bezier(.2,.8,.2,1),visibility 0s .25s,box-shadow 0s .25s}
 .adm .drawer.on{visibility:visible;box-shadow:-10px 0 40px rgba(23,20,15,.15);transition:transform .25s cubic-bezier(.2,.8,.2,1)}
 /* Save / Cancel stay in view at the bottom of long forms */
-.adm .m-foot{position:sticky;bottom:-20px;z-index:2;background:var(--card);margin:10px -22px -20px;padding:12px 22px 20px;border-top:1px solid var(--line-2)}
+.adm .modal .m-foot{position:sticky;bottom:-20px;z-index:2;background:var(--card);margin:10px -22px -20px;padding:12px 22px 20px;border-top:1px solid var(--line-2)}
 /* the last card never hides under the floating Log pickup button */
 @media (max-width:720px){
   .adm .content{padding-bottom:calc(150px + env(safe-area-inset-bottom,0px))}
-  .adm .m-foot{bottom:calc(-20px - env(safe-area-inset-bottom,0px));padding-bottom:calc(20px + env(safe-area-inset-bottom,0px))}
+  .adm .modal .m-foot{bottom:calc(-20px - env(safe-area-inset-bottom,0px));padding-bottom:calc(20px + env(safe-area-inset-bottom,0px))}
   /* tables: names wrap so the numbers stay on screen */
   .adm td{white-space:normal;padding:11px 8px}
   .adm th{padding:9px 8px;white-space:normal;vertical-align:bottom}
@@ -620,6 +620,8 @@ details.fold>summary{list-style:none;cursor:pointer;display:flex;align-items:bas
 .adm .team-row{flex-wrap:wrap}
 .adm .team-act{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:flex-end}
 @media (max-width:720px){.adm .team-act{margin-left:44px;justify-content:flex-start}}
+.adm .team-pw{flex:1 1 100%;display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;margin:4px 0 0 44px}
+.adm .team-pw .field{flex:1 1 220px;margin:0}
 /* thumb-sized controls on touch screens */
 @media (pointer:coarse){
   .adm .btn,.adm .btn-sm,.adm .seg button,.adm .fchip,.adm .pa button,.adm .inl{min-height:44px}

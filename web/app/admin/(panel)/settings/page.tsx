@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { usePanel } from "../Panel";
-import { removeTeamMember, syncAppPickups, teamLink } from "../../actions";
+import { removeTeamMember, setTeamPassword, syncAppPickups, teamLink } from "../../actions";
 import { type Settings, areaName, parsePin, vstatus } from "@/lib/admin/logic";
 import { downloadWorkbook } from "@/lib/admin/excel";
 import { vname } from "../forms";
@@ -105,7 +105,8 @@ const LABEL: Partial<Record<K, string>> = { ubcRate: "Can sale rate", cansPerKg:
 
 function TeamCard({ team, onAdded, onRemoved }: { team: { name: string; role: string; email: string }[]; onAdded: (t: { name: string; role: string; email: string }) => void; onRemoved: (email: string) => void }) {
   const c = usePanel(); const owner = c.me.role === "Owner";
-  const [form, setForm] = useState<{ name: string; role: string; email: string } | null>(null);
+  const [form, setForm] = useState<{ name: string; role: string; email: string; pw: string } | null>(null);
+  const [pwFor, setPwFor] = useState(""); const [pw, setPw] = useState(""); // "Set password" on an existing member
   const [link, setLink] = useState(""); const [err, setErr] = useState(""); const [busy, setBusy] = useState(false);
   const [ask, setAsk] = useState(""); // email of the login waiting for "Yes, remove"
   async function remove(t: { name: string; email: string }) {
@@ -113,6 +114,14 @@ function TeamCard({ team, onAdded, onRemoved }: { team: { name: string; role: st
     const r = await removeTeamMember(t.email); setBusy(false); setAsk("");
     if (r.err) { setErr(r.err); return; }
     onRemoved(t.email); c.toast(`${t.name}'s login removed`);
+  }
+  // owner types the password here; it goes straight to the login system and isn't kept anywhere in the panel
+  async function setPassword(t: { name: string; role: string; email: string }, password: string, isNew: boolean) {
+    setBusy(true); setErr(""); setLink("");
+    const r = await setTeamPassword({ ...t, password }); setBusy(false);
+    if (r.err) { setErr(r.err); return false; }
+    if (isNew) { onAdded({ name: t.name.trim(), role: t.role.trim() || "Team", email: t.email.trim().toLowerCase() }); setForm(null); }
+    setPwFor(""); setPw(""); c.toast(`${t.name.trim()} can log in now with ${t.email.trim().toLowerCase()} and that password`); return true;
   }
   async function go(t: { name: string; role: string; email: string }) {
     setBusy(true); setErr(""); setLink("");
@@ -126,16 +135,21 @@ function TeamCard({ team, onAdded, onRemoved }: { team: { name: string; role: st
         {owner && (ask === t.email
           ? <div className="team-act"><span className="muted" style={{ fontSize: 12.5 }}>They won&apos;t be able to log in.</span>
               <button className="btn btn-g btn-sm" disabled={busy} onClick={() => setAsk("")}>Keep</button><button className="btn btn-g btn-sm btn-del" disabled={busy} onClick={() => remove(t)}>{busy ? "Removing…" : "Yes, remove login"}</button></div>
-          : <div className="team-act"><button className="btn btn-g btn-sm" disabled={busy} onClick={() => go(t)}>New password link</button>
-              {t.role !== "Owner" && t.email !== c.me.email && <button className="btn btn-g btn-sm btn-del" disabled={busy} onClick={() => { setAsk(t.email); setErr(""); }}>Remove</button>}</div>)}</div>)}</div>
-      {owner && !form && <button className="btn btn-g btn-sm" style={{ marginTop: 12 }} onClick={() => setForm({ name: "", role: "", email: "" })}>+ Add team member</button>}
-      {form && <form style={{ marginTop: 12 }} onSubmit={(e) => { e.preventDefault(); go(form); }}>
+          : <div className="team-act"><button className="btn btn-g btn-sm" disabled={busy} onClick={() => { setPwFor(pwFor === t.email ? "" : t.email); setPw(""); setErr(""); }}>Set password</button><button className="btn btn-g btn-sm" disabled={busy} onClick={() => go(t)}>New password link</button>
+              {t.role !== "Owner" && t.email !== c.me.email && <button className="btn btn-g btn-sm btn-del" disabled={busy} onClick={() => { setAsk(t.email); setErr(""); }}>Remove</button>}</div>)}
+        {owner && pwFor === t.email && <form className="team-pw" onSubmit={(e) => { e.preventDefault(); setPassword(t, pw, false); }}>
+          <div className="field"><label htmlFor={"pw" + t.email}>New password for {t.name}</label><input id={"pw" + t.email} type="text" autoComplete="off" spellCheck={false} value={pw} onChange={(e) => setPw(e.target.value)} placeholder="At least 10 characters" /></div>
+          <button type="button" className="btn btn-g btn-sm" onClick={() => { setPwFor(""); setPw(""); }}>Cancel</button><button className="btn btn-p btn-sm" disabled={busy}>{busy ? "Saving…" : "Save password"}</button></form>}</div>)}</div>
+      {owner && !form && <button className="btn btn-g btn-sm" style={{ marginTop: 12 }} onClick={() => setForm({ name: "", role: "", email: "", pw: "" })}>+ Add team member</button>}
+      {form && <form style={{ marginTop: 12 }} onSubmit={(e) => { e.preventDefault(); if (form.pw) setPassword(form, form.pw, true); else go(form); }}>
         <div className="two">
           <div className="field"><label htmlFor="tmN">Name</label><input id="tmN" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
           <div className="field"><label htmlFor="tmR">Role</label><input id="tmR" value={form.role} placeholder="e.g. Operations" onChange={(e) => setForm({ ...form, role: e.target.value })} /></div>
         </div>
         <div className="field"><label htmlFor="tmE">Email</label><input id="tmE" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
-        <div className="m-foot"><button type="button" className="btn btn-g" onClick={() => setForm(null)}>Cancel</button><button className="btn btn-p" disabled={busy}>{busy ? "Creating…" : "Create login link"}</button></div>
+        <div className="field"><label htmlFor="tmP">Password <span className="muted">(optional)</span></label><input id="tmP" type="text" autoComplete="off" spellCheck={false} value={form.pw} placeholder="At least 10 characters" onChange={(e) => setForm({ ...form, pw: e.target.value })} />
+          <span className="help">Type a password to share with them yourself, or leave it empty to get a one-time link instead.</span></div>
+        <div className="m-foot"><button type="button" className="btn btn-g" onClick={() => setForm(null)}>Cancel</button><button className="btn btn-p" disabled={busy}>{busy ? "Creating…" : form.pw ? "Add with this password" : "Create login link"}</button></div>
       </form>}
       {err && <p className="lg-err" style={{ marginTop: 10 }}>{err}</p>}
       {link && <div className="lg-note" style={{ marginTop: 12, flexDirection: "column" }}>
@@ -143,7 +157,7 @@ function TeamCard({ team, onAdded, onRemoved }: { team: { name: string; role: st
         <input readOnly value={link} onFocus={(e) => e.target.select()} style={{ width: "100%" }} className="inl" />
         <button type="button" className="btn btn-g btn-sm" onClick={() => navigator.clipboard.writeText(link).then(() => c.toast("Link copied"), () => c.toast("Select the link and copy it"))}>Copy link</button>
       </div>}
-      {!owner && <p className="muted" style={{ fontSize: 12.5, marginTop: 10 }}>Only the owner can add or remove people and send new password links.</p>}
+      {!owner && <p className="muted" style={{ fontSize: 12.5, marginTop: 10 }}>Only the owner can add or remove people, set passwords and send new password links.</p>}
     </div>
   );
 }
