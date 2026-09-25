@@ -586,6 +586,7 @@ details.fold>summary{list-style:none;cursor:pointer;display:flex;align-items:bas
 .adm .nav a,.adm .bnav a{text-decoration:none}
 .adm .eyebrow{display:block;background:none;padding:0;border-radius:0;font-family:var(--f-body)}
 .adm .eyebrow::before{content:none}
+.adm .content{max-width:none}
 .adm .lg-err{color:var(--bad);font-size:13.5px;font-weight:500;margin:-4px 0 12px}
 .adm .lg-ok{color:var(--good);font-size:13.5px;font-weight:500;margin:-4px 0 12px}
 .adm .lg-forgot{display:block;margin:14px auto 0;font-size:13.5px}
