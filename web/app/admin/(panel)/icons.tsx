@@ -10,6 +10,7 @@ export const I: Record<string, React.ReactElement> = {
   trips: <svg {...s}><path d="M3 6h11v10H3zM14 9h4l3 3v4h-7" /><circle cx="7" cy="17.5" r="1.8" /><circle cx="17" cy="17.5" r="1.8" /></svg>,
   stock: <svg {...s}><path d="M3 9l9-5 9 5v11H3z" /><path d="M8 20v-6h8v6" /></svg>,
   money: <svg {...s}><path d="M7 4h11M7 9h11M11 4c4 0 5 2.2 5 5s-2 5-6 5H7l8 7" /></svg>,
+  people: <svg {...s}><path d="M9 21V10h6v11M3 21v-6h6M15 21v-8h6v8M2 21h20" /><path d="m12 3 .9 1.8 2 .3-1.5 1.4.4 2-1.8-1-1.8 1 .4-2-1.5-1.4 2-.3z" /></svg>,
   staff: <svg {...s}><circle cx="9" cy="8" r="3.5" /><path d="M2.5 20c.8-3.5 3.3-5.5 6.5-5.5s5.7 2 6.5 5.5" /><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18.5 14.8c1.6.8 2.6 2.5 3 5.2" /></svg>,
   routes: <svg {...s}><circle cx="6" cy="19" r="2.2" /><circle cx="18" cy="5" r="2.2" /><path d="M8 19h8.5a3.5 3.5 0 0 0 0-7h-9a3.5 3.5 0 0 1 0-7H16" /></svg>,
   locations: <svg {...s}><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z" /><circle cx="12" cy="9.5" r="2.5" /></svg>,

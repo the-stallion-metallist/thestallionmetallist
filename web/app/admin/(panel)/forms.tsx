@@ -226,6 +226,12 @@ async function saveVenueRow(c: Ctx, id: number, vals: Partial<Venue>) {
   c.patch((d) => ({ ...d, venues: d.venues.map((v) => (v.id === id ? (data as Venue) : v)) }));
   return data as Venue;
 }
+// names to pick from for "Brought in by": everyone already set on a venue, plus current staff
+function broughtNames(c: Ctx) { return [...new Set([...[...c.vmap.values()].map((v) => v.brought_by), ...c.staff.filter((s) => s.active).map((s) => s.name)].filter(Boolean) as string[])].sort(); }
+function BroughtBy({ id, value }: { id: string; value?: string | null }) {
+  const c = usePanel();
+  return <Field id={id} label="Brought in by" help="Who got this venue on board. Counts on the People screen."><select id={id} name="by" defaultValue={value ?? ""}><option value="">Not set</option>{broughtNames(c).map((n) => <option key={n}>{n}</option>)}</select></Field>;
+}
 const pinErr = (raw: string) => (raw ? parsePin(raw) : { p: undefined, err: undefined });
 
 export function EditVenue({ v }: { v: Venue }) {
@@ -244,13 +250,13 @@ export function EditVenue({ v }: { v: Venue }) {
         name, area: String(fd.get("area")) || null, status: String(fd.get("status")) as Venue["status"],
         promised: String(fd.get("status")) === "Waiting" ? Math.max(1, Number(fd.get("promised")) || 1) : v.promised,
         contact: String(fd.get("contact")) || null, phone: String(fd.get("phone")) || null, terms: String(fd.get("terms")) as Venue["terms"], upi: String(fd.get("upi")) || null,
-        can_rate: Number(fd.get("rate")) || v.can_rate, plastic_rate: Number(fd.get("pr")) || null,
+        can_rate: Number(fd.get("rate")) || v.can_rate, plastic_rate: Number(fd.get("pr")) || null, brought_by: String(fd.get("by")) || null,
       };
       if (String(fd.get("area")) !== (v.area ?? "")) vals.area_est = false;
       if (pp.p) Object.assign(vals, { lat: pp.p[0], lng: pp.p[1], pin_src: "manual", pin_by: c.me.name });
       if (!raw && cur) Object.assign(vals, { lat: null, lng: null, pin_src: null });
       const next = await saveVenueRow(c, v.id, vals); if (!next) return false;
-      const ch = diffs(v as unknown as Record<string, unknown>, next as unknown as Record<string, unknown>, [["name", "Name"], ["area", "Area"], ["status", "Status"], ["lat", "Pin"], ["contact", "Contact"], ["phone", "Phone"], ["terms", "Terms"], ["can_rate", "Per can"], ["plastic_rate", "Plastic ₹/kg"]]);
+      const ch = diffs(v as unknown as Record<string, unknown>, next as unknown as Record<string, unknown>, [["name", "Name"], ["area", "Area"], ["status", "Status"], ["lat", "Pin"], ["contact", "Contact"], ["phone", "Phone"], ["terms", "Terms"], ["can_rate", "Per can"], ["plastic_rate", "Plastic ₹/kg"], ["brought_by", "Brought in by"]]);
       await c.logIt("Edited", "Venue", next.name, ch, { table: "venues", id: v.id }); c.toast("Venue saved");
     }}>
       {(errs) => <>
@@ -274,6 +280,7 @@ export function EditVenue({ v }: { v: Venue }) {
           <Field id="evR" label="Payout per can (₹)"><input id="evR" name="rate" type="number" step="any" defaultValue={v.can_rate} /></Field>
           <Field id="evPr" label="Plastic payout (₹/kg)"><input id="evPr" name="pr" type="number" step="any" defaultValue={v.plastic_rate ?? ""} placeholder={`Default ₹${c.set.plasticBuy}`} /></Field>
         </div>
+        <BroughtBy id="evBy" value={v.brought_by} />
         {block && <p className="meta">To remove this venue, first {block}.</p>}
       </>}
     </FormModal>
@@ -317,7 +324,7 @@ export function AddVenue() {
         name, type: String(fd.get("type")), area: String(fd.get("area")) || null, status: wait ? "Waiting" : "Active", promised: wait ? Math.max(1, Number(fd.get("promised")) || 1) : 0,
         steel, plastic_bins: pb, added: String(fd.get("added")), bin_since: hasBins ? String(fd.get("bin")) : null,
         can_rate: Number(fd.get("rate")) || c.set.canRate, plastic_rate: Number(fd.get("pr")) || null,
-        contact: String(fd.get("c")) || null, phone: String(fd.get("ph")) || null,
+        contact: String(fd.get("c")) || null, phone: String(fd.get("ph")) || null, brought_by: String(fd.get("by")) || null,
         ...(pp.p ? { lat: pp.p[0], lng: pp.p[1], pin_src: "manual", pin_by: c.me.name } : {}),
       };
       const { data, error } = await c.db.from("venues").insert(row).select().single();
@@ -353,6 +360,7 @@ export function AddVenue() {
           <Field id="vC" label="Contact name"><input id="vC" name="c" /></Field>
           <Field id="vPh" label="Phone"><input id="vPh" name="ph" type="tel" inputMode="tel" /></Field>
         </div>
+        <BroughtBy id="vBy" />
       </>}
     </FormModal>
   );

@@ -65,6 +65,7 @@ export default function VenueDrawer({ id, tab: tab0 = "sum" }: { id: number; tab
           <div><span>Plastic payout</span><b>{v.plastic_rate ? `₹${v.plastic_rate}/kg` : `Default ₹${c.set.plasticBuy}/kg`}</b></div>
           <div><span>Payment</span><b>{v.terms}</b></div>
           <div><span>Status</span><b>{vstatus(v.status)}</b></div>
+          <div><span>Brought in by</span><b>{v.brought_by || <span className="missing">Not set</span>}</b></div>
         </div>
         <div className="dr-act">
           <button className="btn btn-p" onClick={() => openLogPickup(c, v.id)}>Log pickup</button>

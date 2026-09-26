@@ -12,6 +12,7 @@ export type Venue = {
   contact: string | null; phone: string | null; terms: "On the spot" | "Per pickup" | "Monthly"; upi: string | null;
   opening: number | null; keep_until: string | null; skip_give: string | null; cut_on: string | null;
   deleted: boolean; // removed from the panel; past pickups and payments still count
+  brought_by: string | null; // who brought the venue in (People screen); null = not set
   created_by: string; updated_by: string | null;
 };
 export type Pickup = {
