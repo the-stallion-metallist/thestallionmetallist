@@ -23,6 +23,11 @@ export const I: Record<string, React.ReactElement> = {
   chev: <svg {...s} strokeWidth={2.2} width="16" height="16"><path d="M9 6l6 6-6 6" /></svg>,
   empty: <svg {...s} strokeWidth={1.8}><rect x="4" y="5" width="16" height="15" rx="3" /><path d="M8 3v4M16 3v4M4 10h16" /></svg>,
   ok: <svg {...s} strokeWidth={2.2}><circle cx="12" cy="12" r="9" /><path d="M8 12.5l2.7 2.7L16 10" /></svg>,
+  home: <svg {...s}><path d="M4 11 12 4l8 7v9a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1z" /></svg>,
+  tick: <svg {...s} strokeWidth={2.6}><path d="m5 12 5 5 9-10" /></svg>,
+  play: <svg {...s}><path d="M7 4v16l13-8z" /></svg>,
+  map: <svg {...s}><path d="m3 6 6-2 6 2 6-2v14l-6 2-6-2-6 2z" /><path d="M9 4v14M15 6v14" /></svg>,
+  phone: <svg {...s}><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z" /></svg>,
 };
 
 export function Empty({ title, text, children }: { title: string; text: string; children?: React.ReactNode }) {

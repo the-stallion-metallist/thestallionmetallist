@@ -133,7 +133,19 @@ function LogPickup({ venueId, rec }: { venueId?: number; rec?: Pickup }) {
           src: (String(fd.get("src")) || "Bin") as Pickup["src"], staff: String(fd.get("staff") || ""), fill: String(fd.get("fill") || "") };
         return savePickup(c, vals, rec, !!fd.get("paynow"));
       }}>
-      {(errs) => <>
+      {(errs) => c.phone ? <>
+        {app ? <Field id="pApp" label="Venue"><input id="pApp" value="Household (app)" disabled /></Field> : <VenuePicker id="pVen" initial={rec?.venue_id ?? venueId} err={errs.venue_id} />}
+        <Field id="pCans" label="Cans" err={errs.cans}><input id="pCans" name="cans" type="number" inputMode="numeric" min={0} placeholder="e.g. 180" defaultValue={rec?.cans ?? ""} /></Field>
+        <Field label="Staff on pickup"><Opts name="staff" values={c.staff.filter((s) => s.active).map((s) => s.name)} initial={rec?.staff} multi /></Field>
+        {!rec && <label className="check"><input type="checkbox" name="paynow" defaultChecked /> Paid the venue on the spot</label>}
+        <details className="ph-fold inset" open={!!rec}><summary><span className="ph-m"><span className="ph-t">More details</span><span className="ph-d">Date, plastic kg, bin fill, source</span></span><span className="ph-chev down">{I.chev}</span></summary>
+          <div className="ph-fold-b">
+            <Field id="pDate" label="Date"><input id="pDate" name="d" type="date" defaultValue={rec?.d ?? c.today} max={c.today} /></Field>
+            <Field id="pPl" label={<>Plastic kg <span className="muted">(optional)</span></>}><input id="pPl" name="pl" type="number" inputMode="decimal" step="any" min={0} placeholder="e.g. 3.5" defaultValue={rec?.plastic_kg || ""} /></Field>
+            <Field label={<>Bin fill when you arrived <span className="muted">(optional)</span></>}><Opts name="fill" values={["25%", "50%", "75%", "Full", "Overflow"]} initial={rec?.fill} /></Field>
+            <Field label="Source"><Opts name="src" values={["Bin", "App", "Walk-in"]} initial={rec?.src ?? "Bin"} /></Field>
+          </div></details>
+      </> : <>
         <div className="two">
           <Field id="pDate" label="Date"><input id="pDate" name="d" type="date" defaultValue={rec?.d ?? c.today} max={c.today} /></Field>
           {app ? <Field id="pApp" label="Venue"><input id="pApp" value="Household (app)" disabled /></Field>

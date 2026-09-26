@@ -43,7 +43,7 @@ export default function VenueDrawer({ id, tab: tab0 = "sum" }: { id: number; tab
   const ps = c.pay(v); const pays = c.payments.filter((p) => !p.deleted && p.venue_id === v.id).sort((a, b) => (a.d < b.d ? 1 : -1));
 
   return (<>
-    <div className="dr-h"><div><h2>{v.name}</h2><div style={{ marginTop: 6, display: "flex", gap: 6, flexWrap: "wrap" }}><Chip st={s.st} />{ps.owed > 0 && <span className={"chip " + PST[ps.st][1]}>{PST[ps.st][0]}</span>}</div></div>
+    <div className="dr-h"><div><h2>{v.name}</h2>{c.phone && <div className="ph-sub">{v.area ? areaName(v.area) : "Area not set"} · {n} bin{n === 1 ? "" : "s"}</div>}<div style={{ marginTop: 6, display: "flex", gap: 6, flexWrap: "wrap" }}><Chip st={s.st} />{ps.owed > 0 && <span className={"chip " + PST[ps.st][1]}>{PST[ps.st][0]}</span>}</div></div>
       <button className="x" onClick={c.closeLayers} aria-label="Close">{I.x}</button></div>
     <div className="dtabs" role="tablist">{tabs.map(([k, l]) => <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)}>{l}</button>)}</div>
     <div className="dr-b">
@@ -117,5 +117,7 @@ export default function VenueDrawer({ id, tab: tab0 = "sum" }: { id: number; tab
         {log.length > 0 && <div className="kv">{log.map((b) => <div key={b.id}><span>{dnice(b.d)} · {b.created_by}</span><b>{b.change > 0 ? "Placed" : "Taken back"} {b.steel} steel, {b.plastic} plastic</b></div>)}</div>}
       </>}
     </div>
+    {c.phone && <div className="ph-dfoot">{v.phone ? <a className="ph-btn g" href={`tel:${v.phone}`}>{I.phone}Call</a> : <button className="ph-btn g" onClick={() => c.openModal(<EditVenue v={v} />)}>Add phone</button>}
+      <button className="ph-btn p" onClick={() => openLogPickup(c, v.id)}>{I.plus}Log pickup</button></div>}
   </>);
 }

@@ -1,9 +1,10 @@
 "use client";
 import Link from "next/link";
 import { usePanel } from "../Panel";
-import { Empty } from "../icons";
-import { EditExpense } from "../forms2";
-import { CATS, dnice, fmt, inP, itemLabel, kg, lastUnitCost, rs, rsu, totals } from "@/lib/admin/logic";
+import { Empty, I } from "../icons";
+import { PhFold, PhHead, PhRow } from "../bits";
+import { EditExpense, EditPayment, EditSale } from "../forms2";
+import { CATS, dnice, fmt, inP, itemLabel, kg, lastUnitCost, monthOf, rs, rsu, staffDue, totals } from "@/lib/admin/logic";
 
 export default function Money() {
   const c = usePanel(); const p = c.per;
@@ -17,6 +18,44 @@ export default function Money() {
   const allBins = c.venues.reduce((a, v) => a + v.steel + v.plastic_bins, 0), cpb = allBins ? (T.cans / allBins) * (p.all ? 30 / p.days : 1) : 0, perBin = cpb * margin;
   const owed = c.venues.map((v) => c.pay(v)), od = owed.filter((s) => s.st === "overdue");
   const payNote = c.set.goLive ? "" : " Payouts are tracked from the go-live day (set in Settings).";
+
+  if (c.phone) { // phone: the three money jobs, a plain summary, and where to look next
+    const expTot = exps.reduce((a, e) => a + Number(e.amount), 0), costs = tripCost + expTot, owedTot = owed.reduce((a, s) => a + s.owed, 0), owedN = owed.filter((s) => s.owed > 0).length;
+    const ps = c.pickups.filter((x) => !x.deleted), soldKg = c.sales.filter((s) => !s.deleted && s.material === "UBC").reduce((a, s) => a + Number(s.kg), 0);
+    const cansNow = ps.reduce((a, x) => a + x.cans, 0) - soldKg * c.set.cansPerKg;
+    const mo = monthOf(c.today), active = c.staff.filter((s) => s.active), salSet = active.filter((s) => s.salary).length;
+    const toPay = active.reduce((a, s) => a + Math.max(0, staffDue(s, mo, c.marks, c.advances, c.expenses).pay ?? 0), 0);
+    return (<div className="ph">
+      <PhHead title="Money" sub={`${p.label}${p.end >= c.today ? " · up to " + dnice(c.today) : ""}`} />
+      <div className="ph-qa">
+        <button onClick={() => c.openModal(<EditPayment />)}>{I.payouts}Pay venue</button>
+        <button onClick={() => c.openModal(<EditExpense />)}>{I.plus}Expense</button>
+        <button onClick={() => c.openModal(<EditSale />)}>{I.stock}Sale</button>
+      </div>
+      <div className="ph-card"><div className="ph-stmt">
+        <div><span>Cans collected are worth<small>{fmt(T.cans)} cans at ₹{c.set.ubcRate}/kg{T.plValue ? ` · plus ${kg(T.pl)} kg plastic` : ""}</small></span><b>{rs(T.canValue + T.plValue)}</b></div>
+        <div><span>Paid to venues</span><b className="neg">{rs(-T.paid)}</b></div>
+        <div><span>Trips and expenses{!costs && <small>None entered yet</small>}</span><b className={costs ? "neg" : "muted"}>{costs ? rs(-costs) : "₹0"}</b></div>
+        <div className="tot"><span>Left over</span><b className={profit < 0 ? "neg" : "pos"}>{rs(profit)}</b></div>
+      </div>{!expTot && <p className="muted" style={{ fontSize: 13.5, marginTop: 10 }}>Add salaries, rent and fuel as expenses to see real profit.</p>}</div>
+      <div className="ph-list">
+        <PhRow lead={owedN ? owedN : I.tick} tone={od.length ? "bad" : owedN ? "warn" : "good"} title="Venues owed" sub={owedN ? `${rs(owedTot)} to pay${od.length ? ` · ${od.length} not paid on time` : ""}` : "Everyone is paid"} href="/admin/payouts" />
+        <PhRow lead={I.stock} title="In the godown" sub={`${fmt(cansNow)} cans · worth ${rs((cansNow / c.set.cansPerKg) * c.set.ubcRate)}`} href="/admin/stock" />
+        <PhRow lead={I.staff} title="Staff pay" sub={!salSet ? `${active.length} staff · salaries not set yet` : toPay ? `${rs(toPay)} to pay this month` : "Nothing to pay this month"} href="/admin/staff" />
+      </div>
+      <PhFold title="Per can" sub="Margin, trip cost, bin payback"><div className="ph-stmt">
+        <div><span>Sale value per can</span><b>₹{(c.set.ubcRate / c.set.cansPerKg).toFixed(2)}</b></div>
+        <div><span>Paid per can</span><b>₹{c.set.canRate.toFixed(2)}</b></div>
+        <div><span>Margin per can</span><b className="pos">₹{margin.toFixed(2)}</b></div>
+        <div><span>Trip cost per can</span><b>{T.cans ? `₹${(tripCost / T.cans).toFixed(2)}` : "–"}</b></div>
+        <div><span>Cans per pickup</span><b>{T.n ? fmt(T.cans / T.n) : "–"}</b></div>
+      </div></PhFold>
+      <PhFold title="Expenses" sub={exps.length ? `${exps.length} in ${p.label} · ${rs(expTot)}` : `Nothing entered in ${p.label}`}>
+        {exps.length ? <div className="ph-list flat">{exps.slice().sort((a, b) => (a.d < b.d ? 1 : -1)).map((e) => <PhRow key={e.id} title={e.category === "Salaries" ? "Salary · " + sname(e.staff_id) : e.qty ? itemLabel(e) : e.category} sub={`${dnice(e.d)} · ${e.mode}`} right={<b className="ph-amt">{rs(Number(e.amount))}</b>} onClick={() => c.openModal(<EditExpense rec={e} />)} />)}</div>
+          : <p className="muted">Add salaries, rent, new bins and phone bills here.</p>}
+      </PhFold>
+    </div>);
+  }
   return (
     <section className="grid2">
       <div className="card"><div className="card-h"><h2>Profit for {p.label}</h2><span className="hint">Cans valued at ₹{c.set.ubcRate}/kg until they&apos;re sold</span></div>

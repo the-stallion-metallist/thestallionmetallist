@@ -7,7 +7,8 @@ import { Empty } from "../icons";
 import VenueDrawer from "../VenueDrawer";
 import { saveSettings, saveZones } from "../forms2";
 import { startRun } from "../runlib";
-import { RunBar, taskChips } from "../bits";
+import { PhFold, PhHead, RunBar, areaOnly, taskChips } from "../bits";
+import { I } from "../icons";
 import { areaName, dnice, fmt } from "@/lib/admin/logic";
 import { DAYS, ZC, ZT, type Day, type Plan, buildZones, fmtClock, hm, mapsLinks, pinOf, pinSig, planWeeks, ruleZone, zoneName } from "@/lib/admin/routes";
 import { moveDate } from "@/lib/admin/moves";
@@ -41,16 +42,70 @@ export default function Routes() {
   const rz = ruleZone(c.zones, c), rule = c.areaRule;
   const ruleVenues = c.venues.filter((v) => rule && v.area === rule.area && v.status === "Active" && v.steel + v.plastic_bins > 0);
 
-  return (<div style={{ display: "contents", opacity: busy ? 0.45 : 1 }}>
-    <RunBar />
-    <details className="card fold"><summary><h2>Route settings</h2><span className="hint">{c.set.routeHours} h routes · {c.set.stopMin} min a stop · +{c.set.traffic || 0}% traffic · leave {c.set.depart} · {c.set.vehCap ? fmt(c.set.vehCap) + " cans a load" : "no vehicle limit set"}</span></summary>
+  const settingsFold = (<details className="card fold"><summary><h2>Route settings</h2><span className="hint">{c.set.routeHours} h routes · {c.set.stopMin} min a stop · +{c.set.traffic || 0}% traffic · leave {c.set.depart} · {c.set.vehCap ? fmt(c.set.vehCap) + " cans a load" : "no vehicle limit set"}</span></summary>
       <div className="fold-b"><div className="rp-top">
         {inp("routeHours", "Route length", "hours", 0.5)}{inp("stopMin", "Time per stop", "min")}{inp("traffic", "Traffic buffer", "%", 5)}
         <div className="rp-set"><label htmlFor="rs_depart">Leave godown</label><input id="rs_depart" className="inl" type="time" defaultValue={c.set.depart} style={{ width: 120, textAlign: "left" }}
           onBlur={async (e) => { const v = e.target.value || "11:00"; if (v !== c.set.depart && await saveSettings(c, { depart: v }, "Leave godown", `${c.set.depart} → ${v}`)) c.toast("Route plan updated"); }} /></div>
         {inp("vehCap", "Vehicle capacity", "cans")}
       </div>
-      <p className="muted" style={{ fontSize: 12.5 }}>Driving times and km come from OpenRouteService road data. They assume empty roads, so the traffic buffer adds time on top.{cal.length ? ` Your last ${cal.length} route${cal.length > 1 ? "s" : ""} took ${Math.round((cal.reduce((a, t) => a + t.act_min! / t.plan_min!, 0) / cal.length) * 100 - 100)}% longer than planned.` : " After a few real routes this shows how far off the plan was."}</p></div></details>
+      <p className="muted" style={{ fontSize: 12.5 }}>Driving times and km come from OpenRouteService road data. They assume empty roads, so the traffic buffer adds time on top.{cal.length ? ` Your last ${cal.length} route${cal.length > 1 ? "s" : ""} took ${Math.round((cal.reduce((a, t) => a + t.act_min! / t.plan_min!, 0) / cal.length) * 100 - 100)}% longer than planned.` : " After a few real routes this shows how far off the plan was."}</p></div></details>);
+  const zonesFold = (<details className="card fold"><summary><h2>Zones and every-2-weeks venues</h2><span className="hint">6 zones built {dnice(c.zones.built)} · {M2.biN} venues every 2 weeks</span></summary>
+      <div className="fold-b"><div className="grid2 flat">
+        <div><div className="card-h"><h3>Zones</h3><span className="hint">Built from road times. Venues keep their day.</span></div>
+          <div className="kv">{[0, 1, 2, 3, 4, 5].map((z) => { const vs = c.venues.filter((v) => c.zones!.of[v.id] === z); const nm = zoneName(z, c.zones, c.venues, areaName);
+            return <div key={z}><span><i className="zdot" style={{ background: ZC[z] }} />Zone {z + 1}{nm ? " · " + nm : ""}<br /><small className="muted">{vs.length} venues{rz === z && rule ? ` · ${ruleVenues.filter((v) => c.zones!.of[v.id] === z).length} of ${ruleVenues.length} ${areaName(rule.area)} venues` : ""}</small>
+              {rz === z && rule && <> <span className="chip c-new">Kept on {DAYS[rule.day]} for {areaName(rule.area)}</span></>}</span>
+              <b><select className="inl" style={{ width: 90, textAlign: "left" }} value={c.zones!.day[z]} onChange={(e) => swap(z, +e.target.value)} aria-label={`Day for zone ${z + 1}`}>{DAYS.map((dd, i) => <option key={i} value={i}>{dd}</option>)}</select></b></div>; })}</div>
+          <p className="muted" style={{ fontSize: 12.5, marginTop: 10 }}>The zone with the most Rajpur Road venues (by each venue&apos;s Area) always goes on Monday, including after Rebuild zones.</p></div>
+        <div><div className="card-h"><h3>Every 2 weeks</h3><span className="hint">{M2.biN} venues give few cans for the time they take</span></div>
+          {M2.bi.length ? <div className="kv">{M2.bi.sort((a, b) => a.week - b.week).map((x) => <div key={x.v.id}><span>{x.v.name}<br /><small className="muted">~{fmt(x.week)} cans a week</small></span><b>Week {x.w}</b></div>)}</div>
+            : <p className="muted">Every venue fits in weekly. Nobody moved to every 2 weeks.</p>}
+          <p className="muted" style={{ fontSize: 12.5, marginTop: 10 }}>Only venues whose bins can hold 2 weeks of cans can move. Busy venues are never skipped.</p></div>
+      </div>{c.zones.sig !== pinSig(c.venues) && <div className="note-bar">Venue locations changed since the zones were built. Rebuild zones to use them.</div>}</div></details>);
+
+  if (c.phone) { // phone: pick a day, see its stops, start it; map, settings and zones fold away
+    const ti = (new Date(c.today + "T00:00:00").getDay() + 6) % 7, isThis = week === W.first, links = mapsLinks(d.stops, c.god);
+    const clock = (t: string) => { const [h, m] = String(t).split(":").map(Number); return `${h % 12 || 12}:${String(m).padStart(2, "0")} ${h >= 12 ? "pm" : "am"}`; };
+    return (<div className="ph" style={{ opacity: busy ? 0.45 : 1 }}>
+      <PhHead title="Route" sub={`${M2.nodes} venues · ${fmt(M2.kmWeek)} km a week`} />
+      <RunBar />
+      <div className="seg" role="group" aria-label="Week" style={{ alignSelf: "flex-start" }}>{([W.first, W.first === "A" ? "B" : "A"] as const).map((w, i) => <button key={w} aria-pressed={week === w} onClick={() => { setWeek(w); setSel(i === 0 ? (ti < 6 ? ti : 0) : 0); }}>{i === 0 ? "This week" : "Next week"}</button>)}</div>
+      <div className="ph-days" role="group" aria-label="Day" ref={(el) => { const on = el?.querySelector<HTMLElement>('[aria-pressed="true"]'); if (el && on) el.scrollLeft = on.offsetLeft - 16; }}>
+        {days.map((x) => <button key={x.i} className={"ph-day" + (isThis && x.i === ti ? " today" : "")} aria-pressed={sel === x.i} onClick={() => setSel(x.i)}>
+          <b>{x.d}</b><span>{isThis && x.i === ti ? "Today" : dnice(x.date)}</span><span className={x.over ? "neg" : ""}>{hm(x.totalMin)}</span><i style={{ background: x.color }} /></button>)}
+      </div>
+      <div className="ph-card">
+        <div><div className="ph-dt">{d.d} {dnice(d.date)}</div><div className="ph-sub">{areaOnly(d.label)}</div></div>
+        <div className="ph-facts3"><div><span>Stops</span><b>{d.stops.length}</b></div><div><span>Driving</span><b>{Math.round(d.km)} km</b></div><div><span>Back by</span><b>{d.end}</b></div></div>
+        {d.over && <div className="note-bar">This day is {Math.round(d.overBy)} min over the {hm(lim)} limit. Rebuild zones or raise the route length.</div>}
+        {d.stops.length > 0 && (c.run ? <Link className="ph-btn p" href="/admin/run">{I.play}Continue route</Link>
+          : <button className="ph-btn p" onClick={async () => { if (await startRun(c, sel, week)) router.push("/admin/run"); }}>{I.play}Start this route</button>)}
+        {links.map((u, i) => <a key={i} className="ph-btn g" href={u} target="_blank" rel="noopener">{I.map}{links.length > 1 ? `Google Maps, part ${i + 1}` : "Open in Google Maps"}</a>)}
+      </div>
+      {d.stops.length ? <><h2 className="ph-sec">Stops in order</h2>
+        <ol className="ph-list ph-stops">
+          <li className="end"><span className="n">{I.home}</span><span className="ph-m"><span className="ph-t">Leave godown</span><span className="ph-d">{clock(c.set.depart)}</span></span></li>
+          {d.stops.map((s, k) => [
+            s.unload && <li key={"u" + k} className="end"><span className="n">{I.home}</span><span className="ph-m"><span className="ph-t">Unload at godown</span><span className="ph-d">{s.unload.eta} · about {fmt(s.unload.cans)} cans on board</span></span></li>,
+            <li key={k}><button type="button" onClick={() => c.openDrawer(<VenueDrawer id={s.v.id} />)}><span className="n" style={{ background: d.color, color: ZT[d.zone % 6] }}>{k + 1}</span>
+              <span className="ph-m"><span className="ph-t">{s.v.name}</span><span className="ph-d">{s.eta}{s.exp ? ` · about ${fmt(s.exp)} cans` : ""}{s.extra ? " · extra visit" : ""}{s.bi ? " · every 2 weeks" : ""}</span>{taskChips(movesOn(s.v.id, d.date))}</span></button></li>,
+          ])}
+          <li className="end"><span className="n">{I.home}</span><span className="ph-m"><span className="ph-t">Back at godown</span><span className="ph-d">{d.end}</span></span></li>
+        </ol></> : <div className="ph-card"><p className="muted">No stops this day.</p></div>}
+      <PhFold title="Map" sub="Stops in order on a map"><RouteMap plan={P} week={week} sel={sel} god={c.god} /><p className="muted" style={{ fontSize: 13, marginTop: 8 }}>Dashed lines are the drive from and back to the godown.</p></PhFold>
+      <PhFold title="How the plan compares" sub={`${fmt(M2.kmWeek)} km a week · ${M2.biN} venues every 2 weeks`}>
+        <div className="ph-stmt"><div><span>Venues on the route</span><b>{M2.nodes}</b></div><div><span>Every 2 weeks</span><b>{M2.biN}</b></div><div><span>Longest day</span><b>{hm(Math.max(...P.weeks.A.concat(P.weeks.B).map((x) => x.totalMin)))}</b></div>
+          <div><span>Real map locations</span><b>{realPins} of {M2.nodes}</b></div></div></PhFold>
+      {settingsFold}
+      {zonesFold}
+      <button className="ph-btn g" disabled={busy} onClick={rebuild}>{busy ? "Working out zones…" : "Rebuild zones"}</button>
+    </div>);
+  }
+
+  return (<div style={{ display: "contents", opacity: busy ? 0.45 : 1 }}>
+    <RunBar />
+    {settingsFold}
     <section className="rp-ins">
       <div className="kpi"><div className="l">Road km per week</div><div className="v">{fmt(M2.kmWeek)}</div><div className="s">{save >= 0 ? <>Old fixed areas: {fmt(M2.kmOld)} km. Smart zones: {fmt(M2.kmSame)} km (−{save}%).</> : <>Old fixed areas: {fmt(M2.kmOld)} km{M2.oldOver ? <>, but {M2.oldOver} day{M2.oldOver > 1 ? "s" : ""} ran past {hm(lim)} (longest {hm(M2.oldLongest)})</> : ""}. Smart zones: {fmt(M2.kmSame)} km (+{-save}%){M2.oldOver ? " so every day fits" : ""}.</>}</div></div>
       <div className="kpi"><div className="l">Venues covered</div><div className="v">{M2.nodes}</div><div className="s">{M2.nodes - M2.biN} weekly · {M2.biN} every 2 weeks · {M2.extraN} extra visits</div></div>
@@ -95,19 +150,7 @@ export default function Routes() {
         </ol> : <p className="muted">No stops this day.</p>}
       </div>
     </section>
-    <details className="card fold"><summary><h2>Zones and every-2-weeks venues</h2><span className="hint">6 zones built {dnice(c.zones.built)} · {M2.biN} venues every 2 weeks</span></summary>
-      <div className="fold-b"><div className="grid2 flat">
-        <div><div className="card-h"><h3>Zones</h3><span className="hint">Built from road times. Venues keep their day.</span></div>
-          <div className="kv">{[0, 1, 2, 3, 4, 5].map((z) => { const vs = c.venues.filter((v) => c.zones!.of[v.id] === z); const nm = zoneName(z, c.zones, c.venues, areaName);
-            return <div key={z}><span><i className="zdot" style={{ background: ZC[z] }} />Zone {z + 1}{nm ? " · " + nm : ""}<br /><small className="muted">{vs.length} venues{rz === z && rule ? ` · ${ruleVenues.filter((v) => c.zones!.of[v.id] === z).length} of ${ruleVenues.length} ${areaName(rule.area)} venues` : ""}</small>
-              {rz === z && rule && <> <span className="chip c-new">Kept on {DAYS[rule.day]} for {areaName(rule.area)}</span></>}</span>
-              <b><select className="inl" style={{ width: 90, textAlign: "left" }} value={c.zones!.day[z]} onChange={(e) => swap(z, +e.target.value)} aria-label={`Day for zone ${z + 1}`}>{DAYS.map((dd, i) => <option key={i} value={i}>{dd}</option>)}</select></b></div>; })}</div>
-          <p className="muted" style={{ fontSize: 12.5, marginTop: 10 }}>The zone with the most Rajpur Road venues (by each venue&apos;s Area) always goes on Monday, including after Rebuild zones.</p></div>
-        <div><div className="card-h"><h3>Every 2 weeks</h3><span className="hint">{M2.biN} venues give few cans for the time they take</span></div>
-          {M2.bi.length ? <div className="kv">{M2.bi.sort((a, b) => a.week - b.week).map((x) => <div key={x.v.id}><span>{x.v.name}<br /><small className="muted">~{fmt(x.week)} cans a week</small></span><b>Week {x.w}</b></div>)}</div>
-            : <p className="muted">Every venue fits in weekly. Nobody moved to every 2 weeks.</p>}
-          <p className="muted" style={{ fontSize: 12.5, marginTop: 10 }}>Only venues whose bins can hold 2 weeks of cans can move. Busy venues are never skipped.</p></div>
-      </div>{c.zones.sig !== pinSig(c.venues) && <div className="note-bar">Venue locations changed since the zones were built. Rebuild zones to use them.</div>}</div></details>
+    {zonesFold}
   </div>);
 }
 const LAB = { routeHours: "Route length", stopMin: "Time per stop", traffic: "Traffic buffer", vehCap: "Vehicle capacity" };

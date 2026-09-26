@@ -7,9 +7,9 @@ import { I, Empty } from "./icons";
 import BarChart, { type Bar } from "./BarChart";
 import VenueDrawer from "./VenueDrawer";
 import { openLogPickup } from "./forms";
-import { RunBar } from "./bits";
+import { MonthSeg, PhFold, PhHead, PhRow, RunBar, areaOnly } from "./bits";
 import { startRun } from "./runlib";
-import { MON, addDays, dayName, dnice, fmt, inP, kg, monthOf, rs, shiftMonth, totals, DATA_START } from "@/lib/admin/logic";
+import { MON, MONL, addDays, dayName, dnice, fmt, inP, kg, monthOf, rs, shiftMonth, totals, DATA_START } from "@/lib/admin/logic";
 import { weekOf } from "@/lib/admin/routes";
 
 export default function Overview() {
@@ -53,6 +53,50 @@ export default function Overview() {
     return names.map((n) => { const x = all.filter((q) => names[(new Date(q.d + "T00:00:00").getDay() + 6) % 7] === n); return { k: n, lab: n, v: x.length ? x.reduce((a, q) => a + q.cans, 0) / x.length : 0 }; });
   }, [c.pickups]);
   const best = Math.max(...wd.map((d) => d.v));
+
+  if (c.phone) { // phone: this month's numbers first, then today's route and a short to-do list; charts fold away
+    const prevCans = !p.all && prevMo >= DATA_START ? mc(prevMo) : null, prevName = MONL[+prevMo.slice(5, 7) - 1];
+    const vsPrev = prevCans == null ? (p.all ? "All months together" : "First month") : prevCans && (p.end < c.today || T.cans >= prevCans)
+      ? <><b className={T.cans >= prevCans ? "up" : "down"}>{T.cans >= prevCans ? "+" : "−"}{Math.abs(Math.round((T.cans / prevCans - 1) * 100))}%</b> on {prevName}</> : <>{prevName}: {fmt(prevCans)}</>;
+    const done = c.run ? c.run.stops.filter((s) => s.mode === "done" || s.mode === "skip").length : 0;
+    const todo = [
+      { n: od.length, tone: "bad", t: "Pay venues", d: `${rs(od.reduce((a, s) => a + s.owed, 0))} not paid on the spot`, href: "/admin/payouts" },
+      { n: cnt("pull"), tone: "bad", t: "Take bins back", d: "Low 2 months in a row", href: "/admin/venues?f=pull" },
+      { n: cnt("add"), tone: "good", t: "Add a bin", d: "Bins filling up fast", href: "/admin/venues?f=add" },
+      { n: cnt("quiet") + cnt("nobin"), tone: "warn", t: "Call or check", d: "Gone quiet, or bins not counted", href: "/admin/venues?f=act" },
+      { n: mvOpen, tone: "idle", t: "Bin moves planned", d: "Ticked off on the route", href: "/admin/moves" },
+      { n: Number(c.badges["/admin/locations"] || 0), tone: "idle", t: "Check map locations", d: "Needed for the route", href: "/admin/locations" },
+    ].filter((x) => x.n > 0);
+    return (<div className="ph">
+      <PhHead title={p.all ? "All months" : MONL[+p.key.slice(5, 7) - 1]} sub={p.end >= c.today ? `Up to ${dnice(c.today)}` : "Full month"} right={<MonthSeg />} />
+      <div className="ph-nums">
+        <Link className="ph-nb dark" href="/admin/venues"><span className="l">Cans collected</span><span className="v">{fmt(T.cans)}</span><span className="s">{vsPrev}</span></Link>
+        <Link className="ph-nb" href="/admin/pickups"><span className="l">Pickups</span><span className="v">{fmt(T.n)}</span><span className="s">{T.n ? fmt(T.cans / T.n) : 0} cans each</span></Link>
+        <Link className="ph-nb" href="/admin/money"><span className="l">Paid to venues</span><span className="v">{rs(T.paid)}</span><span className="s">{T.pl ? `Cans + ${fmt(T.pl)} kg plastic` : "Paid on the spot"}</span></Link>
+        <Link className="ph-nb" href="/admin/money"><span className="l">Cans are worth</span><span className="v">{rs(T.canValue)}</span><span className="s">At ₹{c.set.ubcRate}/kg</span></Link>
+      </div>
+      <div className="ph-today">
+        {c.run ? <>
+          <div><div className="k">Route in progress</div><div className="z">{areaOnly(c.run.label)}</div></div>
+          <div className="ph-facts"><span><b>{done} of {c.run.stops.length}</b>stops done</span></div>
+          <Link className="ph-btn p" href="/admin/run">{I.play}Continue route</Link>
+        </> : route && route.stops.length ? <>
+          <div><div className="k">Today · {dayName(c.today)} {dnice(c.today)}</div><div className="z">{areaOnly(route.label)}</div></div>
+          <div className="ph-facts"><span><b>{route.stops.length}</b>stops</span><span><b>{Math.round(route.km)} km</b>driving</span><span><b>{route.end}</b>back by</span></div>
+          <div className="ph-brow"><button className="ph-btn p" onClick={async () => { if (await startRun(c, di, wk)) router.push("/admin/run"); }}>{I.play}Start route</button><Link className="ph-btn dim" href="/admin/routes">See stops</Link></div>
+        </> : <>
+          <div><div className="k">Today · {dayName(c.today)} {dnice(c.today)}</div><div className="z">{di === 6 ? "No route on Sunday" : c.plan ? "Nothing planned today" : "Routes need road data"}</div></div>
+          <Link className="ph-btn dim" href={c.plan ? "/admin/routes" : "/admin/locations"}>{c.plan ? "See the week" : "Open Venue locations"}</Link>
+        </>}
+        {todays.length > 0 && <div className="k">{todays.length} pickup{todays.length === 1 ? "" : "s"} logged today · {fmt(todays.reduce((a, x) => a + x.cans, 0))} cans</div>}
+      </div>
+      {todo.length ? <><h2 className="ph-sec">To do</h2><div className="ph-list">{todo.map((x) => <PhRow key={x.t} lead={x.n} tone={x.tone} title={x.t} sub={x.d} href={x.href} />)}</div></>
+        : <div className="ph-list"><PhRow lead={I.tick} tone="good" title="All clear" sub="Nothing needs you right now" href="/admin/venues" /></div>}
+      <PhFold title="Cans per day" sub={topDay ? `Best day ${fmt(topDay)} cans` : "No pickups yet"}><BarChart data={days} label={(d) => `${dayName(d.k)} ${dnice(d.k)}`} hi={(d) => d.v === topDay && topDay > 0} /></PhFold>
+      <PhFold title="Top venues" sub={`Most cans · ${p.label}`}>{top.length ? <div className="ph-list flat">{top.slice(0, 5).map((x, i) => <PhRow key={x.v.id} lead={i + 1} title={x.v.name} sub={`${fmt(x.s.cans)} cans`} onClick={() => c.openDrawer(<VenueDrawer id={x.v.id} />)} />)}</div>
+        : <p className="muted">Pickups you log show up here.</p>}</PhFold>
+    </div>);
+  }
 
   return (<>
     <RunBar />

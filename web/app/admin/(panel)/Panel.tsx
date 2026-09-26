@@ -33,6 +33,7 @@ type Ctx = Data & {
   toast: (msg: string, undo?: () => void | Promise<void>) => void;
   openDrawer: (node: React.ReactNode) => void; openModal: (node: React.ReactNode) => void; closeModal: () => void; closeLayers: () => void;
   fail: (e: { message: string } | null) => boolean; badges: Record<string, number | string>;
+  phone: boolean; // 880px wide or under: the phone layouts
 };
 const PanelCtx = createContext<Ctx | null>(null);
 export const usePanel = () => useContext(PanelCtx)!;
@@ -67,7 +68,14 @@ export const SCREENS = [
   { href: "/admin/run", t: "Route in progress", grp: "Daily", icon: "run", sub: "", hidden: true },
 ] as const;
 const MONTH_SCREENS = ["/admin", "/admin/venues", "/admin/pickups", "/admin/trips", "/admin/stock", "/admin/money"];
-const MORE = ["/admin/venues", "/admin/moves", "/admin/locations", "/admin/trips", "/admin/stock", "/admin/payouts", "/admin/staff", "/admin/history", "/admin/settings"];
+const MORE = ["/admin/pickups", "/admin/moves", "/admin/locations", "/admin/trips", "/admin/stock", "/admin/payouts", "/admin/staff", "/admin/history", "/admin/settings"];
+// screens with their own phone layout (they draw their own heading on phones)
+const PHONE_OWN = ["/admin", "/admin/routes", "/admin/venues", "/admin/money"];
+function usePhone() {
+  const [phone, setPhone] = useState(() => typeof window !== "undefined" && matchMedia("(max-width: 880px)").matches); // the panel only draws in the browser
+  useEffect(() => { const m = matchMedia("(max-width: 880px)"); const f = () => setPhone(m.matches); f(); m.addEventListener("change", f); return () => m.removeEventListener("change", f); }, []);
+  return phone;
+}
 
 export default function Panel({ children }: { children: React.ReactNode }) {
   const db = useMemo(() => adminDb(), []);
@@ -150,6 +158,7 @@ function Loaded(props: {
   children: React.ReactNode;
 }) {
   const { data, setData, me, db, today, month, setMonth, reload, toast, closeLayers, closeModal, path, layers } = props;
+  const phone = usePhone();
   const vmap = useMemo(() => new Map(data.venues.map((v) => [v.id, v])), [data.venues]);
   const venues = useMemo(() => data.venues.filter((v) => !v.deleted), [data.venues]);
   const byV = useMemo(() => byVenue(data.pickups), [data.pickups]);
@@ -196,7 +205,7 @@ function Loaded(props: {
   }, [venues, data.run, pay, stats, now, sug]);
 
   const ctx: Ctx = { ...data, venues, me, today, db, vmap, byV, month, setMonth, per, now, stats, plan, sug, pay, god, patch, reload, logIt, toast,
-    openDrawer: props.openDrawer, openModal: props.openModal, closeModal, closeLayers, fail, badges };
+    openDrawer: props.openDrawer, openModal: props.openModal, closeModal, closeLayers, fail, badges, phone };
 
   useEffect(() => { // "/" opens search
     const k = (e: KeyboardEvent) => { if (e.key === "/" && !/INPUT|TEXTAREA|SELECT/.test((document.activeElement as HTMLElement)?.tagName || "")) { e.preventDefault(); openSearch(ctx); } };
@@ -237,25 +246,24 @@ function Loaded(props: {
         </aside>
         <div className="main">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <div className="mtop"><img src="/brand/logo-mark.png" alt="" /><b>STALLION</b>
+          <div className="mtop"><img src="/brand/logo-mark.png" alt="" /><b>Stallion</b>
             <button className="srchbtn" onClick={() => openSearch(ctx)} aria-label="Search">{I.search}</button>
-            <button className="av" onClick={logOut} aria-label="Log out" title="Log out">{me.name[0]}</button></div>
-          <div className="top">
+            <button className="mlog" onClick={() => openLogPickup(ctx)}>{I.plus}Log pickup</button></div>
+          {!(phone && PHONE_OWN.includes(path)) && <div className="top">
             <div><div className="eyebrow">{scr.grp}</div><h1>{scr.t}</h1><div className="sub">{sub}</div></div>
             <div className="sp" />
             <button className="btn btn-g iconbtn hide-m" onClick={() => openSearch(ctx)} aria-label="Search (press /)" title="Search (press /)">{I.search}Search</button>
             <div className="seg" role="group" aria-label="Month" style={{ visibility: MONTH_SCREENS.includes(path) ? "visible" : "hidden" }}>{months.map(monthBtn)}</div>
             <button className="btn btn-p" onClick={() => openLogPickup(ctx)}>{I.plus}Log pickup</button>
-          </div>
+          </div>}
           <main className="content">{props.children}</main>
         </div>
       </div>
       <nav className="bnav" aria-label="Sections">
-        {[["/admin", "Overview", "overview"], [routeHref, "Route", "routes"], ["/admin/pickups", "Pickups", "pickups"], ["/admin/money", "Money", "money"]].map(([h, l, ic]) =>
+        {[["/admin", "Home", "home"], [routeHref, "Route", "routes"], ["/admin/venues", "Venues", "venues"], ["/admin/money", "Money", "money"]].map(([h, l, ic]) =>
           <Link key={l} href={h} className="navb" aria-current={isCur(h === routeHref ? "/admin/routes" : h) ? "page" : undefined}>{I[ic]}{l}{nb(h === routeHref ? "/admin/routes" : h)}</Link>)}
-        <button className="navb" aria-current={inMore ? "page" : undefined} onClick={() => ctx.openModal(<MoreSheet />)}>{I.more}More{moreDot && <span className="nb dot" aria-label="Something in More needs a look" />}</button>
+        <button className="navb" aria-current={inMore ? "page" : undefined} onClick={() => ctx.openModal(<MoreSheet onLogOut={logOut} />)}>{I.more}More{moreDot && <span className="nb dot" aria-label="Something in More needs a look" />}</button>
       </nav>
-      <button className="btn btn-p fab" onClick={() => openLogPickup(ctx)}>{I.plus}Log pickup</button>
       <div className={"scrim" + (layers.drawerOn || layers.modalOn ? " on" : "")} onClick={closeLayers} />
       <aside className={"drawer" + (layers.drawerOn ? " on" : "")} aria-hidden={!layers.drawerOn}>{layers.drawerOn ? layers.drawer : null}</aside>
       <div className={"modal" + (layers.modalOn ? " on" : "")} role="dialog" aria-modal="true" aria-hidden={!layers.modalOn}>{layers.modalOn ? layers.modal : null}</div>
@@ -266,13 +274,20 @@ function Loaded(props: {
   );
 }
 
-function MoreSheet() {
+// what each More item is for, in a few words
+const MORE_SUB: Record<string, string> = { "/admin/pickups": "Every collection", "/admin/moves": "Bins to take back or place", "/admin/locations": "Map pins for the route", "/admin/trips": "Km and fuel",
+  "/admin/stock": "What is in the godown", "/admin/payouts": "Paying venues", "/admin/staff": "Attendance and pay", "/admin/history": "Who changed what", "/admin/settings": "Rates, team, Excel" };
+function MoreSheet({ onLogOut }: { onLogOut: () => void }) {
   const c = usePanel();
   return (<>
     <div className="dr-h"><h2>More</h2><button className="x" onClick={c.closeModal} aria-label="Close">{I.x}</button></div>
-    <div style={{ padding: "18px 22px 22px" }}><div className="more-sheet">
-      {MORE.map((h) => { const s = SCREENS.find((x) => x.href === h)!; return <Link key={h} href={h} className="navb" onClick={c.closeModal}>{I[s.icon]}{s.t}{c.badges[h] ? <span className="nb">{c.badges[h]}</span> : null}</Link>; })}
-    </div></div>
+    <div className="more-b"><div className="ph-list flat">
+      {MORE.map((h) => { const s = SCREENS.find((x) => x.href === h)!; const b = c.badges[h];
+        return <Link key={h} href={h} className="ph-row" onClick={c.closeModal}><span className="ph-cnt icon">{I[s.icon]}</span><span className="ph-m"><span className="ph-t">{s.t}</span><span className="ph-d">{MORE_SUB[h]}</span></span>
+          {b ? <span className="ph-badge">{b}</span> : null}<span className="ph-chev">{I.chev}</span></Link>; })}
+    </div>
+    <div className="ph-me"><span className="av">{c.me.name[0]}</span><span className="ph-m"><span className="ph-t">{c.me.name}</span><span className="ph-d">{c.me.role} · full access</span></span>
+      <button className="btn btn-g" onClick={onLogOut}>{I.logout}Log out</button></div></div>
   </>);
 }
 
