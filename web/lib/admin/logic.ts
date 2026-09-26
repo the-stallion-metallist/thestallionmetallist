@@ -13,6 +13,7 @@ export type Venue = {
   opening: number | null; keep_until: string | null; skip_give: string | null; cut_on: string | null;
   deleted: boolean; // removed from the panel; past pickups and payments still count
   brought_by: string | null; // who brought the venue in (People screen); null = not set
+  visit: "fortnight" | null; // null = the planner decides; "fortnight" = the team chose every 2 weeks
   created_by: string; updated_by: string | null;
 };
 export type Pickup = {
@@ -29,6 +30,8 @@ export type Settings = {
   add: number; pull: number; grace: number;
   vehCap: number | null; capSteel: number; capPl: number; routeHours: number; stopMin: number; traffic: number; depart: string;
   goLive: string | null;
+  fixedOther?: number | null; // rent and other fixed costs per month (salaries come from Staff)
+  kmCost?: number | null; hourCost?: number | null; // what a km of driving and an hour of the route team cost (Venue profit)
 };
 
 // ---------- dates (India time) ----------
@@ -158,6 +161,8 @@ export function totals(p: Period, pickups: Pickup[], venues: Map<number, Venue>,
   return { ps, cans, pl, paidV, paidPl, paid: paidV + paidPl, canValue, plValue, n };
 }
 
+export const TYPES = ["Bar", "Club / lounge", "Cafe", "Restaurant", "College", "Hostel", "Hotel / Airbnb", "Shop", "Other"];
+
 export const AREAS = [
   { id: "rajpur", n: "Rajpur Road" }, { id: "sahas", n: "Sahastradhara Road" }, { id: "gms", n: "GMS Road & Ballupur" },
   { id: "prem", n: "Prem Nagar & Pondha" }, { id: "dharam", n: "Dharampur & Haridwar Road" }, { id: "city", n: "Clock Tower & Race Course" },
@@ -195,6 +200,31 @@ export const itemLabel = (e: Pick<Expense, "item" | "other" | "qty">) => {
 export const lastUnitCost = (expenses: Expense[], item: string) => { const e = expenses.filter((x) => !x.deleted && x.item === item && x.qty).at(-1); return e ? Number(e.amount) / e.qty : null; };
 
 // Salary: monthly ÷ 30 × days present (half day = ½), minus advances and salary already paid that month.
+// Break-even for one month: what each can earns after paying the venue, against salaries, other fixed costs
+// and recorded running costs (trips, vehicle, phone, bins). Salaries and rent paid as expenses aren't counted twice.
+export function breakEven(p: Period, T: ReturnType<typeof totals>, set: Settings, c: { salaries: number; running: number }) {
+  const earned = T.canValue + T.plValue - T.paid;
+  const perCan = T.cans ? earned / T.cans : set.ubcRate / set.cansPerKg - set.canRate;
+  const fixed = c.salaries + Number(set.fixedOther || 0), costs = fixed + c.running;
+  const need = perCan > 0 ? Math.ceil(costs / perCan) : null;
+  const elapsed = Math.min(p.days, Math.max(1, daysBetween(p.start, p.asOf) + 1)), left = p.days - elapsed;
+  const projected = Math.round((T.cans / elapsed) * p.days);
+  return {
+    perCan, fixed, costs, need, elapsed, left, projected, pace: T.cans / elapsed,
+    perDay: need && left > 0 ? Math.ceil(Math.max(0, need - T.cans) / left) : null,
+    profitNow: earned - (fixed * elapsed) / p.days - c.running, // estimate: fixed costs spread over the month
+    profitEnd: perCan * projected - costs,
+  };
+}
+
+// What one visit costs: the extra km and minutes the stop adds to its route, plus the time at the stop.
+export const visitCost = (set: Settings, addKm: number, addMin: number) => addKm * Number(set.kmCost || 0) + ((addMin + set.stopMin) / 60) * Number(set.hourCost || 0);
+// What a venue's cans and plastic earn after paying the venue, in a period.
+export function venueEarn(v: Venue, ps: Pickup[], set: Settings) {
+  const cans = ps.reduce((a, x) => a + x.cans, 0), kgs = ps.reduce((a, x) => a + Number(x.plastic_kg || 0), 0);
+  return { cans, kgs, earn: cans * (set.ubcRate / set.cansPerKg - Number(v.can_rate)) + (set.plasticSale ? kgs * (set.plasticSale - Number(v.plastic_rate || set.plasticBuy)) : 0) };
+}
+
 export function staffDue(s: StaffRow, mo: string, marks: Mark[], advances: Advance[], expenses: Expense[]) {
   const days = marks.filter((m) => m.staff_id === s.id && monthOf(m.d) === mo).reduce((a, m) => a + (m.mark === "P" ? 1 : m.mark === "H" ? 0.5 : 0), 0);
   const adv = advances.filter((a) => !a.deleted && a.staff_id === s.id && monthOf(a.d) === mo).reduce((a, x) => a + Number(x.amount), 0);

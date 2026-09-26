@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { usePanel } from "./Panel";
 import { I } from "./icons";
-import {
+import { TYPES,
   type Pickup, type Venue, AREAS, VSTATUS, bins, dnice, fmt, parsePin, pickupCost, rs,
 } from "@/lib/admin/logic";
 
@@ -247,7 +247,7 @@ export function EditVenue({ v }: { v: Venue }) {
       if (pp.err) e.pin = pp.err;
       if (Object.keys(e).length) return e;
       const vals: Partial<Venue> = {
-        name, area: String(fd.get("area")) || null, status: String(fd.get("status")) as Venue["status"],
+        name, type: String(fd.get("type")) || null, area: String(fd.get("area")) || null, status: String(fd.get("status")) as Venue["status"],
         promised: String(fd.get("status")) === "Waiting" ? Math.max(1, Number(fd.get("promised")) || 1) : v.promised,
         contact: String(fd.get("contact")) || null, phone: String(fd.get("phone")) || null, terms: String(fd.get("terms")) as Venue["terms"], upi: String(fd.get("upi")) || null,
         can_rate: Number(fd.get("rate")) || v.can_rate, plastic_rate: Number(fd.get("pr")) || null, brought_by: String(fd.get("by")) || null,
@@ -256,7 +256,7 @@ export function EditVenue({ v }: { v: Venue }) {
       if (pp.p) Object.assign(vals, { lat: pp.p[0], lng: pp.p[1], pin_src: "manual", pin_by: c.me.name });
       if (!raw && cur) Object.assign(vals, { lat: null, lng: null, pin_src: null });
       const next = await saveVenueRow(c, v.id, vals); if (!next) return false;
-      const ch = diffs(v as unknown as Record<string, unknown>, next as unknown as Record<string, unknown>, [["name", "Name"], ["area", "Area"], ["status", "Status"], ["lat", "Pin"], ["contact", "Contact"], ["phone", "Phone"], ["terms", "Terms"], ["can_rate", "Per can"], ["plastic_rate", "Plastic ₹/kg"], ["brought_by", "Brought in by"]]);
+      const ch = diffs(v as unknown as Record<string, unknown>, next as unknown as Record<string, unknown>, [["name", "Name"], ["type", "Type"], ["area", "Area"], ["status", "Status"], ["lat", "Pin"], ["contact", "Contact"], ["phone", "Phone"], ["terms", "Terms"], ["can_rate", "Per can"], ["plastic_rate", "Plastic ₹/kg"], ["brought_by", "Brought in by"]]);
       await c.logIt("Edited", "Venue", next.name, ch, { table: "venues", id: v.id }); c.toast("Venue saved");
     }}>
       {(errs) => <>
@@ -265,6 +265,7 @@ export function EditVenue({ v }: { v: Venue }) {
           <Field id="evA" label="Area"><select id="evA" name="area" defaultValue={v.area ?? ""}><option value="">Choose area</option>{AREAS.map((a) => <option key={a.id} value={a.id}>{a.n}</option>)}</select></Field>
           <Field id="evS" label="Status"><select id="evS" name="status" value={status} onChange={(e) => setStatus(e.target.value as Venue["status"])}>{VSTATUS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></Field>
         </div>
+        <Field id="evType" label="Type"><select id="evType" name="type" defaultValue={v.type ?? ""}><option value="">Not set</option>{TYPES.map((x) => <option key={x}>{x}</option>)}</select></Field>
         <Field id="evProm" label="Bins promised" hidden={status !== "Waiting"}><input id="evProm" name="promised" type="number" inputMode="numeric" min={1} defaultValue={v.promised || 1} /></Field>
         <Field id="evPin" label="Map location" err={errs.pin} help="In Google Maps, press and hold on the venue, then copy the numbers or the full link.">
           <input id="evPin" name="pin" defaultValue={v.lat != null ? `${v.lat}, ${v.lng}` : ""} placeholder="Paste a Google Maps link or 30.34, 78.06" /></Field>
@@ -339,7 +340,7 @@ export function AddVenue() {
         <Field id="vN" label="Venue name" err={errs.name}><input id="vN" name="name" placeholder="e.g. Cafe Marigold" /></Field>
         <Field label="Bin" help="Signed but no bin yet? Pick Waiting for bin."><Opts name="vst" values={["Bin placed", "Waiting for bin"]} initial="Bin placed" onChange={(x) => setWait(x === "Waiting for bin")} /></Field>
         <div className="two">
-          <Field id="vType" label="Type"><select id="vType" name="type">{["Bar", "Cafe", "Restaurant", "College", "Hostel", "Hotel / Airbnb", "Shop"].map((x) => <option key={x}>{x}</option>)}</select></Field>
+          <Field id="vType" label="Type"><select id="vType" name="type">{TYPES.map((x) => <option key={x}>{x}</option>)}</select></Field>
           <Field id="vArea" label="Area"><select id="vArea" name="area"><option value="">Choose area</option>{AREAS.map((a) => <option key={a.id} value={a.id}>{a.n}</option>)}</select></Field>
         </div>
         <Field id="vPin" label={<>Map location <span className="muted">(needed for the route)</span></>} err={errs.pin}><input id="vPin" name="pin" placeholder="Paste a Google Maps link or 30.34, 78.06" /></Field>
@@ -364,6 +365,38 @@ export function AddVenue() {
       </>}
     </FormModal>
   );
+}
+
+// Every 2 weeks (the team's choice) or back to letting the planner decide. The route plan updates straight away. Undo for 5 seconds.
+export async function setVisit(c: Ctx, v: Venue, visit: Venue["visit"], undo = true) {
+  const next = await saveVenueRow(c, v.id, { visit }); if (!next) return;
+  await c.logIt("Edited", "Venue", v.name, visit ? "Visits → every 2 weeks" : "Visits → every week", { table: "venues", id: v.id });
+  const msg = visit ? `${v.name} moved to every 2 weeks` : `${v.name} back to every week`;
+  c.toast(msg, undo ? () => setVisit(c, next, v.visit, false) : undefined);
+}
+
+// Set the type on many venues in one go: each change saves straight away.
+export function SetTypes() {
+  const c = usePanel(); const [all, setAll] = useState(false);
+  const [first] = useState(() => new Set(c.venues.filter((v) => !v.type).map((v) => v.id))); // keep rows in place while they're being set
+  const list = c.venues.filter((v) => all || first.has(v.id)).sort((a, b) => (c.stats(b, c.now).all - c.stats(a, c.now).all) || a.name.localeCompare(b.name));
+  const left = c.venues.filter((v) => !v.type).length;
+  async function set(v: Venue, type: string) {
+    const next = await saveVenueRow(c, v.id, { type: type || null }); if (!next) return;
+    await c.logIt("Edited", "Venue", v.name, `Type ${v.type || "not set"} → ${type || "not set"}`, { table: "venues", id: v.id });
+  }
+  return (<>
+    <div className="dr-h"><div><h2>Venue types</h2><div className="ph-sub" style={{ display: "block" }}>{left ? `${left} venue${left === 1 ? "" : "s"} still without a type` : "Every venue has a type"} · each change saves straight away</div></div>
+      <button className="x" type="button" onClick={c.closeModal} aria-label="Close">{I.x}</button></div>
+    <form noValidate onSubmit={(e) => { e.preventDefault(); c.closeModal(); }}>
+    <div className="seg" role="group" aria-label="Show" style={{ marginBottom: 10 }}><button type="button" aria-pressed={!all} onClick={() => setAll(false)}>No type yet</button><button type="button" aria-pressed={all} onClick={() => setAll(true)}>All venues</button></div>
+    <div className="tset">{list.length ? list.map((v) => { const cur = c.vmap.get(v.id)!;
+      return <label key={v.id} className="tset-row"><span className="tset-n">{v.name}<small>{fmt(c.stats(v, c.now).all)} cans so far</small></span>
+        <select value={cur.type ?? ""} onChange={(e) => set(cur, e.target.value)} aria-label={"Type of " + v.name}><option value="">Not set</option>{TYPES.map((x) => <option key={x}>{x}</option>)}</select></label>; })
+      : <p className="muted">Every venue has a type.</p>}</div>
+    <div className="m-foot"><span className="sp" /><button type="submit" className="btn btn-p">Done</button></div>
+    </form>
+  </>);
 }
 
 export function BinChangeForm({ venueId }: { venueId?: number }) {

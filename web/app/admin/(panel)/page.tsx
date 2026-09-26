@@ -7,7 +7,7 @@ import { I, Empty } from "./icons";
 import BarChart, { type Bar } from "./BarChart";
 import VenueDrawer from "./VenueDrawer";
 import { openLogPickup } from "./forms";
-import { MonthSeg, PhFold, PhHead, PhRow, RunBar, areaOnly } from "./bits";
+import { BreakEven, MonthSeg, PhFold, PhHead, PhRow, RunBar, areaOnly } from "./bits";
 import { startRun } from "./runlib";
 import { MON, MONL, addDays, dayName, dnice, fmt, inP, kg, monthOf, rs, shiftMonth, totals, DATA_START } from "@/lib/admin/logic";
 import { weekOf } from "@/lib/admin/routes";
@@ -75,6 +75,7 @@ export default function Overview() {
         <Link className="ph-nb" href="/admin/money"><span className="l">Paid to venues</span><span className="v">{rs(T.paid)}</span><span className="s">{T.pl ? `Cans + ${fmt(T.pl)} kg plastic` : "Paid on the spot"}</span></Link>
         <Link className="ph-nb" href="/admin/money"><span className="l">Cans are worth</span><span className="v">{rs(T.canValue)}</span><span className="s">At ₹{c.set.ubcRate}/kg</span></Link>
       </div>
+      <BreakEven />
       <div className="ph-today">
         {c.run ? <>
           <div><div className="k">Route in progress</div><div className="z">{areaOnly(c.run.label)}</div></div>
@@ -119,6 +120,7 @@ export default function Overview() {
       <div className="card"><div className="card-h"><h2>Needs attention</h2></div>
         <div className="alist">{attention.length ? attention : <div className="all-clear">{I.ok}All clear. Nothing needs you right now.</div>}</div></div>
     </section>
+    <BreakEven />
     <div className="sec-h"><h2>{p.label}</h2><span>{p.end >= c.today ? (p.all ? "All months together, up to " : "Up to ") + dnice(c.today) : "Full month"}</span></div>
     <section className="kpis">
       <div className="kpi"><div className="l">Cans collected</div><div className="v">{fmt(T.cans)}</div><div className="s">{prev} · plus {kg(T.pl)} kg plastic</div></div>

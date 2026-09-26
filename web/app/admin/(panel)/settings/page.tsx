@@ -35,6 +35,11 @@ export default function SettingsPage() {
         {inp("canRate", "Default payout per can", "Used for new venues. Each venue can have its own rate.", "₹ per can")}
         {inp("plasticBuy", "Default plastic payout", "Used when a venue has no plastic rate.", "₹ per kg")}
       </div>
+      <div className="card"><div className="card-h"><h2>Costs</h2><span className="hint">Used by Break-even on Home and by Venue profit</span></div>
+        {inp("fixedOther", "Rent and other fixed costs", "Everything paid every month apart from salaries. Salaries come from the Staff page.", "₹ per month")}
+        {inp("kmCost", "Vehicle cost per km", "Fuel plus tyres and servicing. Leave empty until you know it; visit costs then count time only.", "₹ per km")}
+        {inp("hourCost", "Route team cost per hour", "Driver and helper pay for an hour on the route.", "₹ per hour")}
+      </div>
       <div className="card"><div className="card-h"><h2>Bin rules</h2><span className="hint">Set from your September numbers</span></div>
         {inp("add", "Add a bin at", "Top quarter of venues. Bins this full overflow and you lose cans.", "cans per bin / month")}
         {inp("pull", "Take a bin back under", "Two months in a row under this flags a take-back (leaving 1 bin). Bottom quarter of venues.", "cans per bin / month")}
@@ -73,8 +78,8 @@ function ExcelCard() {
   const c = usePanel(); const live = <T extends { deleted: boolean }>(a: T[]) => a.filter((x) => !x.deleted);
   const sname = (id: number | null) => c.staff.find((s) => s.id === id)?.name ?? "";
   const go = () => downloadWorkbook(`Stallion team panel ${c.today}.xls`, [
-    { name: "Venues", head: ["Venue", "Status", "Area", "Steel bins", "Plastic bins", "Payout per can", "Plastic per kg", "Added", "Bin placed", "Contact", "Phone", "Terms", "UPI", "Latitude", "Longitude"],
-      rows: c.venues.map((v) => [v.name, vstatus(v.status), areaName(v.area), v.steel, v.plastic_bins, Number(v.can_rate), v.plastic_rate == null ? "" : Number(v.plastic_rate), v.added, v.bin_since, v.contact, v.phone, v.terms, v.upi, v.lat, v.lng]) },
+    { name: "Venues", head: ["Venue", "Type", "Brought in by", "Status", "Area", "Steel bins", "Plastic bins", "Payout per can", "Plastic per kg", "Added", "Bin placed", "Contact", "Phone", "Terms", "UPI", "Latitude", "Longitude"],
+      rows: c.venues.map((v) => [v.name, v.type, v.brought_by, vstatus(v.status), areaName(v.area), v.steel, v.plastic_bins, Number(v.can_rate), v.plastic_rate == null ? "" : Number(v.plastic_rate), v.added, v.bin_since, v.contact, v.phone, v.terms, v.upi, v.lat, v.lng]) },
     { name: "Pickups", head: ["Date", "Venue", "Cans", "Plastic kg", "Source", "Staff", "Bin fill", "Trip", "Added by"],
       rows: live(c.pickups).sort((a, b) => (a.d < b.d ? -1 : 1)).map((p) => [p.d, vname(c, p.venue_id), p.cans, Number(p.plastic_kg), p.src, p.staff, p.fill, p.trip, p.created_by]) },
     { name: "Payments", head: ["Date", "Venue", "Amount", "Paid by", "Note", "Added by"], rows: live(c.payments).map((p) => [p.d, vname(c, p.venue_id), Number(p.amount), p.mode, p.note, p.created_by]) },
@@ -101,7 +106,7 @@ function AppSyncCard() {
     {msg && <p className="muted" style={{ fontSize: 12.5, marginTop: 8 }}>{msg}</p>}</div>;
 }
 
-const LABEL: Partial<Record<K, string>> = { ubcRate: "Can sale rate", cansPerKg: "Cans per kg", plasticSale: "Plastic sale rate", canRate: "Default payout per can", plasticBuy: "Default plastic payout", add: "Add a bin at", pull: "Take a bin back under", grace: "New venue grace days", vehCap: "Vehicle capacity", capSteel: "Full steel bin holds", capPl: "Full plastic bin holds", routeHours: "Route length", stopMin: "Time per stop", traffic: "Traffic buffer" };
+const LABEL: Partial<Record<K, string>> = { ubcRate: "Can sale rate", cansPerKg: "Cans per kg", plasticSale: "Plastic sale rate", canRate: "Default payout per can", plasticBuy: "Default plastic payout", add: "Add a bin at", pull: "Take a bin back under", grace: "New venue grace days", vehCap: "Vehicle capacity", capSteel: "Full steel bin holds", capPl: "Full plastic bin holds", routeHours: "Route length", stopMin: "Time per stop", traffic: "Traffic buffer", fixedOther: "Rent and other fixed costs", kmCost: "Vehicle cost per km", hourCost: "Route team cost per hour" };
 
 function TeamCard({ team, onAdded, onRemoved }: { team: { name: string; role: string; email: string }[]; onAdded: (t: { name: string; role: string; email: string }) => void; onRemoved: (email: string) => void }) {
   const c = usePanel(); const owner = c.me.role === "Owner";

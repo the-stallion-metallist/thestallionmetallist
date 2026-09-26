@@ -622,6 +622,63 @@ details.fold>summary{list-style:none;cursor:pointer;display:flex;align-items:bas
 @media (max-width:720px){.adm .team-act{margin-left:44px;justify-content:flex-start}}
 .adm .team-pw{flex:1 1 100%;display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;margin:4px 0 0 44px}
 .adm .team-pw .field{flex:1 1 220px;margin:0}
+/* break-even card on Home */
+.adm .be{display:flex;flex-direction:column;gap:12px;margin-bottom:22px}
+.adm .be-h{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px}
+.adm .be-h h2{margin:0}
+.adm .be-pct{margin-left:auto;font:600 15px/1 var(--f-disp);color:var(--copper-dk);font-variant-numeric:tabular-nums}
+.adm .be-v{font-size:15px;color:var(--muted)}
+.adm .be-v b{font:600 30px/1 var(--f-disp);color:var(--ink);letter-spacing:-.01em;margin-right:4px;font-variant-numeric:tabular-nums}
+.adm .be-bar{position:relative;height:14px;border-radius:99px;background:var(--paper-2)}
+.adm .be-bar i{position:absolute;left:0;top:0;bottom:0;min-width:6px;border-radius:99px;background:var(--copper)}
+.adm .be-bar i.ok{background:var(--good)}
+.adm .be-bar b{position:absolute;top:-5px;bottom:-5px;width:3px;margin-left:-1.5px;border-radius:2px;background:var(--ink)}
+.adm .be-mark{font-size:12.5px;color:var(--muted);margin-top:-4px}
+.adm .be-facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.adm .be-facts>div{display:flex;flex-direction:column;gap:2px;min-width:0;padding:12px 14px;border-radius:14px;background:var(--paper-2)}
+.adm .be-facts .l,.adm .be-facts .s{font-size:12.5px;color:var(--muted)}
+.adm .be-facts .v{font:600 20px/1.25 var(--f-disp);font-variant-numeric:tabular-nums}
+.adm .be-note{margin:0;font-size:13px;color:var(--muted)}
+.adm .be-more summary{cursor:pointer;font-size:13.5px;font-weight:600;color:var(--copper-dk);min-height:40px;display:flex;align-items:center}
+.adm .be-more .be-note{margin-top:6px}
+@media (max-width:880px){
+  .adm .be{margin-bottom:0}
+  .adm .be{gap:10px}
+  .adm .be-h .hint{display:none}
+  .adm .be-v b{font-size:26px}
+}
+@media (max-width:599px){
+  .adm .be-facts{grid-template-columns:1fr;gap:0}
+  .adm .be-facts>div{flex-direction:row;flex-wrap:wrap;align-items:baseline;column-gap:10px;padding:9px 0;border-radius:0;background:none;border-top:1px solid var(--line-2)}
+  .adm .be-facts>div:first-child{border-top:0}
+  .adm .be-facts .v{margin-left:auto;font-size:18px}
+  .adm .be-facts .s{flex-basis:100%}
+}
+/* venue types: set many at once */
+.adm .tset{display:flex;flex-direction:column}
+.adm .tset-row{display:flex;align-items:center;gap:12px;padding:9px 0;border-top:1px solid var(--line-2)}
+.adm .tset-row:first-child{border-top:0}
+.adm .tset-n{flex:1;min-width:0;font-weight:600;font-size:14px;overflow-wrap:anywhere}
+.adm .tset-n small{display:block;font-weight:400;font-size:12.5px;color:var(--muted)}
+.adm .tset-row select{flex:0 0 150px;width:150px;min-height:40px}
+.adm .modal .tset+.m-foot{margin-top:12px}
+/* nothing under 12px: tile labels, calendar day numbers, bottom menu */
+.adm .kpi .l{font-size:12px;letter-spacing:.08em}
+.adm .cal .d{font-size:12px}
+.adm .spare label{font-size:12.5px}
+/* small laptops (sidebar showing, 881-1180px): the bin board columns shrink instead of spilling out of the card */
+@media (min-width:881px) and (max-width:1180px){.adm .brow{grid-template-columns:minmax(0,1.2fr) 70px minmax(0,1.6fr) 64px 118px;gap:10px}.adm .brow .pips{flex-wrap:wrap}}
+.adm .brand small{font-size:12px}
+.adm .nav .grp{font-size:12px}
+.adm .top .eyebrow,.adm th,.adm .brow.head,.adm .srow.h{font-size:12px}
+.adm .kv small{font-size:12.5px}
+.adm .est,.adm .brow .cpb small{font-size:12px}
+/* charts never wider than their box, even before they measure it */
+.adm svg.chart{max-width:100%;height:auto}
+/* key-value rows: long labels and tags wrap instead of pushing the value off screen */
+.adm .kv>div>span{min-width:0}
+.adm .kv .chip{white-space:normal}
+@media (max-width:880px){.adm .bnav .navb{font-size:12px}}
 /* thumb-sized controls on touch screens */
 @media (pointer:coarse){
   .adm .btn,.adm .btn-sm,.adm .seg button,.adm .fchip,.adm .pa button,.adm .inl{min-height:44px}

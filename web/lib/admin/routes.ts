@@ -8,7 +8,7 @@ export type Pin = [number, number];
 export type Matrix = { pts: Pin[]; dur: number[][]; dist: number[][]; fetched_at: string | null };
 export type Zones = { of: Record<string, number>; day: number[]; built: string; sig: string } | null;
 export type AreaRule = { area: string; day: number } | null;
-export type Stop = { v: Venue; pin: Pin; exp: number; unload: { eta: string; cans: number } | null; extra: boolean; bi: "A" | "B" | null; eta: string; legKm: number; legMin: number; real: boolean; week: number };
+export type Stop = { v: Venue; pin: Pin; exp: number; unload: { eta: string; cans: number } | null; extra: boolean; bi: "A" | "B" | null; eta: string; legKm: number; legMin: number; real: boolean; week: number; addKm: number; addMin: number };
 export type Day = { i: number; d: string; date: string; zone: number; color: string; label: string; stops: Stop[]; backMin: number; backKm: number; driveMin: number; stopMin: number; unloads: number; totalMin: number; km: number; load: number; end: string; over: boolean; overBy: number };
 export type Plan = { weeks: { A: Day[]; B: Day[] }; meta: { kmOld: number; oldOver: number; oldLongest: number; kmSame: number; kmWeek: number; biN: number; extraN: number; nodes: number; overDays: string[]; est: number; bi: { v: Venue; w: "A" | "B"; week: number }[] } };
 
@@ -160,6 +160,10 @@ export function optimisePlan(c: Ctx, areaName: (id: string | null) => string): P
     const WK = { A: base[d].slice(), B: base[d].slice() };
     const sim = (t: number[]) => { let time = 0, load = 0, prev = 0, un = 0; for (const k of t) { const e = expOf(node[k], !!bi[k]); if (load > 0 && load + e > cap) { time += D[prev][0] + stop; prev = 0; load = 0; un++; } time += D[prev][k] + stop; load += e; prev = k; } return { time: time + D[prev][0], un }; };
     const evalW = (w: "A" | "B") => { const t = solveTour(WK[w].map((v) => v.k), D); const s = sim(t); return { t, time: s.time }; };
+    // venues the team set to every 2 weeks: take them out of the busier week first
+    for (const y of base[d]) if (y.kind === "main" && node[y.k].v.visit === "fortnight" && !bi[y.k]) {
+      const drop: "A" | "B" = WK.A.length >= WK.B.length ? "A" : "B"; WK[drop] = WK[drop].filter((z) => z !== y); bi[y.k] = drop === "A" ? "B" : "A";
+    }
     let eA = evalW("A"), eB = evalW("B");
     for (let guard = 0; guard < 60; guard++) {
       const oA = eA.time > limit, oB = eB.time > limit; if (!oA && !oB) break;
@@ -173,12 +177,13 @@ export function optimisePlan(c: Ctx, areaName: (id: string | null) => string): P
     for (const w of ["A", "B"] as const) {
       const e = w === "A" ? eA : eB; const z0 = WK[w].find((v) => v.kind === "main"); const zone = z0 ? node[z0.k].z! : zones.day.indexOf(d);
       let clock = departSec(c.set), prev = 0, km = 0, drive = 0, load = 0, onb = 0, unN = 0;
-      const stops: Stop[] = e.t.map((k) => {
+      const stops: Stop[] = e.t.map((k, i) => {
         const x = node[k], vis = WK[w].find((v) => v.k === k)!, ex = expOf(x, !!bi[k]); let unload: Stop["unload"] = null;
         if (onb > 0 && onb + ex > cap) { const s0 = D[prev][0], m0 = Dm[prev][0]; clock += s0; drive += s0; km += m0; unload = { eta: fmtClock(clock), cans: onb }; clock += stop; prev = 0; onb = 0; unN++; }
-        onb += ex; const s = D[prev][k], m = Dm[prev][k], real = R[prev][k];
+        onb += ex; const s = D[prev][k], m = Dm[prev][k], real = R[prev][k], nx = e.t[i + 1] ?? 0; // what this stop adds to the route
+        const addS = Math.max(0, s + D[k][nx] - D[prev][nx]), addM = Math.max(0, m + Dm[k][nx] - Dm[prev][nx]);
         clock += s; drive += s; km += m; const eta = clock; clock += stop; prev = k; load += ex;
-        return { v: x.v, pin: x.pin, exp: ex, unload, extra: vis.kind === "extra", bi: bi[k] && vis.kind === "main" ? bi[k] : null, eta: fmtClock(eta), legKm: m / 1000, legMin: s / 60, real, week: x.week };
+        return { v: x.v, pin: x.pin, exp: ex, unload, extra: vis.kind === "extra", bi: bi[k] && vis.kind === "main" ? bi[k] : null, eta: fmtClock(eta), legKm: m / 1000, legMin: s / 60, real, week: x.week, addKm: addM / 1000, addMin: addS / 60 };
       });
       const back = D[prev][0], backM = Dm[prev][0]; drive += back; km += backM; clock += back;
       const nm = zoneName(zone, zones, c.venues, areaName);

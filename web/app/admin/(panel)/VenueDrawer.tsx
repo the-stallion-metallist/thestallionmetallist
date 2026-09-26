@@ -4,7 +4,7 @@ import Link from "next/link";
 import { EditPayment } from "./forms2";
 import { usePanel } from "./Panel";
 import { I, Empty } from "./icons";
-import { BinChangeForm, DatesForm, EditVenue, openLogPickup, setVenueRemoved } from "./forms";
+import { BinChangeForm, DatesForm, EditVenue, openLogPickup, setVenueRemoved, setVisit } from "./forms";
 import { PST, ST, addDays, areaName, bins, dayName, dnice, fmt, kg, lowTxt, rs, vstatus, type State, type Venue } from "@/lib/admin/logic";
 import type { Plan } from "@/lib/admin/routes";
 
@@ -58,6 +58,7 @@ export default function VenueDrawer({ id, tab: tab0 = "sum" }: { id: number; tab
         </div>
         <div className="kv">
           <div><span>Pickup day</span><b>{planInfo(v, c.plan) || "Not on the route yet"}</b></div>
+          <div><span>Visits</span><b>{v.visit === "fortnight" ? "Every 2 weeks (your choice)" : "Planner decides"} <button className="linkb" onClick={() => setVisit(c, v, v.visit === "fortnight" ? null : "fortnight")}>{v.visit === "fortnight" ? "Back to weekly" : "Every 2 weeks"}</button></b></div>
           <div><span>Area</span><b>{v.area ? <>{areaName(v.area)}{v.area_est && <Est t="example" />}</> : <span className="missing">Not set</span>}</b></div>
           <div><span>Contact</span><b>{v.contact || v.phone ? <>{v.contact}{v.phone && <> · <a href={`tel:${v.phone}`}>{v.phone}</a></>}</> : <span className="missing">Add name &amp; number</span>}</b></div>
           <div><span>Map pin</span><b>{v.lat != null ? <><a href={`https://www.google.com/maps?q=${v.lat},${v.lng}`} target="_blank" rel="noopener">Open in Google Maps</a>{v.pin_src === "googleCheck" && <Est t="check" />}</> : <span className="missing">Not set</span>}</b></div>
@@ -65,6 +66,7 @@ export default function VenueDrawer({ id, tab: tab0 = "sum" }: { id: number; tab
           <div><span>Plastic payout</span><b>{v.plastic_rate ? `₹${v.plastic_rate}/kg` : `Default ₹${c.set.plasticBuy}/kg`}</b></div>
           <div><span>Payment</span><b>{v.terms}</b></div>
           <div><span>Status</span><b>{vstatus(v.status)}</b></div>
+          <div><span>Type</span><b>{v.type || <span className="missing">Not set</span>}</b></div>
           <div><span>Brought in by</span><b>{v.brought_by || <span className="missing">Not set</span>}</b></div>
         </div>
         <div className="dr-act">

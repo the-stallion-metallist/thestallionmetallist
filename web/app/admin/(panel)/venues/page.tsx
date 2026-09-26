@@ -3,13 +3,25 @@ import { useEffect, useState } from "react";
 import { usePanel } from "../Panel";
 import VenueDrawer, { Chip, Est } from "../VenueDrawer";
 import Link from "next/link";
-import { AddVenue } from "../forms";
-import { MONL, dnice, fmt, type State } from "@/lib/admin/logic";
-import { PH_ST, PhHead } from "../bits";
+import { AddVenue, SetTypes } from "../forms";
+import { MONL, TYPES, dnice, fmt, type Period, type State } from "@/lib/admin/logic";
+import { PH_ST, PhFold, PhHead } from "../bits";
 
 const ORDER: Record<State, number> = { add: 0, pull: 1, watch: 2, quiet: 3, waiting: 4, new: 5, keep: 6, kept: 7, nobin: 8, idle: 9, later: 10 };
 const FILTERS: [string, string][] = [["all", "All"], ["add", "Add a bin"], ["pull", "Take back"], ["watch", "Low this month"], ["quiet", "Gone quiet"], ["waiting", "Waiting for bin"],
   ["new", "Too new"], ["keep", "Keep"], ["kept", "Kept for now"], ["idle", "Idle bins"], ["nobin", "No bin record"], ["nopin", "No map location"]];
+
+// cans per venue by type, best first, so the team signs more of what works
+function byType(c: ReturnType<typeof usePanel>, p: Period) {
+  const g = new Map<string, { t: string; n: number; giving: number; cans: number }>();
+  for (const v of c.venues) { const t = v.type || "Not set", s = c.stats(v, p), r = g.get(t) ?? g.set(t, { t, n: 0, giving: 0, cans: 0 }).get(t)!; r.n++; r.cans += s.cans; if (s.cans > 0) r.giving++; }
+  return [...g.values()].sort((a, b) => (a.t === "Not set" ? 1 : 0) - (b.t === "Not set" ? 1 : 0) || b.cans / b.n - a.cans / a.n || TYPES.indexOf(a.t) - TYPES.indexOf(b.t));
+}
+function TypeTable({ rows, p }: { rows: ReturnType<typeof byType>; p: Period }) {
+  return <div className="tbl-wrap"><table><thead><tr><th>Type</th><th className="n">Venues</th><th className="n hide-m">Giving cans</th><th className="n">Cans</th><th className="n">Per venue</th></tr></thead><tbody>
+    {rows.map((r) => <tr key={r.t}><td>{r.t === "Not set" ? <span className="muted">Not set</span> : <b>{r.t}</b>}</td><td className="n">{r.n}</td><td className="n hide-m">{r.giving}</td><td className="n">{fmt(r.cans)}</td><td className="n"><b>{fmt(r.cans / r.n)}</b></td></tr>)}
+  </tbody></table></div>;
+}
 
 export default function Venues() {
   const c = usePanel(); const p = c.per;
@@ -26,6 +38,7 @@ export default function Venues() {
   const MAXG = 400, pct = (x: number) => (Math.min(x, MAXG) / MAXG) * 100;
   const totBins = rows.reduce((a, r) => a + r.s.bins, 0);
 
+  const types = byType(c, p), untyped = c.venues.filter((v) => !v.type).length;
   if (c.phone) { // phone: find a venue, see what to do; the gauge board stays on the laptop
     const act = (st: State) => PH_ST[st][2];
     const pc: Record<string, number> = { act: rows.filter((r) => act(r.s.st)).length, all: rows.length, pull: counts.pull || 0, add: counts.add || 0, quiet: counts.quiet || 0, waiting: counts.waiting || 0, new: counts.new || 0, nopin: counts.nopin };
@@ -43,10 +56,13 @@ export default function Venues() {
           <span className="ph-m"><span className="ph-t">{v.name}</span><span className="ph-meta"><span className={"ph-pill " + st[1]}>{st[0]}</span><span>{s.bins} bin{s.bins === 1 ? "" : "s"}{last ? ` · last ${dnice(last)}` : ""}</span></span></span>
           <span className="ph-cans"><b>{fmt(s.cans)}</b><span>cans</span></span></button>; })}</div>
         : <div className="ph-card"><p className="muted">{ql ? `No venue matches “${q}”.` : "Nothing here right now."}</p></div>}
+      {!ql && <PhFold title="Cans by venue type" sub={untyped ? `${untyped} venues have no type yet` : `Which kinds of venue give the most · ${p.short}`}>
+        <TypeTable rows={types} p={p} />
+        <button className="ph-btn g" style={{ marginTop: 12 }} onClick={() => c.openModal(<SetTypes />)}>{untyped ? "Set venue types" : "Change venue types"}</button></PhFold>}
     </div>);
   }
 
-  return (
+  return (<>
     <div className="card">
       <div className="card-h"><h2>Bin board</h2><span className="hint">{rows.length} venues · {totBins} bins · cans per bin, {p.label}{p.all ? ". Actions follow the latest month" : ""}</span><span className="sp" />
         <button className="btn btn-g btn-sm" onClick={() => c.openModal(<AddVenue />)}>+ Add venue</button></div>
@@ -77,5 +93,10 @@ export default function Venues() {
         {!list.length && <p className="muted" style={{ padding: "20px 6px" }}>No venues match. Clear the search or pick another filter.</p>}
       </div>
     </div>
-  );
+    <div className="card" style={{ marginTop: 18 }}>
+      <div className="card-h"><h2>Cans by venue type</h2><span className="hint">Which kinds of venue give the most cans, {p.label}{untyped ? ` · ${untyped} venues have no type yet` : ""}</span><span className="sp" />
+        <button className="btn btn-g btn-sm" onClick={() => c.openModal(<SetTypes />)}>{untyped ? "Set venue types" : "Change venue types"}</button></div>
+      <TypeTable rows={types} p={p} />
+    </div>
+  </>);
 }
