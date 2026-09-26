@@ -90,42 +90,33 @@ function rng(seed: number) { return () => { seed |= 0; seed = (seed + 0x6d2b79f5
 
 export const pinSig = (venues: Venue[]) => venues.filter((v) => v.status === "Active" && v.steel + v.plastic_bins > 0).map((v) => v.id + ":" + (pinOf(v) ? pkey(pinOf(v)!) : "-")).join("|");
 
-// Smart zones: balanced k-medoids on road time, then move venues between zones while it saves driving.
+// Smart zones: each day gets its own patch of the map. Venues are split by a weighted "nearest centre" rule
+// (a power diagram), so no two days' areas can overlap; the weights are tuned until every day fits the route length
+// with the least driving. Stop order inside each day is still worked out on real road times.
+const quickTour = (ids: number[], D: number[][]) => { const t: number[] = []; for (const x of ids) t.splice(insertCost(t, x, D).i, 0, x); return t; };
 export function buildZones(c: Ctx): Zones {
   const P = planInput(c), { nodes, D } = P, n = nodes.length, K = 6, limit = c.set.routeHours * 3600, stop = c.set.stopMin * 60;
   if (n < K) return null;
-  const sym = (a: number, b: number) => (D[a][b] + D[b][a]) / 2, ks = nodes.map((x) => x.k);
-  const work: Record<number, number> = {};
-  for (const x of nodes) { const near = ks.filter((k) => k !== x.k).map((k) => sym(x.k, k)).sort((a, b) => a - b).slice(0, 3); work[x.k] = stop * x.req + near.reduce((a, b) => a + b, 0) / near.length; }
-  const cap = (ks.reduce((a, k) => a + work[k], 0) / K) * 1.12;
-  const evalZ = (Z: number[][]) => { let cost = 0; const tours = Z.map((z) => solveTour(z, D)); tours.forEach((t) => { const tc = tourCost(t, D); cost += tc + 3 * Math.max(0, tc + stop * t.length - limit); }); return { c: cost, tours }; };
-  let best: { c: number; tours: number[][] } | null = null;
+  const lat0 = (P.god[0] * Math.PI) / 180, X = nodes.map((x) => [(x.pin[1] - P.god[1]) * 111.32 * Math.cos(lat0), (x.pin[0] - P.god[0]) * 110.57]);
+  const d2 = (a: number[], b: number[]) => (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2;
+  const dayTime = (ids: number[]) => tourCost(quickTour(ids, D), D) + stop * ids.reduce((a, k) => a + nodes[k - 1].req, 0);
+  const score = (T: number[], ids: number[][]) => ids.reduce((a, z) => a + tourCost(quickTour(z, D), D), 0) + T.reduce((a, t) => a + 3 * Math.max(0, t - limit), 0);
+  let best: { c: number; Z: number[][] } | null = null;
   for (let seed = 1; seed <= 8; seed++) {
-    const R = rng(seed * 7919); const med = [ks[Math.floor(R() * n)]];
-    while (med.length < K) { const w = ks.map((k) => Math.min(...med.map((m) => sym(k, m))) ** 2), tot = w.reduce((a, b) => a + b, 0); let r = R() * tot, i = 0; while (r > w[i]) { r -= w[i]; i++; } med.push(ks[Math.min(i, n - 1)]); }
-    let Z: number[][] = [];
-    for (let it = 0; it < 15; it++) {
-      const load = med.map(() => 0); Z = med.map(() => []);
-      const order = ks.map((k) => { const ds = med.map((m, z) => ({ z, d: sym(k, m) })).sort((a, b) => a.d - b.d); return { k, ds, reg: ds[1].d - ds[0].d }; }).sort((a, b) => b.reg - a.reg);
-      for (const o of order) { const pick = o.ds.find((x) => load[x.z] + work[o.k] <= cap) || o.ds[0]; Z[pick.z].push(o.k); load[pick.z] += work[o.k]; }
-      let moved = false;
-      Z.forEach((z, ci) => { if (!z.length) return; let bm = med[ci], bs = Infinity; for (const a of z) { const s = z.reduce((acc, b) => acc + sym(a, b), 0); if (s < bs) { bs = s; bm = a; } } if (bm !== med[ci]) { med[ci] = bm; moved = true; } });
-      if (!moved) break;
+    const R = rng(seed * 7919), C = [X[Math.floor(R() * n)].slice()];
+    while (C.length < K) { const w = X.map((p) => Math.min(...C.map((q) => d2(p, q)))), tot = w.reduce((a, b) => a + b, 0); let r = R() * tot, i = 0; while (r > w[i] && i < n - 1) { r -= w[i]; i++; } C.push(X[i].slice()); }
+    const W = C.map(() => 0);
+    for (let it = 0; it < 90; it++) {
+      const Z: number[][] = C.map(() => []), sq: number[] = [];
+      X.forEach((p, i) => { let bz = 0, bv = Infinity; C.forEach((q, z) => { const v = d2(p, q) - W[z]; if (v < bv) { bv = v; bz = z; } }); Z[bz].push(i + 1); sq.push(d2(p, C[bz])); });
+      const empty = Z.findIndex((z) => !z.length); if (empty >= 0) { const far = sq.indexOf(Math.max(...sq)); C[empty] = X[far].slice(); W[empty] = 0; continue; }
+      if (it < 25) Z.forEach((z, k) => { C[k] = [z.reduce((a, i) => a + X[i - 1][0], 0) / z.length, z.reduce((a, i) => a + X[i - 1][1], 0) / z.length]; });
+      const T = Z.map(dayTime), cost = score(T, Z); if (!best || cost < best.c) best = { c: cost, Z: Z.map((z) => z.slice()) };
+      const avg = T.reduce((a, b) => a + b, 0) / K, scale = sq.reduce((a, b) => a + b, 0) / n, eta = 0.6 * (1 - it / 90) + 0.05;
+      T.forEach((t, k) => { W[k] += (eta * scale * (Math.min(avg, limit) - t)) / Math.min(avg, limit); });
     }
-    const e = evalZ(Z); if (!best || e.c < best.c) best = { c: e.c, tours: e.tours };
   }
-  const tours = best!.tours;
-  const tt = (t: number[]) => tourCost(t, D) + stop * t.length, over = (t: number[]) => Math.max(0, tt(t) - limit);
-  for (let pass = 0; pass < 5; pass++) {
-    let improved = false;
-    for (let a = 0; a < K; a++) for (const x of tours[a].slice()) {
-      if (tours[a].length <= 2) continue;
-      const g = removeGain(tours[a], x, D); let bestMove: { b: number; delta: number } | null = null;
-      for (let b = 0; b < K; b++) { if (b === a) continue; const ins = insertCost(tours[b], x, D); const oldO = over(tours[a]) + over(tours[b]); const newA = Math.max(0, tt(tours[a]) - g - stop - limit), newB = Math.max(0, tt(tours[b]) + ins.d + stop - limit); const delta = ins.d - g + 3 * (newA + newB - oldO); if (delta < -30 && (!bestMove || delta < bestMove.delta)) bestMove = { b, delta }; }
-      if (bestMove) { tours[a] = improveTour(tours[a].filter((y) => y !== x), D); tours[bestMove.b] = solveTour([...tours[bestMove.b], x], D); improved = true; }
-    }
-    if (!improved) break;
-  }
+  const tours = best!.Z.map((z) => solveTour(z, D));
   // zones go round the godown so neighbouring days are neighbouring zones
   const ang = tours.map((t) => { const la = t.reduce((s, k) => s + nodes[k - 1].pin[0], 0) / t.length, lo = t.reduce((s, k) => s + nodes[k - 1].pin[1], 0) / t.length; return Math.atan2(lo - P.god[1], la - P.god[0]); });
   const order = tours.map((_, i) => i).sort((a, b) => ang[a] - ang[b]);

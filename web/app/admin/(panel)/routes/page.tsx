@@ -74,7 +74,7 @@ export default function Routes() {
       <div className="card"><div className="card-h"><h2>{d.d} {dnice(d.date)}</h2><span className="hint">Week {week}</span></div>
         <RouteMap plan={P} week={week} sel={sel} god={c.god} />
         <div className="legend" style={{ marginTop: 8 }}>{days.map((x) => <span key={x.i}><i style={{ background: x.color, width: 10, height: 10, borderRadius: "50%" }} />{x.d} · {x.label.split(" · ")[0]}</span>)}<span><i style={{ background: "var(--copper)", width: 10, height: 10 }} />Godown</span></div>
-        <p className="muted" style={{ fontSize: 12, marginTop: 8 }}>Lines join the stops in order. Google Maps shows the road route.</p></div>
+        <p className="muted" style={{ fontSize: 12, marginTop: 8 }}>Solid lines join the stops in order. Dashed lines are the drive from and back to the godown. Google Maps shows the actual roads.</p></div>
       <div className="card"><div className="card-h"><h2>Route</h2><span className="hint">{d.stops.length} stops{d.unloads ? ` · ${d.unloads} unload${d.unloads > 1 ? "s" : ""}` : ""} · {Math.round(d.km)} km · {hm(d.driveMin)} driving + {hm(d.stopMin)} at stops</span></div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
           {d.stops.length > 0 && <button className="btn btn-p btn-sm" onClick={async () => { if (await startRun(c, sel, week)) router.push("/admin/run"); }}>Start this route</button>}
@@ -119,11 +119,16 @@ function RouteMap({ plan, week, sel, god }: { plan: Plan; week: "A" | "B"; sel: 
   const xs = pts.map((p) => p[1] * cx), ys = pts.map((p) => -p[0]); const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
   const W = 600, H = 420, pad = 24, sc = Math.min((W - 2 * pad) / (maxX - minX || 1), (H - 2 * pad) / (maxY - minY || 1));
   const X = (p: [number, number]) => pad + (p[1] * cx - minX) * sc + (W - 2 * pad - (maxX - minX) * sc) / 2, Y = (p: [number, number]) => pad + (-p[0] - minY) * sc + (H - 2 * pad - (maxY - minY) * sc) / 2;
-  const d = plan.weeks[week][sel]; const route = [god, ...d.stops.flatMap((s) => (s.unload ? [god, s.pin] : [s.pin])), god];
+  const d = plan.weeks[week][sel];
+  // the drive out, back and to unload is dashed so the day's own loop of stops stands out
+  const segs: { a: [number, number]; b: [number, number]; drive: boolean }[] = []; let prev: [number, number] | null = null;
+  for (const s of d.stops) { if (!prev || s.unload) { if (prev) segs.push({ a: prev, b: god, drive: true }); segs.push({ a: god, b: s.pin, drive: true }); } else segs.push({ a: prev, b: s.pin, drive: false }); prev = s.pin; }
+  if (prev) segs.push({ a: prev, b: god, drive: true });
   return (
     <svg className="rmap" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`Map of ${d.d} route with ${d.stops.length} stops`}>
       {all.filter((x) => x.d.i !== sel).map((x, i) => <circle key={i} cx={X(x.s.pin)} cy={Y(x.s.pin)} r={4} fill={x.d.color} opacity={0.45}><title>{`${x.s.v.name} · ${x.d.d}`}</title></circle>)}
-      <polyline points={route.map((p) => X(p).toFixed(1) + "," + Y(p).toFixed(1)).join(" ")} fill="none" stroke="var(--ink)" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+      {segs.filter((g) => g.drive).map((g, i) => <line key={"t" + i} x1={X(g.a)} y1={Y(g.a)} x2={X(g.b)} y2={Y(g.b)} stroke="var(--muted)" strokeWidth={1.5} strokeDasharray="5 5" strokeLinecap="round" />)}
+      {segs.filter((g) => !g.drive).map((g, i) => <line key={"w" + i} x1={X(g.a)} y1={Y(g.a)} x2={X(g.b)} y2={Y(g.b)} stroke="var(--ink)" strokeWidth={2} strokeLinecap="round" />)}
       {d.stops.map((s, k) => <g key={k}><circle cx={X(s.pin)} cy={Y(s.pin)} r={10} fill={d.color} stroke="var(--card)" strokeWidth={2}><title>{`${k + 1}. ${s.v.name} · ${s.eta}`}</title></circle>
         <text x={X(s.pin)} y={Y(s.pin) + 3.8} textAnchor="middle" className="mnum" fill={ZT[d.zone % 6]}>{k + 1}</text></g>)}
       <rect x={X(god) - 8} y={Y(god) - 8} width={16} height={16} rx={3} fill="var(--copper)" stroke="var(--card)" strokeWidth={2}><title>Godown, Turner Road</title></rect>
