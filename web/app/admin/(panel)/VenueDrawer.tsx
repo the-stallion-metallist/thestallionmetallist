@@ -11,7 +11,7 @@ import type { Plan } from "@/lib/admin/routes";
 // "Mon, Thu · every week" or "Mon wk A · every 2 weeks"
 function planInfo(v: Venue, plan: Plan | null) {
   if (!plan) return null; const where: Record<"A" | "B", string[]> = { A: [], B: [] };
-  for (const w of ["A", "B"] as const) for (const d of plan.weeks[w]) for (const s of d.stops) if (s.v.id === v.id) where[w].push(d.d + (s.extra ? " (extra)" : ""));
+  for (const w of ["A", "B"] as const) for (const d of plan.weeks[w]) for (const s of d.stops) if (s.v.id === v.id) where[w].push(d.d + (s.extra ? " (extra)" : s.otw ? " (on the way)" : ""));
   if (!where.A.length && !where.B.length) return null;
   return where.A.join() === where.B.join() ? `${where.A.join(", ")} · every week` : `${[...where.A.map((x) => x + " wk A"), ...where.B.map((x) => x + " wk B")].join(", ")} · every 2 weeks`;
 }

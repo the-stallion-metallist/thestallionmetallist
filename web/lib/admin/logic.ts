@@ -32,6 +32,8 @@ export type Settings = {
   goLive: string | null;
   fixedOther?: number | null; // rent and other fixed costs per month (salaries come from Staff)
   kmCost?: number | null; hourCost?: number | null; // what a km of driving and an hour of the route team cost (Venue profit)
+  routeDays?: number | null; longDays?: number | null; longHours?: number | null; // route days a week, how many may run long, and how long
+  otwCans?: number | null; // pick up a venue the route passes when its bins should hold at least this many cans (0 = off)
 };
 
 // ---------- dates (India time) ----------

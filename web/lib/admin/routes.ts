@@ -6,11 +6,11 @@ import { type Pickup, type Settings, type Venue, addDays, daysBetween } from "./
 
 export type Pin = [number, number];
 export type Matrix = { pts: Pin[]; dur: number[][]; dist: number[][]; fetched_at: string | null };
-export type Zones = { of: Record<string, number>; day: number[]; built: string; sig: string } | null;
+export type Zones = { of: Record<string, number>; day: number[]; built: string; sig: string; long?: number[] } | null; // day[z] = weekday of zone z; long = zones that may run long
 export type AreaRule = { area: string; day: number } | null;
-export type Stop = { v: Venue; pin: Pin; exp: number; unload: { eta: string; cans: number } | null; extra: boolean; bi: "A" | "B" | null; eta: string; legKm: number; legMin: number; real: boolean; week: number; addKm: number; addMin: number };
-export type Day = { i: number; d: string; date: string; zone: number; color: string; label: string; stops: Stop[]; backMin: number; backKm: number; driveMin: number; stopMin: number; unloads: number; totalMin: number; km: number; load: number; end: string; over: boolean; overBy: number };
-export type Plan = { weeks: { A: Day[]; B: Day[] }; meta: { kmOld: number; oldOver: number; oldLongest: number; kmSame: number; kmWeek: number; biN: number; extraN: number; nodes: number; overDays: string[]; est: number; bi: { v: Venue; w: "A" | "B"; week: number }[] } };
+export type Stop = { v: Venue; pin: Pin; exp: number; unload: { eta: string; cans: number } | null; extra: boolean; bi: "A" | "B" | null; eta: string; legKm: number; legMin: number; real: boolean; week: number; addKm: number; addMin: number; otw: boolean };
+export type Day = { i: number; d: string; date: string; zone: number; color: string; label: string; free: boolean; long: boolean; limitMin: number; otwN: number; stops: Stop[]; backMin: number; backKm: number; driveMin: number; stopMin: number; unloads: number; totalMin: number; km: number; load: number; end: string; over: boolean; overBy: number };
+export type Plan = { weeks: { A: Day[]; B: Day[] }; meta: { kmOld: number; oldOver: number; oldLongest: number; kmSame: number; kmWeek: number; biN: number; extraN: number; nodes: number; overDays: string[]; est: number; otwN: number; routeDays: number; bi: { v: Venue; w: "A" | "B"; week: number }[] } };
 
 export const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 export const ZC = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300"]; // zone colours (validated for colour-blind reading)
@@ -94,13 +94,19 @@ export const pinSig = (venues: Venue[]) => venues.filter((v) => v.status === "Ac
 // (a power diagram), so no two days' areas can overlap; the weights are tuned until every day fits the route length
 // with the least driving. Stop order inside each day is still worked out on real road times.
 const quickTour = (ids: number[], D: number[][]) => { const t: number[] = []; for (const x of ids) t.splice(insertCost(t, x, D).i, 0, x); return t; };
+export const routeDaysOf = (s: Settings) => Math.min(6, Math.max(3, Math.round(Number(s.routeDays) || 6)));
+export const longLimit = (s: Settings) => Math.max(s.routeHours, Number(s.longHours) || s.routeHours) * 3600;
+
 export function buildZones(c: Ctx): Zones {
-  const P = planInput(c), { nodes, D } = P, n = nodes.length, K = 6, limit = c.set.routeHours * 3600, stop = c.set.stopMin * 60;
+  const P = planInput(c), { nodes, D } = P, n = nodes.length, limit = c.set.routeHours * 3600, stop = c.set.stopMin * 60;
+  const K = routeDaysOf(c.set), OTN = Math.min(K, Math.max(0, Math.round(Number(c.set.longDays) || 0))), OT = longLimit(c.set);
   if (n < K) return null;
+  // the OTN longest zones may run to the long-day limit, the rest to the normal one
+  const allow = (T: number[]) => { const A = T.map(() => limit); T.map((_, i) => i).sort((a, b) => T[b] - T[a]).slice(0, OTN).forEach((i) => (A[i] = OT)); return A; };
   const lat0 = (P.god[0] * Math.PI) / 180, X = nodes.map((x) => [(x.pin[1] - P.god[1]) * 111.32 * Math.cos(lat0), (x.pin[0] - P.god[0]) * 110.57]);
   const d2 = (a: number[], b: number[]) => (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2;
   const dayTime = (ids: number[]) => tourCost(quickTour(ids, D), D) + stop * ids.reduce((a, k) => a + nodes[k - 1].req, 0);
-  const score = (T: number[], ids: number[][]) => ids.reduce((a, z) => a + tourCost(quickTour(z, D), D), 0) + T.reduce((a, t) => a + 3 * Math.max(0, t - limit), 0);
+  const score = (T: number[], ids: number[][]) => { const A = allow(T); return ids.reduce((a, z) => a + tourCost(quickTour(z, D), D), 0) + T.reduce((a, t, i) => a + 3 * Math.max(0, t - A[i]), 0); };
   let best: { c: number; Z: number[][] } | null = null;
   for (let seed = 1; seed <= 8; seed++) {
     const R = rng(seed * 7919), C = [X[Math.floor(R() * n)].slice()];
@@ -112,8 +118,8 @@ export function buildZones(c: Ctx): Zones {
       const empty = Z.findIndex((z) => !z.length); if (empty >= 0) { const far = sq.indexOf(Math.max(...sq)); C[empty] = X[far].slice(); W[empty] = 0; continue; }
       if (it < 25) Z.forEach((z, k) => { C[k] = [z.reduce((a, i) => a + X[i - 1][0], 0) / z.length, z.reduce((a, i) => a + X[i - 1][1], 0) / z.length]; });
       const T = Z.map(dayTime), cost = score(T, Z); if (!best || cost < best.c) best = { c: cost, Z: Z.map((z) => z.slice()) };
-      const avg = T.reduce((a, b) => a + b, 0) / K, scale = sq.reduce((a, b) => a + b, 0) / n, eta = 0.6 * (1 - it / 90) + 0.05;
-      T.forEach((t, k) => { W[k] += (eta * scale * (Math.min(avg, limit) - t)) / Math.min(avg, limit); });
+      const A = allow(T), tot = T.reduce((a, b) => a + b, 0), capTot = A.reduce((a, b) => a + b, 0), scale = sq.reduce((a, b) => a + b, 0) / n, eta = 0.6 * (1 - it / 90) + 0.05;
+      T.forEach((t, k) => { const aim = Math.min(A[k], (A[k] / capTot) * tot); W[k] += (eta * scale * (aim - t)) / aim; });
     }
   }
   const tours = best!.Z.map((z) => solveTour(z, D));
@@ -121,17 +127,19 @@ export function buildZones(c: Ctx): Zones {
   const ang = tours.map((t) => { const la = t.reduce((s, k) => s + nodes[k - 1].pin[0], 0) / t.length, lo = t.reduce((s, k) => s + nodes[k - 1].pin[1], 0) / t.length; return Math.atan2(lo - P.god[1], la - P.god[0]); });
   const order = tours.map((_, i) => i).sort((a, b) => ang[a] - ang[b]);
   const of: Record<string, number> = {}; order.forEach((z, rank) => tours[z].forEach((k) => (of[nodes[k - 1].v.id] = rank)));
-  return applyAreaRule({ of, day: [0, 1, 2, 3, 4, 5], built: c.today, sig: pinSig(c.venues) }, c);
+  const TT = order.map((z) => tourCost(tours[z], D) + stop * tours[z].reduce((a, k) => a + nodes[k - 1].req, 0)), AA = allow(TT);
+  const long = TT.map((t, rank) => rank).filter((rank) => AA[rank] > limit && TT[rank] > limit);
+  return applyAreaRule({ of, day: Array.from({ length: K }, (_, i) => i), long, built: c.today, sig: pinSig(c.venues) }, c);
 }
 // the zone with the most Rajpur Road venues (by each venue's Area) stays on the rule's day
 export function ruleZone(zones: Zones, c: Pick<Ctx, "venues" | "areaRule">) {
-  const r = c.areaRule; if (!zones || !r) return null; const cnt = [0, 0, 0, 0, 0, 0];
+  const r = c.areaRule; if (!zones || !r) return null; const cnt = zones.day.map(() => 0);
   c.venues.forEach((v) => { if (v.area === r.area && v.status === "Active" && v.steel + v.plastic_bins > 0 && zones.of[v.id] != null) cnt[zones.of[v.id]]++; });
   const best = cnt.indexOf(Math.max(...cnt)); return cnt[best] ? best : null;
 }
 export function applyAreaRule(zones: Zones, c: Pick<Ctx, "venues" | "areaRule">) {
   const z = ruleZone(zones, c); if (z == null || !zones || !c.areaRule) return zones; const r = c.areaRule, other = zones.day.indexOf(r.day);
-  zones.day[other] = zones.day[z]; zones.day[z] = r.day; return zones;
+  if (other >= 0) zones.day[other] = zones.day[z]; zones.day[z] = r.day; return zones;
 }
 export function zoneName(z: number, zones: Zones, venues: Venue[], areaName: (id: string | null) => string) {
   const cnt: Record<string, number> = {}; venues.forEach((v) => { if (zones && zones.of[v.id] === z && v.area) cnt[v.area] = (cnt[v.area] || 0) + 1; });
@@ -143,22 +151,29 @@ export function optimisePlan(c: Ctx, areaName: (id: string | null) => string): P
   if (!c.zones) return null;
   const zones = c.zones; const P = planInput(c), { nodes, D, Dm, R } = P, limit = c.set.routeHours * 3600, stop = c.set.stopMin * 60, cap = c.set.vehCap || Infinity;
   const W = planWeeks(c.today);
-  const zoneOf = (x: Node) => { const z = zones.of[x.v.id]; if (z != null) return z; let best = 0, bd = Infinity; for (let zz = 0; zz < 6; zz++) { const mem = nodes.filter((y) => zones.of[y.v.id] === zz).map((y) => y.k); const cc = insertCost(mem, x.k, D).d; if (cc < bd) { bd = cc; best = zz; } } return best; };
+  const nz = zones.day.length, OT = longLimit(c.set);
+  const zoneOf = (x: Node) => { const z = zones.of[x.v.id]; if (z != null && z < nz) return z; let best = 0, bd = Infinity; for (let zz = 0; zz < nz; zz++) { const mem = nodes.filter((y) => zones.of[y.v.id] === zz).map((y) => y.k); const cc = insertCost(mem, x.k, D).d; if (cc < bd) { bd = cc; best = zz; } } return best; };
   const dayOf = (z: number) => zones.day[z];
+  const zoneOn = (d: number) => zones.day.indexOf(d), isRoute = (d: number) => zoneOn(d) >= 0;
+  const limitOf = (d: number) => (zones.long?.includes(zoneOn(d)) ? OT : limit); // long days may run to the long-day limit
   const base: { k: number; kind: "main" | "extra" }[][] = [0, 1, 2, 3, 4, 5].map(() => []), node: Record<number, Node> = {};
   nodes.forEach((x) => { node[x.k] = x; x.z = zoneOf(x); base[dayOf(x.z)].push({ k: x.k, kind: "main" }); });
   const baseTours = base.map((l) => solveTour(l.map((v) => v.k), D));
   for (const x of nodes) for (let e = 1; e < x.req; e++) {
-    const main = dayOf(x.z!), t = (main + Math.round((6 * e) / x.req)) % 6;
-    const cands = [t, (t + 1) % 6, (t + 5) % 6].filter((d) => Math.abs(d - main) >= 2);
-    const pick = (cands.length ? cands : [t]).map((d) => ({ d, c: insertCost(baseTours[d], x.k, D).d })).sort((a, b) => a.c - b.c)[0].d;
+    const main = dayOf(x.z!), t = (main + Math.round((6 * e) / x.req)) % 6, all = [0, 1, 2, 3, 4, 5].filter((d) => isRoute(d) && d !== main);
+    let cands = [t, (t + 1) % 6, (t + 5) % 6].filter((d) => Math.abs(d - main) >= 2 && isRoute(d)); // extra visits only on route days
+    if (!cands.length) cands = all.filter((d) => Math.abs(d - main) >= 2); if (!cands.length) cands = all; if (!cands.length) continue;
+    const pick = cands.map((d) => ({ d, c: insertCost(baseTours[d], x.k, D).d })).sort((a, b) => a.c - b.c)[0].d;
     base[pick].push({ k: x.k, kind: "extra" });
   }
   const expOf = (x: Node, bi: boolean) => Math.min(x.hold || 0, (x.week * (bi ? 2 : 1)) / x.req);
   const bi: Record<number, "A" | "B"> = {}; const res: { A: Day[]; B: Day[] } = { A: [], B: [] }; const overDays: string[] = [];
+  const sim = (t: number[], ex?: Record<number, number>) => { let time = 0, load = 0, prev = 0, un = 0; for (const k of t) { const e = ex?.[k] ?? expOf(node[k], !!bi[k]); if (load > 0 && load + e > cap) { time += D[prev][0] + stop; prev = 0; load = 0; un++; } time += D[prev][k] + stop; load += e; prev = k; } return { time: time + D[prev][0], un }; };
+  // 1. each day's weekly list, with low-can venues moved to every 2 weeks while the day is too long
+  type Visit = { k: number; kind: "main" | "extra" };
+  const fin: { WK: { A: Visit[]; B: Visit[] }; A: number[]; B: number[] }[] = [];
   for (let d = 0; d < 6; d++) {
-    const WK = { A: base[d].slice(), B: base[d].slice() };
-    const sim = (t: number[]) => { let time = 0, load = 0, prev = 0, un = 0; for (const k of t) { const e = expOf(node[k], !!bi[k]); if (load > 0 && load + e > cap) { time += D[prev][0] + stop; prev = 0; load = 0; un++; } time += D[prev][k] + stop; load += e; prev = k; } return { time: time + D[prev][0], un }; };
+    const WK = { A: base[d].slice(), B: base[d].slice() }, L = limitOf(d);
     const evalW = (w: "A" | "B") => { const t = solveTour(WK[w].map((v) => v.k), D); const s = sim(t); return { t, time: s.time }; };
     // venues the team set to every 2 weeks: take them out of the busier week first
     for (const y of base[d]) if (y.kind === "main" && node[y.k].v.visit === "fortnight" && !bi[y.k]) {
@@ -166,28 +181,55 @@ export function optimisePlan(c: Ctx, areaName: (id: string | null) => string): P
     }
     let eA = evalW("A"), eB = evalW("B");
     for (let guard = 0; guard < 60; guard++) {
-      const oA = eA.time > limit, oB = eB.time > limit; if (!oA && !oB) break;
-      const worse: "A" | "B" = oA && (!oB || eA.time - limit >= eB.time - limit) ? "A" : "B", ew = worse === "A" ? eA : eB;
+      const oA = eA.time > L, oB = eB.time > L; if (!oA && !oB) break;
+      const worse: "A" | "B" = oA && (!oB || eA.time - L >= eB.time - L) ? "A" : "B", ew = worse === "A" ? eA : eB;
       const cands = WK[worse].filter((v) => v.kind === "main" && !bi[v.k] && node[v.k].biOk && node[v.k].req === 1 && WK.A.some((y) => y.k === v.k) && WK.B.some((y) => y.k === v.k));
       if (!cands.length) break;
       const scored = cands.map((v) => ({ v, val: node[v.k].week / ((removeGain(ew.t, v.k, D) + stop) / 60) })).sort((a, b) => a.val - b.val);
       const out = scored[0].v; WK[worse] = WK[worse].filter((y) => y !== out); bi[out.k] = worse === "A" ? "B" : "A";
       eA = evalW("A"); eB = evalW("B");
     }
+    fin.push({ WK, A: eA.t, B: eB.t });
+  }
+  // 2. when each venue is collected over the 2-week cycle (Week A Monday = day 0, Week B Monday = day 7)
+  const at = (w: "A" | "B", d: number) => (w === "A" ? 0 : 7) + d, when = new Map<number, number[]>();
+  for (let d = 0; d < 6; d++) for (const w of ["A", "B"] as const) for (const k of fin[d][w]) (when.get(k) ?? when.set(k, []).get(k)!).push(at(w, d));
+  const gapTo = (k: number, now: number) => { const l = when.get(k) ?? []; if (!l.length) return 7; const before = l.filter((x) => x < now); return now - (before.length ? Math.max(...before) : Math.max(...l) - 14); };
+  const cansBy = (k: number, now: number) => Math.min(node[k].hold || Infinity, (node[k].week * gapTo(k, now)) / 7); // cans waiting in the bins by then
+  // 3. pick up on the way: a venue the route passes (at most 2 more minutes of driving) joins that day
+  //    when its bins should hold enough cans by then, as long as the day stays within its limit
+  const otwCans = Number(c.set.otwCans) || 0, otw = new Set<string>();
+  if (otwCans > 0) for (const w of ["A", "B"] as const) for (let d = 0; d < 6; d++) {
+    let t = fin[d][w]; if (!isRoute(d) || !t.length) continue;
+    const now = at(w, d), L = limitOf(d), on = new Set(t);
+    const cands = nodes.filter((x) => !on.has(x.k) && x.hold > 0 && cansBy(x.k, now) >= otwCans && insertCost(t, x.k, D).d <= 120).sort((a, b) => cansBy(b.k, now) - cansBy(a.k, now));
+    for (const x of cands) {
+      const ex: Record<number, number> = {}; for (const k of t) ex[k] = cansBy(k, now); ex[x.k] = cansBy(x.k, now);
+      const i = insertCost(t, x.k, D).i, nt = t.slice(0, i).concat(x.k, t.slice(i)); if (sim(nt, ex).time > L) continue;
+      t = nt; otw.add(w + d + ":" + x.k); when.get(x.k)!.push(now); when.get(x.k)!.sort((a, b) => a - b);
+    }
+    fin[d][w] = solveTour(t, D);
+  }
+  // 4. the days themselves: order, times, km, and what each stop should hold
+  for (let d = 0; d < 6; d++) {
+    const L = limitOf(d), z = zoneOn(d);
     for (const w of ["A", "B"] as const) {
-      const e = w === "A" ? eA : eB; const z0 = WK[w].find((v) => v.kind === "main"); const zone = z0 ? node[z0.k].z! : zones.day.indexOf(d);
+      const t = fin[d][w], now = at(w, d), ex: Record<number, number> = {}; for (const k of t) ex[k] = cansBy(k, now);
+      const z0 = fin[d].WK[w].find((v) => v.kind === "main"); const zone = z0 ? node[z0.k].z! : z;
       let clock = departSec(c.set), prev = 0, km = 0, drive = 0, load = 0, onb = 0, unN = 0;
-      const stops: Stop[] = e.t.map((k, i) => {
-        const x = node[k], vis = WK[w].find((v) => v.k === k)!, ex = expOf(x, !!bi[k]); let unload: Stop["unload"] = null;
-        if (onb > 0 && onb + ex > cap) { const s0 = D[prev][0], m0 = Dm[prev][0]; clock += s0; drive += s0; km += m0; unload = { eta: fmtClock(clock), cans: onb }; clock += stop; prev = 0; onb = 0; unN++; }
-        onb += ex; const s = D[prev][k], m = Dm[prev][k], real = R[prev][k], nx = e.t[i + 1] ?? 0; // what this stop adds to the route
+      const stops: Stop[] = t.map((k, i) => {
+        const x = node[k], vis = fin[d].WK[w].find((v) => v.k === k), isOtw = otw.has(w + d + ":" + k), e = ex[k]; let unload: Stop["unload"] = null;
+        if (onb > 0 && onb + e > cap) { const s0 = D[prev][0], m0 = Dm[prev][0]; clock += s0; drive += s0; km += m0; unload = { eta: fmtClock(clock), cans: onb }; clock += stop; prev = 0; onb = 0; unN++; }
+        onb += e; const s = D[prev][k], m = Dm[prev][k], real = R[prev][k], nx = t[i + 1] ?? 0; // what this stop adds to the route
         const addS = Math.max(0, s + D[k][nx] - D[prev][nx]), addM = Math.max(0, m + Dm[k][nx] - Dm[prev][nx]);
-        clock += s; drive += s; km += m; const eta = clock; clock += stop; prev = k; load += ex;
-        return { v: x.v, pin: x.pin, exp: ex, unload, extra: vis.kind === "extra", bi: bi[k] && vis.kind === "main" ? bi[k] : null, eta: fmtClock(eta), legKm: m / 1000, legMin: s / 60, real, week: x.week, addKm: addM / 1000, addMin: addS / 60 };
+        clock += s; drive += s; km += m; const eta = clock; clock += stop; prev = k; load += e;
+        return { v: x.v, pin: x.pin, exp: e, unload, extra: vis?.kind === "extra", otw: isOtw, bi: bi[k] && vis?.kind === "main" ? bi[k] : null, eta: fmtClock(eta), legKm: m / 1000, legMin: s / 60, real, week: x.week, addKm: addM / 1000, addMin: addS / 60 };
       });
       const back = D[prev][0], backM = Dm[prev][0]; drive += back; km += backM; clock += back;
-      const nm = zoneName(zone, zones, c.venues, areaName);
-      const day: Day = { i: d, d: DAYS[d], date: W[w][d], zone, color: ZC[zone % 6], label: `Zone ${zone + 1}` + (nm ? ` · ${nm}` : ""), stops, backMin: back / 60, backKm: backM / 1000, driveMin: drive / 60, stopMin: (stops.length + unN) * c.set.stopMin, unloads: unN, totalMin: e.time / 60, km: km / 1000, load, end: fmtClock(clock), over: e.time > limit + 30, overBy: Math.max(0, (e.time - limit) / 60) };
+      const total = sim(t, ex).time, nm = zone >= 0 ? zoneName(zone, zones, c.venues, areaName) : "";
+      const day: Day = { i: d, d: DAYS[d], date: W[w][d], zone, free: z < 0, long: L > limit, limitMin: L / 60, otwN: stops.filter((s) => s.otw).length,
+        color: zone >= 0 ? ZC[zone % 6] : "#c9c2b8", label: zone >= 0 ? `Zone ${zone + 1}` + (nm ? ` · ${nm}` : "") : "No route", stops, backMin: back / 60, backKm: backM / 1000, driveMin: drive / 60,
+        stopMin: (stops.length + unN) * c.set.stopMin, unloads: unN, totalMin: total / 60, km: km / 1000, load, end: fmtClock(clock), over: total > L + 30, overBy: Math.max(0, (total - L) / 60) };
       res[w].push(day); if (day.over) overDays.push(w + " " + DAYS[d]);
     }
   }
@@ -199,7 +241,7 @@ export function optimisePlan(c: Ctx, areaName: (id: string | null) => string): P
   const oldMin = oldTours.map((t) => (tourCost(t, D) + stop * t.length) / 60), oldOver = oldMin.filter((m) => m > limit / 60 + 0.5).length, oldLongest = Math.max(...oldMin);
   const kmSame = [0, 1, 2, 3, 4, 5].reduce((a, d) => a + kmOf(solveTour(nodes.filter((x) => dayOf(x.z!) === d).map((x) => x.k), D)), 0);
   const kmWeek = (res.A.reduce((a, d) => a + d.km, 0) + res.B.reduce((a, d) => a + d.km, 0)) / 2;
-  return { weeks: res, meta: { kmOld, oldOver, oldLongest, kmSame, kmWeek, biN: Object.keys(bi).length, extraN: base.flat().filter((v) => v.kind === "extra").length, nodes: nodes.length, overDays, est: P.est,
+  return { weeks: res, meta: { kmOld, oldOver, oldLongest, kmSame, kmWeek, biN: Object.keys(bi).length, extraN: base.flat().filter((v) => v.kind === "extra").length, nodes: nodes.length, overDays, est: P.est, otwN: (res.A.reduce((a, d) => a + d.otwN, 0) + res.B.reduce((a, d) => a + d.otwN, 0)) / 2, routeDays: nz,
     bi: Object.entries(bi).map(([k, w]) => ({ v: node[+k].v, w, week: node[+k].week })) } };
 }
 
