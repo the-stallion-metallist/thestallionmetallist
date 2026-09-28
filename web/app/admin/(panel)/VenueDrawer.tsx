@@ -57,8 +57,10 @@ export default function VenueDrawer({ id, tab: tab0 = "sum" }: { id: number; tab
           <div className="fact"><div className="l">Owed now</div><div className="v">{ps.owed ? rs(ps.owed) : "₹0"}</div></div>
         </div>
         <div className="kv">
-          <div><span>Pickup day</span><b>{planInfo(v, c.plan) || "Not on the route yet"}</b></div>
-          <div><span>Visits</span><b>{v.visit === "fortnight" ? "Every 2 weeks (your choice)" : "Planner decides"} <button className="linkb" onClick={() => setVisit(c, v, v.visit === "fortnight" ? null : "fortnight")}>{v.visit === "fortnight" ? "Back to weekly" : "Every 2 weeks"}</button></b></div>
+          <div><span>Pickup day</span><b>{v.visit === "call" ? "On request, not on the route" : planInfo(v, c.plan) || "Not on the route yet"}</b></div>
+          <div><span>Visits</span><b>{v.visit === "call" ? <>On request <button className="linkb" onClick={() => setVisit(c, v, null)}>Put back on the route</button></>
+            : <>{v.visit === "fortnight" ? "Every 2 weeks (your choice)" : "Planner decides"} <button className="linkb" onClick={() => setVisit(c, v, v.visit === "fortnight" ? null : "fortnight")}>{v.visit === "fortnight" ? "Back to weekly" : "Every 2 weeks"}</button>
+              {" · "}<button className="linkb" onClick={() => setVisit(c, v, "call")}>On request only</button></>}</b></div>
           <div><span>Area</span><b>{v.area ? <>{areaName(v.area)}{v.area_est && <Est t="example" />}</> : <span className="missing">Not set</span>}</b></div>
           <div><span>Contact</span><b>{v.contact || v.phone ? <>{v.contact}{v.phone && <> · <a href={`tel:${v.phone}`}>{v.phone}</a></>}</> : <span className="missing">Add name &amp; number</span>}</b></div>
           <div><span>Map pin</span><b>{v.lat != null ? <><a href={`https://www.google.com/maps?q=${v.lat},${v.lng}`} target="_blank" rel="noopener">Open in Google Maps</a>{v.pin_src === "googleCheck" && <Est t="check" />}</> : <span className="missing">Not set</span>}</b></div>

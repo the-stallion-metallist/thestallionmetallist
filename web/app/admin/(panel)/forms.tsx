@@ -370,8 +370,8 @@ export function AddVenue() {
 // Every 2 weeks (the team's choice) or back to letting the planner decide. The route plan updates straight away. Undo for 5 seconds.
 export async function setVisit(c: Ctx, v: Venue, visit: Venue["visit"], undo = true) {
   const next = await saveVenueRow(c, v.id, { visit }); if (!next) return;
-  await c.logIt("Edited", "Venue", v.name, visit ? "Visits → every 2 weeks" : "Visits → every week", { table: "venues", id: v.id });
-  const msg = visit ? `${v.name} moved to every 2 weeks` : `${v.name} back to every week`;
+  await c.logIt("Edited", "Venue", v.name, visit === "call" ? "Visits → on request, not on the route" : visit ? "Visits → every 2 weeks" : "Visits → planner decides", { table: "venues", id: v.id });
+  const msg = visit === "call" ? `${v.name} taken off the route: collected on request` : visit ? `${v.name} moved to every 2 weeks` : v.visit === "call" ? `${v.name} is back on the route` : `${v.name} back to every week`;
   c.toast(msg, undo ? () => setVisit(c, next, v.visit, false) : undefined);
 }
 

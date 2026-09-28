@@ -56,7 +56,7 @@ function planInput(c: Ctx) {
     const km = hv(a, b) * 1.35; return { s: (km / ROAD_EST_KMH) * 3600, m: km * 1000, real: false };
   };
   // venues with bins, plus signed venues whose first bin is planned (they join the route to get it)
-  const nodes: Node[] = c.venues.filter((v) => pinOf(v) && ((v.status === "Active" && v.steel + v.plastic_bins > 0) || (v.status === "Waiting" && c.waitingWithBin.has(v.id)))).map((v, i) => {
+  const nodes: Node[] = c.venues.filter((v) => pinOf(v) && v.visit !== "call" && ((v.status === "Active" && v.steel + v.plastic_bins > 0) || (v.status === "Waiting" && c.waitingWithBin.has(v.id)))).map((v, i) => {
     const week = weeklyCans(v, c.byV.get(v.id) ?? [], c.today), hold = v.steel * (c.set.capSteel || 150) + v.plastic_bins * (c.set.capPl || 150);
     return { v, pin: pinOf(v)!, week, hold, req: hold ? Math.min(3, Math.max(1, Math.ceil(week / hold))) : 1, biOk: hold > 0 && week * 2 <= hold, k: i + 1 };
   });

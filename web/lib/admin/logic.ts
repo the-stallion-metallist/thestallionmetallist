@@ -13,7 +13,7 @@ export type Venue = {
   opening: number | null; keep_until: string | null; skip_give: string | null; cut_on: string | null;
   deleted: boolean; // removed from the panel; past pickups and payments still count
   brought_by: string | null; // who brought the venue in (People screen); null = not set
-  visit: "fortnight" | null; // null = the planner decides; "fortnight" = the team chose every 2 weeks
+  visit: "fortnight" | "call" | null; // null = the planner decides; "fortnight" = every 2 weeks; "call" = collected on request, never on the route
   created_by: string; updated_by: string | null;
 };
 export type Pickup = {
