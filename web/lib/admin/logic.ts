@@ -166,8 +166,10 @@ export function totals(p: Period, pickups: Pickup[], venues: Map<number, Venue>,
 export const TYPES = ["Bar", "Club / lounge", "Cafe", "Restaurant", "College", "Hostel", "Hotel / Airbnb", "Shop", "Other"];
 
 export const AREAS = [
-  { id: "rajpur", n: "Rajpur Road" }, { id: "sahas", n: "Sahastradhara Road" }, { id: "gms", n: "GMS Road & Ballupur" },
-  { id: "prem", n: "Prem Nagar & Pondha" }, { id: "dharam", n: "Dharampur & Haridwar Road" }, { id: "city", n: "Clock Tower & Race Course" },
+  { id: "rajpur", n: "Rajpur Road" }, { id: "mussoorie", n: "Mussoorie Road & Malsi" }, { id: "canal", n: "Canal Road" },
+  { id: "sahas", n: "Sahastradhara Road" }, { id: "city", n: "Clock Tower & Race Course" }, { id: "gms", n: "GMS Road & Chakrata Road" },
+  { id: "ballupur", n: "Ballupur" }, { id: "prem", n: "Prem Nagar" }, { id: "pondha", n: "Pondha & Bidholi" },
+  { id: "dharam", n: "Dharampur" }, { id: "bypass", n: "Haridwar Bypass & ISBT" }, { id: "majra", n: "Majra & Ogalwala" },
 ];
 export const areaName = (id: string | null) => AREAS.find((a) => a.id === id)?.n ?? "";
 export const VSTATUS: [Venue["status"], string][] = [["Active", "Active"], ["Waiting", "Waiting for bin"], ["Paused", "Paused"], ["Pulled", "Pulled"]];

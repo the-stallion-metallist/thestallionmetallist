@@ -15,7 +15,7 @@ export type Plan = { weeks: { A: Day[]; B: Day[] }; meta: { kmOld: number; oldOv
 export const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 export const ZC = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300"]; // zone colours (validated for colour-blind reading)
 export const ZT = ["#fff", "#fff", "#131417", "#131417", "#131417", "#fff"];         // number colour on each zone colour
-export const AREA_DAY: Record<string, number> = { rajpur: 0, sahas: 1, gms: 2, prem: 3, dharam: 4, city: 5 }; // the old fixed area days, for the km comparison
+export const AREA_DAY: Record<string, number> = { rajpur: 0, mussoorie: 0, canal: 0, sahas: 1, gms: 2, ballupur: 2, prem: 3, pondha: 3, dharam: 4, bypass: 4, majra: 4, city: 5 }; // the old fixed area days, for the km comparison
 const ROAD_EST_KMH = 35; // only for points with no road data yet (a pin changed after the last road refresh)
 
 // Weeks alternate A, B, A… from Monday 28 Sep 2026 (Week A), so every-2-weeks venues keep their week.
@@ -143,7 +143,8 @@ export function applyAreaRule(zones: Zones, c: Pick<Ctx, "venues" | "areaRule">)
 }
 export function zoneName(z: number, zones: Zones, venues: Venue[], areaName: (id: string | null) => string) {
   const cnt: Record<string, number> = {}; venues.forEach((v) => { if (zones && zones.of[v.id] === z && v.area) cnt[v.area] = (cnt[v.area] || 0) + 1; });
-  const top = Object.entries(cnt).sort((a, b) => b[1] - a[1])[0]; return top ? areaName(top[0]) : "";
+  const top = Object.entries(cnt).sort((a, b) => b[1] - a[1]); if (!top.length) return "";
+  return areaName(top[0][0]) + (top[1] && top[1][1] >= 3 ? " + " + areaName(top[1][0]) : ""); // the one or two areas most of the zone is in
 }
 
 // The two-week plan: fixed zones per day, extra visits for busy venues, low-can venues every 2 weeks when a day runs long.
