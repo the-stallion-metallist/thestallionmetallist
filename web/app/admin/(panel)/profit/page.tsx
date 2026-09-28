@@ -6,7 +6,7 @@ import VenueDrawer from "../VenueDrawer";
 import { setVisit } from "../forms";
 import { MonthSeg, PhHead, PhRow } from "../bits";
 import { Empty } from "../icons";
-import { fmt, inP, rs, venueEarn, visitCost, type Period, type Venue } from "@/lib/admin/logic";
+import { collectionDays, dieselDay, fmt, inP, rs, venueEarn, visitCost, type Period, type Venue } from "@/lib/admin/logic";
 
 type Ctx = ReturnType<typeof usePanel>;
 type Verdict = "ok" | "fortnight" | "moved" | "loss" | "none";
@@ -17,15 +17,18 @@ function venueRows(c: Ctx, p: Period) {
   const cost = new Map<number, number>();
   if (c.plan) for (const w of ["A", "B"] as const) for (const d of c.plan.weeks[w]) for (const s of d.stops) if (!s.extra && !cost.has(s.v.id)) cost.set(s.v.id, visitCost(c.set, s.addKm, s.addMin));
   const all = [...cost.values()].sort((a, b) => a - b), typical = all.length ? all[Math.floor(all.length / 2)] : visitCost(c.set, 0, 0);
+  const share = new Map(collectionDays(c.pickups, c.trips, c.set, p).map((g) => [g.d, g.venues ? g.diesel / g.venues : 0])); // diesel ÷ venues that day
   const rows: Row[] = c.venues.map((v) => {
     const ps = (c.byV.get(v.id) ?? []).filter((x) => inP(x.d, p)), e = venueEarn(v, ps, c.set);
-    const per = cost.get(v.id) ?? typical, visits = ps.length, total = visits * per, profit = e.earn - total, perVisit = visits ? profit / visits : null;
+    const diesel = [...new Set(ps.filter((x) => x.src !== "App").map((x) => x.d))].reduce((a, d) => a + (share.get(d) ?? 0), 0);
+    const per = cost.get(v.id) ?? typical, visits = ps.length, total = visits * per + diesel, profit = e.earn - total, perVisit = visits ? profit / visits : null;
     // losing money each visit: would every 2 weeks (twice the cans a visit) fix it?
-    const fixable = (2 * e.earn) / visits - per >= 0; // twice the cans a visit covers the cost
+    const fixable = (2 * e.earn) / visits - total / visits >= 0; // twice the cans a visit covers the cost
     const verdict: Verdict = !visits ? "none" : perVisit! >= 0 ? "ok" : fixable ? (v.visit === "fortnight" ? "moved" : "fortnight") : "loss";
     return { v, visits, cans: e.cans, earn: e.earn, per, est: !cost.has(v.id), cost: total, profit, perVisit, verdict };
   });
-  return { rows, typical };
+  const vis = rows.filter((r) => r.visits), avg = vis.length ? vis.reduce((a, r) => a + r.cost, 0) / vis.reduce((a, r) => a + r.visits, 0) : typical;
+  return { rows, typical: avg };
 }
 const VERDICT: Record<Verdict, [string, string]> = { ok: ["Pays its way", "c-keep"], fortnight: ["Try every 2 weeks", "c-new"], moved: ["Now every 2 weeks", "c-keep"], loss: ["Loses money", "c-pull"], none: ["No pickups", "c-idle"] };
 
@@ -56,14 +59,14 @@ export default function Profit() {
       tone={r.verdict === "ok" || r.verdict === "moved" ? "good" : r.verdict === "none" ? "idle" : "bad"}
       right={<span className="ph-cans"><b className={r.profit < 0 ? "neg" : ""}>{rs(r.profit)}</b><span>profit</span></span>} onClick={() => c.openDrawer(<VenueDrawer id={r.v.id} />)} />)}</div>
       : <div className="ph-card"><p className="muted">{f === "lose" ? "No venue loses money on its visits." : "Nothing here."}</p></div>}
-    <div className="ph-card"><p className="muted" style={{ fontSize: 13 }}>A visit costs about {rs(typical)}: the extra km and minutes the stop adds to its route day, plus {c.set.stopMin} minutes at the stop. Open a venue to move it to every 2 weeks.</p>{kmNote}</div>
+    <div className="ph-card"><p className="muted" style={{ fontSize: 13 }}>A visit costs about {rs(typical)}: the extra km and minutes the stop adds to its route day, {c.set.stopMin} minutes at the stop, and an equal share of that day&apos;s diesel (₹{dieselDay(c.set)} ÷ venues collected that day). Open a venue to move it to every 2 weeks.</p>{kmNote}</div>
   </div>);
 
   return (<>
     <section className="kpis">
       <div className="kpi hero"><div className="l">Venues, after visit costs</div><div className="v">{rs(total)}</div><div className="s">{visited.length} venues with pickups, {p.label}</div></div>
       <div className="kpi"><div className="l">Losing money</div><div className="v">{losing.length}</div><div className="s">{losing.length ? `${rs(lost)} between them` : "Every venue pays its way"}</div></div>
-      <div className="kpi"><div className="l">A visit costs about</div><div className="v">{rs(typical)}</div><div className="s">Extra route time and km, plus the stop</div></div>
+      <div className="kpi"><div className="l">A visit costs about</div><div className="v">{rs(typical)}</div><div className="s">Route time and km, the stop, and a share of the day&apos;s diesel</div></div>
       <div className="kpi"><div className="l">No pickups</div><div className="v">{rows.length - visited.length}</div><div className="s">Nothing to judge yet</div></div>
     </section>
     <div className="card">
@@ -76,7 +79,7 @@ export default function Profit() {
           <td><span className={"chip " + VERDICT[r.verdict][1]}>{VERDICT[r.verdict][0]}</span></td><td className="n">{action(r)}</td></tr>)}
       </tbody></table></div>
         : <Empty title={f === "lose" ? "No venue loses money" : "Nothing here"} text={f === "lose" ? "Every venue with pickups earns more than its visits cost." : "Try another filter."} />}
-      <p className="muted" style={{ fontSize: 12.5, marginTop: 10 }}>Visit cost = the extra km and minutes the stop adds to its route day, plus {c.set.stopMin} minutes at the stop. * Not on the route yet, so the typical visit cost is used. &quot;Try every 2 weeks&quot; means twice the cans on each visit would cover its cost.</p>
+      <p className="muted" style={{ fontSize: 12.5, marginTop: 10 }}>Visit cost = the extra km and minutes the stop adds to its route day, plus {c.set.stopMin} minutes at the stop, plus an equal share of each day&apos;s diesel (₹{dieselDay(c.set)} ÷ venues collected that day). * Not on the route yet, so the typical route time cost is used. &quot;Try every 2 weeks&quot; means twice the cans on each visit would cover its cost.</p>
     </div>
   </>);
 }

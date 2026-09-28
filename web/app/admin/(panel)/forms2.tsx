@@ -118,6 +118,7 @@ export function EditExpense({ rec, preset }: { rec?: Expense; preset?: Partial<E
         {cat === "Salaries" && <Field id="eStaff" label="Paid to" err={errs.staff} help={due}>
           <select id="eStaff" name="staff" value={staffId} onChange={(e) => { setStaffId(e.target.value); const s = c.staff.find((x) => x.id === +e.target.value); if (s && !amt) { const d = staffDue(s, mo, c.marks, c.advances, c.expenses); if (d.pay) setAmt(String(d.pay)); } }}>
             <option value="">Choose staff member</option>{c.staff.filter((s) => s.active).map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></Field>}
+        {cat === "Vehicle" && <p className="muted" style={{ fontSize: 13 }}>Diesel is counted for each collection day, so don&apos;t add it here. Use Vehicle for repairs, tyres and insurance.</p>}
         {cat === "Bins & bags" && <>
           <Field label="What did you buy?"><Opts name="item" values={ITEMS} initial={item} onChange={(v) => v && setItem(v)} /></Field>
           {item === "Other" && <Field id="eOther" label="Item name" err={errs.other}><input id="eOther" name="other" defaultValue={r.other ?? ""} placeholder="e.g. Gloves, weighing scale" /></Field>}

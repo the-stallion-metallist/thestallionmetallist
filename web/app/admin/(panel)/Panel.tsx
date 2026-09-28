@@ -58,7 +58,7 @@ export const SCREENS = [
   { href: "/admin/pickups", t: "Pickups", grp: "Daily", icon: "pickups", sub: "Every collection, from bins, the app and walk-ins" },
   { href: "/admin/routes", t: "Route planner", grp: "Daily", icon: "routes", sub: "Smart zones on real roads. Every route starts and ends at the godown on Turner Road." },
   { href: "/admin/locations", t: "Venue locations", grp: "Daily", icon: "locations", sub: "Exact points for each venue, so routes use the right roads" },
-  { href: "/admin/trips", t: "Trips", grp: "Daily", icon: "trips", sub: "Vehicle, km and fuel for each collection run" },
+  { href: "/admin/trips", t: "Collection days", grp: "Daily", icon: "trips", sub: "Which venues were collected together on each day, and the diesel" },
   { href: "/admin/stock", t: "Stock & sales", grp: "Money", icon: "stock", sub: "What is in the godown and what went to buyers" },
   { href: "/admin/money", t: "Money", grp: "Money", icon: "money", sub: "" },
   { href: "/admin/profit", t: "Venue profit", grp: "Money", icon: "profit", sub: "What each venue earns after its payout and the cost of visiting it" },
@@ -72,7 +72,7 @@ export const SCREENS = [
 const MONTH_SCREENS = ["/admin", "/admin/venues", "/admin/pickups", "/admin/trips", "/admin/stock", "/admin/money", "/admin/profit"];
 const MORE = ["/admin/pickups", "/admin/moves", "/admin/locations", "/admin/trips", "/admin/stock", "/admin/profit", "/admin/payouts", "/admin/people", "/admin/staff", "/admin/history", "/admin/settings"];
 // screens with their own phone layout (they draw their own heading on phones)
-const PHONE_OWN = ["/admin", "/admin/routes", "/admin/venues", "/admin/money", "/admin/people", "/admin/profit"];
+const PHONE_OWN = ["/admin", "/admin/routes", "/admin/venues", "/admin/money", "/admin/people", "/admin/profit", "/admin/trips"];
 function usePhone() {
   const [phone, setPhone] = useState(() => typeof window !== "undefined" && matchMedia("(max-width: 880px)").matches); // the panel only draws in the browser
   useEffect(() => { const m = matchMedia("(max-width: 880px)"); const f = () => setPhone(m.matches); f(); m.addEventListener("change", f); return () => m.removeEventListener("change", f); }, []);
@@ -277,7 +277,7 @@ function Loaded(props: {
 }
 
 // what each More item is for, in a few words
-const MORE_SUB: Record<string, string> = { "/admin/pickups": "Every collection", "/admin/moves": "Bins to take back or place", "/admin/locations": "Map pins for the route", "/admin/trips": "Km and fuel",
+const MORE_SUB: Record<string, string> = { "/admin/pickups": "Every collection", "/admin/moves": "Bins to take back or place", "/admin/locations": "Map pins for the route", "/admin/trips": "Venues by date, diesel",
   "/admin/stock": "What is in the godown", "/admin/profit": "Which venues are worth the visit", "/admin/payouts": "Paying venues", "/admin/people": "Who brought which clients", "/admin/staff": "Attendance and pay", "/admin/history": "Who changed what", "/admin/settings": "Rates, team, Excel" };
 function MoreSheet({ onLogOut }: { onLogOut: () => void }) {
   const c = usePanel();

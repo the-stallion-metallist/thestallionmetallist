@@ -5,7 +5,7 @@ import { usePanel } from "./Panel";
 import { DAYS } from "@/lib/admin/routes";
 import { type Move, binsTxt } from "@/lib/admin/moves";
 import { I } from "./icons";
-import { DATA_START, MON, MONL, breakEven, dnice, fmt, inP, monthOf, monthsSince, rs, totals, type State } from "@/lib/admin/logic";
+import { DATA_START, MON, MONL, breakEven, collectionDays, dieselOf, dnice, fmt, inP, monthOf, monthsSince, rs, totals, type State } from "@/lib/admin/logic";
 
 // "Route in progress" bar on Overview and the Route planner.
 export function RunBar() {
@@ -52,7 +52,7 @@ export function BreakEven() {
   const c = usePanel(); const p = c.now;
   const T = totals(p, c.pickups, c.vmap, c.set);
   const salaries = c.staff.filter((s) => s.active).reduce((a, s) => a + Number(s.salary || 0), 0);
-  const running = c.trips.filter((t) => !t.deleted && inP(t.d, p)).reduce((a, t) => a + Number(t.fuel_cost) + Number(t.other_cost), 0)
+  const running = dieselOf(collectionDays(c.pickups, c.trips, c.set, p))
     + c.expenses.filter((e) => !e.deleted && inP(e.d, p) && e.category !== "Salaries" && e.category !== "Rent").reduce((a, e) => a + Number(e.amount), 0);
   const B = breakEven(p, T, c.set, { salaries, running });
   const mo = MONL[+p.key.slice(5, 7) - 1], last = dnice(p.end);
@@ -65,7 +65,7 @@ export function BreakEven() {
       : { l: "Needed from now", v: B.perDay != null ? `${fmt(B.perDay)} a day` : "–", s: B.left ? `For the ${B.left} day${B.left === 1 ? "" : "s"} left` : "Month is over", tone: B.perDay && B.perDay > B.pace * 1.5 ? "neg" : "" },
     { l: "Profit so far", v: rs(B.profitNow), s: `At this pace, ${rs(B.profitEnd)} by ${last}`, tone: B.profitNow < 0 ? "neg" : "pos" },
   ];
-  const note = <>Each can earns ₹{B.perCan.toFixed(2)} after paying the venue{T.pl ? ", plastic included" : ""}. Monthly costs {rs(B.costs)}: salaries {rs(salaries)} · rent and fixed {rs(Number(c.set.fixedOther || 0))} · trips and running {running ? rs(running) : "none recorded yet"}. Profit so far spreads fixed costs over the month. <Link className="linkb" href="/admin/settings">Change costs</Link></>;
+  const note = <>Each can earns ₹{B.perCan.toFixed(2)} after paying the venue{T.pl ? ", plastic included" : ""}. Monthly costs {rs(B.costs)}: salaries {rs(salaries)} · rent and fixed {rs(Number(c.set.fixedOther || 0))} · diesel and running {running ? rs(running) : "none yet"}. Profit so far spreads fixed costs over the month. <Link className="linkb" href="/admin/settings">Change costs</Link></>;
   return (
     <div className="card be">
       <div className="be-h"><h2>Break-even, {mo}</h2><span className="hint">Can this month pay its salaries, rent and running costs?</span><span className="be-pct">{pct}%</span></div>

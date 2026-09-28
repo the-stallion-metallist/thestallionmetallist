@@ -34,6 +34,7 @@ export type Settings = {
   kmCost?: number | null; hourCost?: number | null; // what a km of driving and an hour of the route team cost (Venue profit)
   routeDays?: number | null; longDays?: number | null; longHours?: number | null; // route days a week, how many may run long, and how long
   otwCans?: number | null; // pick up a venue the route passes when its bins should hold at least this many cans (0 = off)
+  dieselDay?: number | null; // diesel for a collection day with no trip fuel logged (₹400 when not set)
 };
 
 // ---------- dates (India time) ----------
@@ -228,6 +229,24 @@ export function venueEarn(v: Venue, ps: Pickup[], set: Settings) {
   const cans = ps.reduce((a, x) => a + x.cans, 0), kgs = ps.reduce((a, x) => a + Number(x.plastic_kg || 0), 0);
   return { cans, kgs, earn: cans * (set.ubcRate / set.cansPerKg - Number(v.can_rate)) + (set.plasticSale ? kgs * (set.plasticSale - Number(v.plastic_rate || set.plasticBuy)) : 0) };
 }
+
+// ---------- collection days ----------
+// Every date with venue pickups is one collection trip. Its diesel is the fuel of the trips logged that day,
+// or the "Diesel per collection day" setting (₹400 when not set) when none was logged. Household app pickups don't count.
+export const dieselDay = (set: Settings) => set.dieselDay ?? 400;
+export type CDay = { d: string; picks: Pickup[]; venues: number; cans: number; kg: number; trips: Trip[]; diesel: number; real: boolean };
+export function collectionDays(pickups: Pickup[], trips: Trip[], set: Settings, p?: Period) {
+  const by = new Map<string, CDay>(), inp = (d: string) => !p || inP(d, p);
+  const get = (d: string) => by.get(d) ?? by.set(d, { d, picks: [], venues: 0, cans: 0, kg: 0, trips: [], diesel: 0, real: false }).get(d)!;
+  for (const x of pickups) if (!x.deleted && x.venue_id != null && x.src !== "App" && inp(x.d)) { const g = get(x.d); g.picks.push(x); g.cans += x.cans; g.kg += Number(x.plastic_kg || 0); }
+  for (const t of trips) if (!t.deleted && inp(t.d) && (by.has(t.d) || Number(t.fuel_cost) + Number(t.other_cost) > 0)) get(t.d).trips.push(t);
+  for (const g of by.values()) {
+    const fuel = g.trips.reduce((a, t) => a + Number(t.fuel_cost) + Number(t.other_cost), 0);
+    g.venues = new Set(g.picks.map((x) => x.venue_id)).size; g.real = fuel > 0; g.diesel = g.real ? fuel : g.picks.length ? dieselDay(set) : 0;
+  }
+  return [...by.values()].sort((a, b) => (a.d < b.d ? 1 : -1));
+}
+export const dieselOf = (days: CDay[]) => days.reduce((a, g) => a + g.diesel, 0);
 
 export function staffDue(s: StaffRow, mo: string, marks: Mark[], advances: Advance[], expenses: Expense[]) {
   const days = marks.filter((m) => m.staff_id === s.id && monthOf(m.d) === mo).reduce((a, m) => a + (m.mark === "P" ? 1 : m.mark === "H" ? 0.5 : 0), 0);

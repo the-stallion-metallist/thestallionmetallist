@@ -9,7 +9,7 @@ import VenueDrawer from "./VenueDrawer";
 import { openLogPickup } from "./forms";
 import { BreakEven, MonthSeg, PhFold, PhHead, PhRow, RunBar, areaOnly } from "./bits";
 import { startRun } from "./runlib";
-import { MON, MONL, addDays, dayName, dnice, fmt, inP, kg, monthOf, rs, shiftMonth, totals, DATA_START } from "@/lib/admin/logic";
+import { MON, MONL, addDays, collectionDays, dayName, dieselOf, dnice, fmt, kg, monthOf, rs, shiftMonth, totals, DATA_START } from "@/lib/admin/logic";
 import { weekOf } from "@/lib/admin/routes";
 
 export default function Overview() {
@@ -26,7 +26,7 @@ export default function Overview() {
   const od = c.venues.map((v) => c.pay(v)).filter((s) => s.st === "overdue");
   const mvBins = c.sug.pulls.reduce((a, x) => a + x.n, 0), mvOpen = c.moves.filter((t) => t.status === "planned").length;
   const di = (new Date(c.today + "T00:00:00").getDay() + 6) % 7, wk = weekOf(c.today), route = di < 6 && c.plan ? c.plan.weeks[wk][di] : null;
-  const tripCost = c.trips.filter((t) => !t.deleted && inP(t.d, p)).reduce((a, t) => a + Number(t.fuel_cost) + Number(t.other_cost), 0);
+  const tripCost = dieselOf(collectionDays(c.pickups, c.trips, c.set, p));
   const go = (href: string) => () => router.push(href);
   const row = (key: string, n: number, cls: string, t: string, d: string, onClick: () => void) => n ? <button key={key} className="arow" onClick={onClick}>
     <span className={"big " + cls}>{n}</span><span><span className="t">{t}</span><br /><span className="d">{d}</span></span><span className="go">{I.chev}</span></button> : null;
@@ -126,7 +126,7 @@ export default function Overview() {
       <div className="kpi"><div className="l">Cans collected</div><div className="v">{fmt(T.cans)}</div><div className="s">{prev} · plus {kg(T.pl)} kg plastic</div></div>
       <div className="kpi"><div className="l">Pickups</div><div className="v">{T.n}</div><div className="s">{T.n ? fmt(T.cans / T.n) : 0} cans per pickup</div></div>
       <div className="kpi"><div className="l">Paid to venues</div><div className="v">{rs(T.paid)}</div><div className="s">₹{c.set.canRate.toFixed(2)} per can + plastic per kg</div></div>
-      <div className="kpi hero"><div className="l">Profit before salaries &amp; rent</div><div className="v">{rs(T.canValue + T.plValue - T.paid - tripCost)}</div><div className="s">Cans valued at ₹{c.set.ubcRate}/kg, minus payouts and trip costs</div></div>
+      <div className="kpi hero"><div className="l">Profit before salaries &amp; rent</div><div className="v">{rs(T.canValue + T.plValue - T.paid - tripCost)}</div><div className="s">Cans valued at ₹{c.set.ubcRate}/kg, minus payouts and diesel</div></div>
     </section>
     <section className="grid2">
       <div className="card"><div className="card-h"><h2>Cans per day</h2><span className="hint">Tap a bar for the exact number</span></div>

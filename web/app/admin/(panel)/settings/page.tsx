@@ -12,8 +12,8 @@ export default function SettingsPage() {
   const [team, setTeam] = useState<{ name: string; role: string; email: string }[]>([]);
   useEffect(() => { c.db.from("team").select("name, role, email").order("created_at").then(({ data }) => setTeam(data ?? [])); }, [c.db]);
 
-  async function save(k: K, raw: string) {
-    const before = c.set[k]; const val = raw === "" ? null : Number(raw);
+  async function save(k: K, raw: string, dflt?: number) {
+    const before = c.set[k] ?? dflt ?? null; const val = raw === "" ? null : Number(raw);
     if (val === before) return;
     const data = { ...c.set, [k]: val };
     const { error } = await c.db.from("settings").update({ data }).eq("id", 1);
@@ -22,8 +22,8 @@ export default function SettingsPage() {
     await c.logIt("Edited", "Setting", LABEL[k] ?? String(k), `${before ?? "–"} → ${val ?? "–"}`);
     c.toast("Saved. All numbers updated.");
   }
-  const inp = (k: K, l: string, help: string, unit: string) => <div className="field" key={k}><label htmlFor={"set_" + k}>{l}</label>
-    <div className="inrow"><input id={"set_" + k} type="number" step="any" inputMode="decimal" defaultValue={(c.set[k] as number | null) ?? ""} placeholder="Not set" onBlur={(e) => save(k, e.target.value)} /><span>{unit}</span></div>
+  const inp = (k: K, l: string, help: string, unit: string, dflt?: number) => <div className="field" key={k}><label htmlFor={"set_" + k}>{l}</label>
+    <div className="inrow"><input id={"set_" + k} type="number" step="any" inputMode="decimal" defaultValue={(c.set[k] as number | null) ?? dflt ?? ""} placeholder="Not set" onBlur={(e) => save(k, e.target.value, dflt)} /><span>{unit}</span></div>
     {help && <span className="help">{help}</span>}</div>;
 
   return (
@@ -39,6 +39,7 @@ export default function SettingsPage() {
         {inp("fixedOther", "Rent and other fixed costs", "Everything paid every month apart from salaries. Salaries come from the Staff page.", "₹ per month")}
         {inp("kmCost", "Vehicle cost per km", "Fuel plus tyres and servicing. Leave empty until you know it; visit costs then count time only.", "₹ per km")}
         {inp("hourCost", "Route team cost per hour", "Driver and helper pay for an hour on the route.", "₹ per hour")}
+        {inp("dieselDay", "Diesel per collection day", "Counted for every day with venue pickups, unless a trip with real fuel is logged that day. Changing it changes past days too.", "₹ per day", 400)}
       </div>
       <div className="card"><div className="card-h"><h2>Bin rules</h2><span className="hint">Set from your September numbers</span></div>
         {inp("add", "Add a bin at", "Top quarter of venues. Bins this full overflow and you lose cans.", "cans per bin / month")}
@@ -106,7 +107,7 @@ function AppSyncCard() {
     {msg && <p className="muted" style={{ fontSize: 12.5, marginTop: 8 }}>{msg}</p>}</div>;
 }
 
-const LABEL: Partial<Record<K, string>> = { ubcRate: "Can sale rate", cansPerKg: "Cans per kg", plasticSale: "Plastic sale rate", canRate: "Default payout per can", plasticBuy: "Default plastic payout", add: "Add a bin at", pull: "Take a bin back under", grace: "New venue grace days", vehCap: "Vehicle capacity", capSteel: "Full steel bin holds", capPl: "Full plastic bin holds", routeHours: "Route length", stopMin: "Time per stop", traffic: "Traffic buffer", fixedOther: "Rent and other fixed costs", kmCost: "Vehicle cost per km", hourCost: "Route team cost per hour" };
+const LABEL: Partial<Record<K, string>> = { ubcRate: "Can sale rate", cansPerKg: "Cans per kg", plasticSale: "Plastic sale rate", canRate: "Default payout per can", plasticBuy: "Default plastic payout", add: "Add a bin at", pull: "Take a bin back under", grace: "New venue grace days", vehCap: "Vehicle capacity", capSteel: "Full steel bin holds", capPl: "Full plastic bin holds", routeHours: "Route length", stopMin: "Time per stop", traffic: "Traffic buffer", fixedOther: "Rent and other fixed costs", kmCost: "Vehicle cost per km", hourCost: "Route team cost per hour", dieselDay: "Diesel per collection day" };
 
 function TeamCard({ team, onAdded, onRemoved }: { team: { name: string; role: string; email: string }[]; onAdded: (t: { name: string; role: string; email: string }) => void; onRemoved: (email: string) => void }) {
   const c = usePanel(); const owner = c.me.role === "Owner";
