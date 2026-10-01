@@ -5,7 +5,7 @@ import { usePanel } from "./Panel";
 import { DAYS } from "@/lib/admin/routes";
 import { type Move, binsTxt } from "@/lib/admin/moves";
 import { I } from "./icons";
-import { DATA_START, MON, MONL, breakEven, collectionDays, dieselOf, dnice, fmt, inP, monthOf, monthsSince, rs, totals, type State } from "@/lib/admin/logic";
+import { DATA_START, MON, MONL, breakEven, collectionDays, dieselOf, dnice, fmt, inP, kg, monthOf, monthsSince, rs, totals, type State } from "@/lib/admin/logic";
 
 // "Route in progress" bar on Overview and the Route planner.
 export function RunBar() {
@@ -47,6 +47,20 @@ export function MonthSeg() {
   return <div className="seg" role="group" aria-label="Month">{list.map((m) => <button key={m} aria-pressed={c.month === m} onClick={() => c.setMonth(m)}>{m === "all" ? (ms.length === 2 ? "Both" : "All") : MON[+m.slice(5, 7) - 1]}</button>)}</div>;
 }
 
+// Cash sitting in the godown: unsold cans and plastic, what they are worth at the Settings rates, and what was paid for them.
+function GodownLine() {
+  const c = usePanel();
+  const ps = c.pickups.filter((p) => !p.deleted), sales = c.sales.filter((s) => !s.deleted);
+  const ubcSold = sales.filter((s) => s.material === "UBC"), plSold = sales.filter((s) => s.material === "Plastic");
+  const cans = ps.reduce((a, p) => a + p.cans, 0) - ubcSold.reduce((a, s) => a + Number(s.kg), 0) * c.set.cansPerKg;
+  const pl = ps.reduce((a, p) => a + Number(p.plastic_kg || 0), 0) - plSold.reduce((a, s) => a + Number(s.kg), 0);
+  if (cans <= 0 && pl <= 0) return null;
+  const worth = (cans / c.set.cansPerKg) * c.set.ubcRate + (c.set.plasticSale ? pl * c.set.plasticSale : 0), paid = cans * c.set.canRate + pl * c.set.plasticBuy;
+  return <p className="note-bar" style={{ marginTop: 12, fontSize: 13 }}>
+    {!ubcSold.length && <><b>No cans sold yet, so ₹{c.set.ubcRate}/kg is a guess.</b> Update the sale rate in Settings after each buyer quote. </>}
+    In the godown: {fmt(cans)} cans (≈{kg(cans / c.set.cansPerKg)} kg){pl > 0 ? ` and ${kg(pl)} kg plastic` : ""}, worth about {rs(worth)} at these rates. About {rs(paid)} was paid to venues for it. <Link className="linkb" href="/admin/stock">Stock &amp; sales</Link></p>;
+}
+
 // Break-even for this month: cans so far against the cans needed to cover salaries, rent and running costs.
 export function BreakEven() {
   const c = usePanel(); const p = c.now;
@@ -56,7 +70,7 @@ export function BreakEven() {
     + c.expenses.filter((e) => !e.deleted && inP(e.d, p) && e.category !== "Salaries" && e.category !== "Rent").reduce((a, e) => a + Number(e.amount), 0);
   const B = breakEven(p, T, c.set, { salaries, running });
   const mo = MONL[+p.key.slice(5, 7) - 1], last = dnice(p.end);
-  if (!B.need) return <div className="card be"><div className="be-h"><h2>Break-even, {mo}</h2></div><p className="muted">At today&apos;s rates a can earns nothing after the venue is paid. Check the sale rate and payouts in Settings.</p></div>;
+  if (!B.need) return <div className="card be"><div className="be-h"><h2>Break-even, {mo}</h2></div><p className="muted">At today&apos;s rates a can earns nothing after the venue is paid. Check the sale rate and payouts in Settings.</p><GodownLine /></div>;
   const covered = T.cans >= B.need, scale = Math.max(B.need, T.cans), pct = Math.min(100, Math.round((T.cans / B.need) * 100));
   const today = Math.round((B.need * B.elapsed) / p.days); // where the month needs to be by today
   const facts = [
@@ -75,6 +89,7 @@ export function BreakEven() {
         {!covered && B.left > 0 && <b style={{ left: `${(today / scale) * 100}%` }} title={`${fmt(today)} cans needed by today`} />}
       </div>
       {!covered && B.left > 0 && <div className="be-mark">Line: where the month needs to be today, {fmt(today)} cans</div>}
+      <GodownLine />
       <div className="be-facts">{facts.map((f) => <div key={f.l}><span className="l">{f.l}</span><span className={"v " + (f.tone ?? "")}>{f.v}</span><span className="s">{f.s}</span></div>)}</div>
       {c.phone ? <details className="be-more"><summary>How this is worked out</summary><p className="be-note">{note}</p></details> : <p className="be-note">{note}</p>}
     </div>

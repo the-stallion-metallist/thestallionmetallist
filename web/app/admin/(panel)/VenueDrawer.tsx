@@ -7,6 +7,7 @@ import { I, Empty } from "./icons";
 import { BinChangeForm, DatesForm, EditVenue, openLogPickup, setVenueRemoved, setVisit } from "./forms";
 import { PST, ST, addDays, areaName, bins, dayName, dnice, fmt, kg, lowTxt, rs, vstatus, type State, type Venue } from "@/lib/admin/logic";
 import type { Plan } from "@/lib/admin/routes";
+import { waiting } from "@/lib/admin/growth";
 
 // "Mon, Thu · every week" or "Mon wk A · every 2 weeks"
 function planInfo(v: Venue, plan: Plan | null) {
@@ -40,6 +41,7 @@ export default function VenueDrawer({ id, tab: tab0 = "sum" }: { id: number; tab
   const hist = s.picks.slice(-12); const mx = Math.max(...hist.map((p) => p.n), 1);
   const log = c.binlog.filter((b) => b.venue_id === v.id).slice().reverse();
   const tabs: [typeof tab, string][] = [["sum", "Summary"], ["pick", "Pickups"], ["pay", "Payments"], ["bins", "Bins"]];
+  const w = waiting(v, c.byV.get(v.id) ?? [], c.set, c.today);
   const ps = c.pay(v); const pays = c.payments.filter((p) => !p.deleted && p.venue_id === v.id).sort((a, b) => (a.d < b.d ? 1 : -1));
 
   return (<>
@@ -57,6 +59,9 @@ export default function VenueDrawer({ id, tab: tab0 = "sum" }: { id: number; tab
           <div className="fact"><div className="l">Owed now</div><div className="v">{ps.owed ? rs(ps.owed) : "₹0"}</div></div>
         </div>
         <div className="kv">
+          <div><span>Last collected</span><b>{w.last ? `${dnice(w.last)} · ${w.ago === 0 ? "today" : w.ago === 1 ? "yesterday" : w.ago + " days ago"}` : "No pickups yet"}</b></div>
+          <div><span>Cans waiting now</span><b>{w.est == null ? "–" : w.full ? <span className="neg">{fmt(w.hold)}+ · bins likely full, cans being lost</span>
+            : <>About {fmt(w.est)}{w.hold ? <span className="muted"> of {fmt(w.hold)} the bins hold</span> : null}</>}{w.est != null && <span className="muted"> · {w.pace.toFixed(1)} cans a day, last 4 weeks</span>}</b></div>
           <div><span>Pickup day</span><b>{v.visit === "call" ? "On request, not on the route" : planInfo(v, c.plan) || "Not on the route yet"}</b></div>
           <div><span>Visits</span><b>{v.visit === "call" ? <>On request <button className="linkb" onClick={() => setVisit(c, v, null)}>Put back on the route</button></>
             : <>{v.visit === "fortnight" ? "Every 2 weeks (your choice)" : "Planner decides"} <button className="linkb" onClick={() => setVisit(c, v, v.visit === "fortnight" ? null : "fortnight")}>{v.visit === "fortnight" ? "Back to weekly" : "Every 2 weeks"}</button>
