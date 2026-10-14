@@ -71,7 +71,8 @@ export const SCREENS = [
   { href: "/admin/run", t: "Route in progress", grp: "Daily", icon: "run", sub: "", hidden: true },
 ] as const;
 const MONTH_SCREENS = ["/admin", "/admin/venues", "/admin/pickups", "/admin/trips", "/admin/stock", "/admin/money", "/admin/profit", "/admin/growth"];
-const MORE = ["/admin/pickups", "/admin/moves", "/admin/locations", "/admin/trips", "/admin/growth", "/admin/stock", "/admin/profit", "/admin/payouts", "/admin/people", "/admin/staff", "/admin/history", "/admin/settings"];
+const HIDE_MENU = ["/admin/moves", "/admin/payouts"]; // hidden from the menus; the screens still open from links on Overview
+const MORE = ["/admin/pickups", "/admin/locations", "/admin/trips", "/admin/growth", "/admin/stock", "/admin/profit", "/admin/people", "/admin/staff", "/admin/history", "/admin/settings"];
 // screens with their own phone layout (they draw their own heading on phones)
 const PHONE_OWN = ["/admin", "/admin/routes", "/admin/venues", "/admin/money", "/admin/people", "/admin/profit", "/admin/trips", "/admin/growth"];
 function usePhone() {
@@ -230,7 +231,7 @@ function Loaded(props: {
   const inMore = MORE.includes(path);
   const moreDot = MORE.some((h) => ctx.badges[h]);
   const { toastMsg } = layers;
-  let grp = "";
+  const [shut, setShut] = useState<string[]>(["Team"]); // Money and Team fold on laptops; the group you are in stays open
 
   return (
     <PanelCtx.Provider value={ctx}>
@@ -239,9 +240,14 @@ function Loaded(props: {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <div className="brand"><img src="/brand/logo-mark.png" alt="" /><div><b>STALLION</b><small>Team panel</small></div></div>
           <nav className="nav">
-            {SCREENS.filter((s) => !("hidden" in s)).map((s) => {
-              const head = s.grp !== grp ? <div className="grp" key={s.grp}>{s.grp}</div> : null; grp = s.grp;
-              return [head, <Link key={s.href} href={s.href === "/admin/routes" ? routeHref : s.href} className="navb" aria-current={isCur(s.href) ? "page" : undefined}>{I[s.icon]}{s.t}{nb(s.href)}</Link>];
+            {["Daily", "Money", "Team"].map((g) => {
+              const items = SCREENS.filter((s) => !("hidden" in s) && s.grp === g && !HIDE_MENU.includes(s.href));
+              const closed = g !== "Daily" && shut.includes(g) && !items.some((s) => isCur(s.href));
+              return <div className="ngrp" key={g}>
+                {g === "Daily" ? <div className="grp">{g}</div>
+                  : <button type="button" className="grp grpb" aria-expanded={!closed} onClick={() => setShut((x) => x.includes(g) ? x.filter((y) => y !== g) : [...x, g])}>{g}<span aria-hidden>{closed ? "+" : "−"}</span></button>}
+                {!closed && items.map((s) => <Link key={s.href} href={s.href === "/admin/routes" ? routeHref : s.href} className="navb" aria-current={isCur(s.href) ? "page" : undefined}>{I[s.icon]}{s.t}{nb(s.href)}</Link>)}
+              </div>;
             })}
           </nav>
           <div className="side-foot"><div className="av">{me.name[0]}</div><div className="who"><b>{me.name}</b><br /><span>{me.role} · full access</span></div>

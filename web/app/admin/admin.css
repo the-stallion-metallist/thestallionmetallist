@@ -598,6 +598,12 @@ details.fold>summary{list-style:none;cursor:pointer;display:flex;align-items:bas
 /* browser surfaces in the panel's own colours */
 .adm{caret-color:var(--copper);accent-color:var(--copper);scrollbar-color:rgba(28,25,23,.22) transparent}
 .adm .side{scrollbar-color:rgba(243,237,228,.18) transparent}
+/* the menu scrolls inside the dark sidebar, so the dark never ends mid-screen; brand and account row stay put */
+.adm .side .nav{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
+.adm .side .brand,.adm .side .side-foot{flex:none}
+.adm .nav .ngrp{display:flex;flex-direction:column;gap:2px}
+.adm .nav .grpb{display:flex;justify-content:space-between;align-items:center;width:100%;background:none;border:0;cursor:pointer;text-align:left;font-family:inherit}
+.adm .nav .grpb:hover{color:#b9b0a2}
 .adm ::selection{background:var(--copper-tint);color:var(--ink)}
 /* "idle" chip text was just under readable contrast */
 .adm{--idle:#625b52}
