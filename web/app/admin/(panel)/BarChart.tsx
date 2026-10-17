@@ -7,7 +7,9 @@ export type Bar = { k: string; v: number; lab?: string };
 // Bars on one scale with a faint grid; tap or hover a bar to read its value.
 export default function BarChart({ data, h = 190, label, unit = "cans", hi }: { data: Bar[]; h?: number; label: (b: Bar) => string; unit?: string; hi?: (b: Bar) => boolean }) {
   const box = useRef<HTMLDivElement>(null); const [W, setW] = useState(600);
-  const start = data.findIndex((d) => hi?.(d)); const [sel, setSel] = useState(start);
+  const start = data.findIndex((d) => hi?.(d)); const [picked, setSel] = useState(start);
+  // the picked bar can be past the end when the period changes (All months → one month): ignore it until the reset below runs
+  const sel = picked >= 0 && picked < data.length ? picked : -1;
   useEffect(() => setSel(data.findIndex((d) => hi?.(d))), [data]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     const el = box.current; if (!el) return;
