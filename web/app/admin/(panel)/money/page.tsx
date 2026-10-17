@@ -4,14 +4,15 @@ import { usePanel } from "../Panel";
 import { Empty, I } from "../icons";
 import { PhFold, PhHead, PhRow } from "../bits";
 import { EditExpense, EditPayment, EditSale } from "../forms2";
-import { CATS, collectionDays, dieselOf, dnice, fmt, godownOn, inP, itemLabel, kg, lastUnitCost, monthOf, rs, rsu, staffDue, totals } from "@/lib/admin/logic";
+import { CATS, collectionDays, dieselOf, dnice, fmt, godownOn, inP, saleMoney, itemLabel, kg, lastUnitCost, monthOf, rs, rsu, staffDue, totals } from "@/lib/admin/logic";
 
 export default function Money() {
   const c = usePanel(); const p = c.per;
   const T = totals(p, c.pickups, c.vmap, c.set);
   const days = collectionDays(c.pickups, c.trips, c.set, p), tripCost = dieselOf(days);
   const exps = c.expenses.filter((e) => !e.deleted && inP(e.d, p)), byCat: Record<string, number> = {}; for (const e of exps) byCat[e.category] = (byCat[e.category] || 0) + Number(e.amount);
-  const salesIn = c.sales.filter((s) => !s.deleted && inP(s.d, p)).reduce((a, s) => a + Number(s.kg) * Number(s.rate), 0);
+  const salesRows = c.sales.filter((s) => !s.deleted && inP(s.d, p)).map((s) => saleMoney(s, c.set));
+  const salesIn = salesRows.reduce((a, m) => a + m.taxable, 0), gstIn = salesRows.reduce((a, m) => a + m.gst, 0); // GST is not income: it is set aside to pay the government
   const profit = T.canValue + T.plValue - T.paid - tripCost - exps.reduce((a, e) => a + Number(e.amount), 0);
   const sname = (id: number | null) => c.staff.find((s) => s.id === id)?.name ?? "";
   const margin = c.set.ubcRate / c.set.cansPerKg - c.set.canRate;
@@ -71,7 +72,7 @@ export default function Money() {
           <div className="srow tot"><span className="lbl">Profit</span><span className={"a " + (profit < 0 ? "neg" : "pos")}>{rs(profit)}</span></div>
         </div></div>
       <div style={{ display: "flex", flexDirection: "column", gap: 18, minWidth: 0 }}>
-        <div className="kpi hero"><div className="l">Cash received from buyers</div><div className="v">{rs(salesIn)}</div><div className="s">From sales recorded in {p.label}</div></div>
+        <div className="kpi hero"><div className="l">Sales before GST</div><div className="v">{rs(salesIn)}</div><div className="s">{gstIn ? `Plus ${rs(gstIn)} GST to set aside, not profit` : `From sales recorded in ${p.label}`}</div></div>
         <details className="card fold"><summary><h2>Unit economics</h2><span className="hint">Margin per can, diesel, bin payback</span></summary>
           <div className="fold-b"><div className="kv">
             <div><span>Sale value per can</span><b>₹{(c.set.ubcRate / c.set.cansPerKg).toFixed(2)}</b></div>

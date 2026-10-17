@@ -31,6 +31,7 @@ export type Settings = {
   vehCap: number | null; capSteel: number; capPl: number; routeHours: number; stopMin: number; traffic: number; depart: string;
   goLive: string | null;
   fixedOther?: number | null; // rent and other fixed costs per month (salaries come from Staff)
+  gstUBC?: number | null; gstPlastic?: number | null; // GST % added on top of the sale rate; blank = no GST (rates to be confirmed by the CA)
   kmCost?: number | null; hourCost?: number | null; // what a km of driving and an hour of the route team cost (Venue profit)
   routeDays?: number | null; longDays?: number | null; longHours?: number | null; // route days a week, how many may run long, and how long
   otwCans?: number | null; // pick up a venue the route passes when its bins should hold at least this many cans (0 = off)
@@ -164,6 +165,15 @@ export function totals(p: Period, pickups: Pickup[], venues: Map<number, Venue>,
   return { ps, cans, pl, paidV, paidPl, paid: paidV + paidPl, canValue, plValue, n };
 }
 
+// A sale's money: the price before GST, the GST on top, and the invoice total. A sale keeps the GST rate it was recorded with;
+// an old sale with no rate uses the current Settings rate, so setting the rate applies it to those sales too.
+export function saleMoney(s: Sale, set: Settings) {
+  const taxable = Number(s.kg) * Number(s.rate);
+  const pct = s.gst_rate != null ? Number(s.gst_rate) : Number((s.material === "UBC" ? set.gstUBC : set.gstPlastic) ?? 0);
+  const gst = taxable * pct / 100;
+  return { taxable, pct, gst, total: taxable + gst };
+}
+
 // The godown: cans and plastic collected minus what was sold, between two dates (inclusive; null = no limit).
 // Used by Stock, Home and Money so they always agree. A sale removes its kg × cans per kg from the count.
 export function godownOn(pickups: Pickup[], sales: Sale[], set: Settings, from: string | null, to: string | null) {
@@ -201,7 +211,7 @@ export function parsePin(raw: string): { p?: [number, number]; err?: string } {
 
 // ---------- trips, sales, expenses, staff ----------
 export type Trip = { id: number; code: string; d: string; vehicle: string; driver: string; km_start: number; km_end: number; stops: number; fuel_l: number; fuel_cost: number; other_cost: number; cans: number; route: string | null; plan_min: number | null; act_min: number | null; deleted: boolean; created_by: string; updated_by: string | null; created_at: string };
-export type Sale = { id: number; code: string; d: string; buyer: string; material: "UBC" | "Plastic"; kg: number; rate: number; transport: number; paid_on: string | null; deleted: boolean; created_by: string; updated_by: string | null; created_at: string };
+export type Sale = { id: number; code: string; d: string; buyer: string; material: "UBC" | "Plastic"; kg: number; rate: number; transport: number; gst_rate: number | null; paid_on: string | null; deleted: boolean; created_by: string; updated_by: string | null; created_at: string };
 export type Expense = { id: number; d: string; category: "Salaries" | "Rent" | "Bins & bags" | "Vehicle" | "Phone & misc"; staff_id: number | null; amount: number; note: string; mode: string; item: string; other: string; qty: number; deleted: boolean; created_by: string; updated_by: string | null; created_at: string };
 export type StaffRow = { id: number; name: string; salary: number | null; active: boolean };
 export type Advance = { id: number; d: string; staff_id: number; amount: number; note: string; deleted: boolean; created_by: string; updated_by: string | null; created_at: string };

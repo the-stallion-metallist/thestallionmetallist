@@ -2,7 +2,7 @@
 import { usePanel } from "../Panel";
 import { Empty } from "../icons";
 import { EditSale } from "../forms2";
-import { DATA_START, addDays, dnice, fmt, godownOn, inP, kg, monthOf, monthsSince, period, rs } from "@/lib/admin/logic";
+import { DATA_START, addDays, dnice, fmt, godownOn, inP, kg, monthOf, monthsSince, period, rs, saleMoney } from "@/lib/admin/logic";
 
 // The godown = everything collected minus everything sold, the same count Home and Money show.
 // The cards are always "today". The month table shows each month's start, in, out and end; the month switch picks the sales listed below.
@@ -36,9 +36,9 @@ export default function Stock() {
       </tbody></table></div>
     </div>
     <div className="card"><div className="card-h"><h2>Sales to buyers</h2><span className="hint">{c.per.label} · tap a sale to edit it or mark the payment received</span><span className="sp" /><button className="btn btn-p btn-sm" onClick={() => c.openModal(<EditSale />)}>+ Record sale</button></div>
-      {sales.length ? <div className="tbl-wrap"><table><thead><tr><th>Sale</th><th>Date</th><th>Buyer</th><th>Material</th><th className="n">Kg</th><th className="n">Rate</th><th className="n">Invoice</th><th className="n">Transport</th><th>Paid on</th></tr></thead><tbody>
+      {sales.length ? <div className="tbl-wrap"><table><thead><tr><th>Sale</th><th>Date</th><th>Buyer</th><th>Material</th><th className="n">Kg</th><th className="n">Rate</th><th className="n">Before GST</th><th className="n">GST</th><th className="n">Invoice total</th><th className="n">Transport</th><th>Paid on</th></tr></thead><tbody>
         {sales.map((s) => <tr key={s.id} className="click" onClick={() => c.openModal(<EditSale rec={s} />)}><td>{s.code}</td><td>{dnice(s.d)}</td><td>{s.buyer}</td><td>{s.material}</td><td className="n">{kg(Number(s.kg))}</td><td className="n">₹{Number(s.rate)}</td>
-          <td className="n">{rs(Number(s.kg) * Number(s.rate))}</td><td className="n">{rs(Number(s.transport))}</td><td>{s.paid_on ? dnice(s.paid_on) : <span className="missing">Waiting</span>}</td></tr>)}</tbody></table></div>
+          <td className="n">{rs(saleMoney(s, c.set).taxable)}</td><td className="n">{saleMoney(s, c.set).pct ? `${rs(saleMoney(s, c.set).gst)} (${saleMoney(s, c.set).pct}%)` : <span className="muted">none</span>}</td><td className="n"><b>{rs(saleMoney(s, c.set).total)}</b></td><td className="n">{rs(Number(s.transport))}</td><td>{s.paid_on ? dnice(s.paid_on) : <span className="missing">Waiting</span>}</td></tr>)}</tbody></table></div>
         : <Empty title="No sales in this period" text="Record a sale when cans or plastic go to a buyer. Stock updates by itself."><button className="btn btn-p btn-sm" onClick={() => c.openModal(<EditSale />)}>+ Record sale</button></Empty>}
     </div>
   </>);

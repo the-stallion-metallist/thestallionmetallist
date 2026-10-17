@@ -143,7 +143,8 @@ export function EditSale({ rec }: { rec?: Sale }) {
       onSave={async (fd) => {
         const e: Errs = {}; if (!String(fd.get("buyer")).trim()) e.buyer = "Enter the buyer."; if (!(Number(fd.get("kg")) > 0)) e.kg = "Enter the weight sold."; if (Object.keys(e).length) return e;
         const next = Math.max(0, ...c.sales.map((s) => +s.code.slice(2) || 0)) + 1;
-        const vals = { d: String(fd.get("d")), buyer: String(fd.get("buyer")).trim(), material: String(fd.get("mat") || "UBC") as Sale["material"], kg: Number(fd.get("kg")), rate: Number(fd.get("rate")), transport: Number(fd.get("tr")) || 0, paid_on: String(fd.get("paid")) || null,
+        const gstNow = String(fd.get("mat") || "UBC") === "Plastic" ? c.set.gstPlastic : c.set.gstUBC;
+        const vals = { gst_rate: rec ? (rec.gst_rate ?? gstNow ?? null) : (gstNow ?? null), d: String(fd.get("d")), buyer: String(fd.get("buyer")).trim(), material: String(fd.get("mat") || "UBC") as Sale["material"], kg: Number(fd.get("kg")), rate: Number(fd.get("rate")), transport: Number(fd.get("tr")) || 0, paid_on: String(fd.get("paid")) || null,
           ...(rec ? {} : { code: "S-" + String(next).padStart(3, "0") }) };
         const row = await saveRow<Sale>(c, "sales", vals, saleLabel, rec, [["d", "Date", dnice as never], ["buyer", "Buyer"], ["material", "Material"], ["kg", "Kg"], ["rate", "Rate"], ["transport", "Transport", rs as never], ["paid_on", "Received on", dnice as never]]);
         if (!row) return false; if (!rec) c.toast("Sale recorded. Stock updated.");
@@ -156,7 +157,7 @@ export function EditSale({ rec }: { rec?: Sale }) {
         <Field label="Material"><Opts name="mat" values={["UBC", "Plastic"]} initial={rec?.material ?? "UBC"} /></Field>
         <div className="two">
           <Field id="sKg" label="Weight (kg)" err={errs.kg}><input id="sKg" name="kg" type="number" step="any" inputMode="decimal" min={0} defaultValue={rec?.kg ?? ""} /></Field>
-          <Field id="sRate" label="Rate (₹/kg)"><input id="sRate" name="rate" type="number" step="any" inputMode="decimal" defaultValue={rec?.rate ?? c.set.ubcRate} /></Field>
+          <Field id="sRate" label="Rate (₹/kg, before GST)" help={`GST is added on top: cans ${c.set.gstUBC != null ? c.set.gstUBC + "%" : "not set"}, plastic ${c.set.gstPlastic != null ? c.set.gstPlastic + "%" : "not set"} (Settings).`}><input id="sRate" name="rate" type="number" step="any" inputMode="decimal" defaultValue={rec?.rate ?? c.set.ubcRate} /></Field>
         </div>
         <div className="two">
           <Field id="sTr" label="Transport cost (₹)"><input id="sTr" name="tr" type="number" inputMode="numeric" min={0} defaultValue={rec?.transport ?? 0} /></Field>

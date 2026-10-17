@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { usePanel } from "../Panel";
 import { removeTeamMember, setTeamPassword, syncAppPickups, teamLink } from "../../actions";
-import { type Settings, areaName, parsePin, vstatus } from "@/lib/admin/logic";
+import { type Settings, areaName, parsePin, saleMoney, vstatus } from "@/lib/admin/logic";
 import { downloadWorkbook } from "@/lib/admin/excel";
 import { vname } from "../forms";
 
@@ -34,6 +34,8 @@ export default function SettingsPage() {
         {inp("plasticSale", "Plastic sale rate", "Needed to value plastic in profit.", "₹ per kg")}
         {inp("canRate", "Default payout per can", "Used for new venues. Each venue can have its own rate.", "₹ per can")}
         {inp("plasticBuy", "Default plastic payout", "Used when a venue has no plastic rate.", "₹ per kg")}
+        {inp("gstUBC", "GST on cans", "Added on top of the sale rate. Blank = no GST. Your CA confirms the rate.", "%")}
+        {inp("gstPlastic", "GST on plastic", "Added on top of the plastic sale rate. Blank = no GST.", "%")}
       </div>
       <div className="card"><div className="card-h"><h2>Costs</h2><span className="hint">Used by Break-even on Home and by Venue profit</span></div>
         {inp("fixedOther", "Rent and other fixed costs", "Everything paid every month apart from salaries. Salaries come from the Staff page.", "₹ per month")}
@@ -85,7 +87,7 @@ function ExcelCard() {
       rows: live(c.pickups).sort((a, b) => (a.d < b.d ? -1 : 1)).map((p) => [p.d, vname(c, p.venue_id), p.cans, Number(p.plastic_kg), p.src, p.staff, p.fill, p.trip, p.created_by]) },
     { name: "Payments", head: ["Date", "Venue", "Amount", "Paid by", "Note", "Added by"], rows: live(c.payments).map((p) => [p.d, vname(c, p.venue_id), Number(p.amount), p.mode, p.note, p.created_by]) },
     { name: "Expenses", head: ["Date", "Category", "Paid to", "Item", "How many", "Amount", "Paid by", "Note"], rows: live(c.expenses).map((e) => [e.d, e.category, sname(e.staff_id), e.item === "Other" ? e.other : e.item, e.qty || "", Number(e.amount), e.mode, e.note]) },
-    { name: "Sales", head: ["Sale", "Date", "Buyer", "Material", "Kg", "Rate", "Invoice", "Transport", "Paid on"], rows: live(c.sales).map((s) => [s.code, s.d, s.buyer, s.material, Number(s.kg), Number(s.rate), Number(s.kg) * Number(s.rate), Number(s.transport), s.paid_on]) },
+    { name: "Sales", head: ["Sale", "Date", "Buyer", "Material", "Kg", "Rate before GST", "Before GST", "GST %", "GST", "Invoice total", "Transport", "Paid on"], rows: live(c.sales).map((s) => { const m = saleMoney(s, c.set); return [s.code, s.d, s.buyer, s.material, Number(s.kg), Number(s.rate), m.taxable, m.pct, m.gst, m.total, Number(s.transport), s.paid_on]; }) },
     { name: "Trips", head: ["Trip", "Date", "Vehicle", "Driver", "Start km", "End km", "Stops", "Fuel L", "Cost", "Cans", "Route"], rows: live(c.trips).map((t) => [t.code, t.d, t.vehicle, t.driver, t.km_start, t.km_end, t.stops, Number(t.fuel_l), Number(t.fuel_cost) + Number(t.other_cost), t.cans, t.route]) },
     { name: "Attendance", head: ["Date", "Staff", "Mark"], rows: c.marks.slice().sort((a, b) => (a.d < b.d ? -1 : 1)).map((m) => [m.d, sname(m.staff_id), { P: "Present", H: "Half day", A: "Absent" }[m.mark]]) },
     { name: "Advances", head: ["Date", "Staff", "Amount"], rows: live(c.advances).map((a) => [a.d, sname(a.staff_id), Number(a.amount)]) },
@@ -107,7 +109,7 @@ function AppSyncCard() {
     {msg && <p className="muted" style={{ fontSize: 12.5, marginTop: 8 }}>{msg}</p>}</div>;
 }
 
-const LABEL: Partial<Record<K, string>> = { ubcRate: "Can sale rate", cansPerKg: "Cans per kg", plasticSale: "Plastic sale rate", canRate: "Default payout per can", plasticBuy: "Default plastic payout", add: "Add a bin at", pull: "Take a bin back under", grace: "New venue grace days", vehCap: "Vehicle capacity", capSteel: "Full steel bin holds", capPl: "Full plastic bin holds", routeHours: "Route length", stopMin: "Time per stop", traffic: "Traffic buffer", fixedOther: "Rent and other fixed costs", kmCost: "Vehicle cost per km", hourCost: "Route team cost per hour", dieselDay: "Diesel per collection day" };
+const LABEL: Partial<Record<K, string>> = { gstUBC: "GST on cans", gstPlastic: "GST on plastic", ubcRate: "Can sale rate", cansPerKg: "Cans per kg", plasticSale: "Plastic sale rate", canRate: "Default payout per can", plasticBuy: "Default plastic payout", add: "Add a bin at", pull: "Take a bin back under", grace: "New venue grace days", vehCap: "Vehicle capacity", capSteel: "Full steel bin holds", capPl: "Full plastic bin holds", routeHours: "Route length", stopMin: "Time per stop", traffic: "Traffic buffer", fixedOther: "Rent and other fixed costs", kmCost: "Vehicle cost per km", hourCost: "Route team cost per hour", dieselDay: "Diesel per collection day" };
 
 function TeamCard({ team, onAdded, onRemoved }: { team: { name: string; role: string; email: string }[]; onAdded: (t: { name: string; role: string; email: string }) => void; onRemoved: (email: string) => void }) {
   const c = usePanel(); const owner = c.me.role === "Owner";
