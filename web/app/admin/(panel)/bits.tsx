@@ -5,7 +5,7 @@ import { usePanel } from "./Panel";
 import { DAYS } from "@/lib/admin/routes";
 import { type Move, binsTxt } from "@/lib/admin/moves";
 import { I } from "./icons";
-import { DATA_START, MON, MONL, breakEven, collectionDays, dieselOf, dnice, fmt, inP, kg, monthOf, monthsSince, rs, totals, type State } from "@/lib/admin/logic";
+import { DATA_START, MON, MONL, breakEven, collectionDays, dieselOf, dnice, fmt, godownOn, inP, kg, monthOf, monthsSince, rs, totals, type State } from "@/lib/admin/logic";
 
 // "Route in progress" bar on Overview and the Route planner.
 export function RunBar() {
@@ -50,10 +50,8 @@ export function MonthSeg() {
 // Cash sitting in the godown: unsold cans and plastic, what they are worth at the Settings rates, and what was paid for them.
 function GodownLine() {
   const c = usePanel();
-  const ps = c.pickups.filter((p) => !p.deleted), sales = c.sales.filter((s) => !s.deleted);
-  const ubcSold = sales.filter((s) => s.material === "UBC"), plSold = sales.filter((s) => s.material === "Plastic");
-  const cans = ps.reduce((a, p) => a + p.cans, 0) - ubcSold.reduce((a, s) => a + Number(s.kg), 0) * c.set.cansPerKg;
-  const pl = ps.reduce((a, p) => a + Number(p.plastic_kg || 0), 0) - plSold.reduce((a, s) => a + Number(s.kg), 0);
+  const now = godownOn(c.pickups, c.sales, c.set, null, null), cans = now.cans, pl = now.pl;
+  const ubcSold = c.sales.filter((s) => !s.deleted && s.material === "UBC");
   if (cans <= 0 && pl <= 0) return null;
   const worth = (cans / c.set.cansPerKg) * c.set.ubcRate + (c.set.plasticSale ? pl * c.set.plasticSale : 0), paid = cans * c.set.canRate + pl * c.set.plasticBuy;
   return <p className="note-bar" style={{ marginTop: 12, fontSize: 13 }}>

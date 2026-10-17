@@ -4,7 +4,7 @@ import { usePanel } from "../Panel";
 import { Empty, I } from "../icons";
 import { PhFold, PhHead, PhRow } from "../bits";
 import { EditExpense, EditPayment, EditSale } from "../forms2";
-import { CATS, collectionDays, dieselOf, dnice, fmt, inP, itemLabel, kg, lastUnitCost, monthOf, rs, rsu, staffDue, totals } from "@/lib/admin/logic";
+import { CATS, collectionDays, dieselOf, dnice, fmt, godownOn, inP, itemLabel, kg, lastUnitCost, monthOf, rs, rsu, staffDue, totals } from "@/lib/admin/logic";
 
 export default function Money() {
   const c = usePanel(); const p = c.per;
@@ -21,8 +21,7 @@ export default function Money() {
 
   if (c.phone) { // phone: the three money jobs, a plain summary, and where to look next
     const expTot = exps.reduce((a, e) => a + Number(e.amount), 0), costs = tripCost + expTot, owedTot = owed.reduce((a, s) => a + s.owed, 0), owedN = owed.filter((s) => s.owed > 0).length;
-    const ps = c.pickups.filter((x) => !x.deleted), soldKg = c.sales.filter((s) => !s.deleted && s.material === "UBC").reduce((a, s) => a + Number(s.kg), 0);
-    const cansNow = ps.reduce((a, x) => a + x.cans, 0) - soldKg * c.set.cansPerKg;
+    const cansNow = godownOn(c.pickups, c.sales, c.set, null, null).cans;
     const mo = monthOf(c.today), active = c.staff.filter((s) => s.active), salSet = active.filter((s) => s.salary).length;
     const toPay = active.reduce((a, s) => a + Math.max(0, staffDue(s, mo, c.marks, c.advances, c.expenses).pay ?? 0), 0);
     return (<div className="ph">
