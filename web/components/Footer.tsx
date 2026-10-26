@@ -62,6 +62,10 @@ export default function Footer() {
           <span className="h">{footer.contactHeading}</span>
           <a href={`mailto:${site.email}`}>{site.email}</a>
           <a href={`tel:${site.phoneHref}`}>{site.phoneDisplay}</a>
+          {/* WhatsApp-only Canada (Calgary) number — messages, no calls. */}
+          <a href="https://wa.me/15878933420" target="_blank" rel="noopener noreferrer">
+            WhatsApp (Canada): +1 (587) 893-3420
+          </a>
           <a href="/contact">{site.location}</a>
         </div>
       </div>
