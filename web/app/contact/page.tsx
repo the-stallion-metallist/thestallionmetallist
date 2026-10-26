@@ -6,6 +6,9 @@ import { pageJsonLd } from "@/lib/jsonld";
 
 const GBP_URL = "https://share.google/O9ESXisAZPqJxZR8t";
 const WHATSAPP = "https://wa.me/919997348394";
+// WhatsApp-only Canada (Calgary) number. No calls — WhatsApp messages only.
+const WHATSAPP_CA = "https://wa.me/15878933420";
+const WHATSAPP_CA_DISPLAY = "+1 (587) 893-3420";
 
 const title = "Contact | Non-Ferrous Scrap Trading in Dehradun | The Stallion Metallist";
 const description =
@@ -40,8 +43,12 @@ export default function Page() {
         <div className="wrap ct-grid">
           <div className="ct-cards">
             <a className="ct-card" href={WHATSAPP} target="_blank" rel="noopener noreferrer">
-              <span className="ct-k">WhatsApp</span>
+              <span className="ct-k">WhatsApp · India</span>
               <span className="ct-v">{site.phoneDisplay}</span>
+            </a>
+            <a className="ct-card" href={WHATSAPP_CA} target="_blank" rel="noopener noreferrer">
+              <span className="ct-k">WhatsApp · Canada</span>
+              <span className="ct-v">{WHATSAPP_CA_DISPLAY}</span>
             </a>
             <a className="ct-card" href={`tel:${site.phoneHref}`}>
               <span className="ct-k">Call</span>
