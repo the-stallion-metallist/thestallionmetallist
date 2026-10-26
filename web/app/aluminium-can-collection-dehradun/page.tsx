@@ -95,6 +95,8 @@ const jsonLd = {
 };
 
 const WHATSAPP = "https://wa.me/919997348394";
+// WhatsApp-only Canada (Calgary) number. Messages only, no calls.
+const WHATSAPP_CA = "https://wa.me/15878933420";
 
 export default function Page() {
   return (
@@ -187,6 +189,11 @@ export default function Page() {
                 Message us on WhatsApp
               </a>
             </div>
+            <div className="uc-cta-note">
+              <span>WhatsApp only:</span>
+              <a href={WHATSAPP} target="_blank" rel="noopener noreferrer">India +91 99973 48394</a>
+              <a href={WHATSAPP_CA} target="_blank" rel="noopener noreferrer">Canada +1 (587) 893-3420</a>
+            </div>
           </div>
         </div>
       </section>
@@ -218,6 +225,12 @@ export default function Page() {
         .uc-cta-row { display: flex; flex-wrap: wrap; gap: 0.8rem; margin-top: 1.4rem; }
         .uc-cta-row .btn-ghost { color: var(--on-char); border-color: rgba(243,237,228,0.28); }
         .uc-cta-row .btn-ghost:hover { color: var(--copper-lit); border-color: var(--copper-lit); }
+        .uc-cta .uc-cta-note { margin-top: 1rem; font-size: 0.92rem; line-height: 1.4;
+          display: flex; flex-wrap: wrap; align-items: center; gap: 0 1.4rem; }
+        .uc-cta-note span { color: var(--on-char-mut); }
+        .uc-cta-note a { display: inline-block; color: var(--on-char); text-decoration: underline; text-decoration-color: rgba(243,237,228,0.35);
+          text-underline-offset: 3px; padding-block: 0.55rem; white-space: nowrap; transition: color .2s, text-decoration-color .2s; }
+        .uc-cta-note a:hover { color: var(--copper-lit); text-decoration-color: var(--copper-lit); }
       `}</style>
     </SiteFrame>
   );
