@@ -66,6 +66,18 @@ export function organizationJsonLd() {
           "Stainless steel scrap",
           "Metal recycling",
         ],
+        // WhatsApp-only Canada (Calgary) number. A contactPoint, not `telephone`, so
+        // it is not presented as a number to call.
+        contactPoint: [
+          {
+            "@type": "ContactPoint",
+            contactType: "customer service",
+            telephone: "+15878933420",
+            name: "WhatsApp (Canada)",
+            description: "WhatsApp messages only, no calls.",
+            url: "https://wa.me/15878933420",
+          },
+        ],
         sameAs: [GBP_URL, ...socials.map((s) => s.href), site.ubcAppUrl],
       },
       {
