@@ -48,7 +48,7 @@ export default function Hero() {
             <span className="ch-l2">Waste into worth.</span>
           </h1>
           <p className="ch-sub">
-            Get paid for your used aluminium cans. Book a doorstep pickup, we weigh them at your door and
+            Get paid for your used aluminium cans. Book a doorstep pickup, we count them at your door and
             pay you on the spot. No fees, and every can we collect gets recycled.
           </p>
           <div className="ch-cta">
@@ -61,7 +61,7 @@ export default function Hero() {
             <span className="ch-stars" aria-hidden="true">★★★★★</span>
             <span><b>5.0</b> on Google</span>
             <span className="ch-sep" aria-hidden="true">·</span>
-            <span>Doorstep pickup in Dehradun</span>
+            <span>Cans and PET bottles, Dehradun</span>
           </div>
         </div>
 

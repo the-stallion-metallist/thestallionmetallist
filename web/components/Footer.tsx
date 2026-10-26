@@ -46,6 +46,12 @@ export default function Footer() {
           </div>
         </div>
         <div className="col">
+          <span className="h">Collection</span>
+          <a href="/aluminium-can-collection-dehradun">Aluminium cans (UBC)</a>
+          <a href="/pet-bottle-collection-dehradun">PET bottles</a>
+          <a href="/bar-restaurant-can-bottle-collection-dehradun">Bars and restaurants</a>
+        </div>
+        <div className="col">
           <span className="h">Grades</span>
           {products.map((p) => (
             <a href={`/${p.slug}`} key={p.slug}>{p.metal}</a>

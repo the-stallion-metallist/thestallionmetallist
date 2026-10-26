@@ -105,9 +105,17 @@ export default function Impact() {
           </div>
         </div>
 
-        <a className="im-link" href="/aluminium-can-collection-dehradun">
-          How doorstep collection works in Dehradun <span aria-hidden="true">→</span>
-        </a>
+        <nav className="im-links" aria-label="Collection services in Dehradun">
+          <a className="im-link" href="/aluminium-can-collection-dehradun">
+            Sell aluminium cans (UBC) <span aria-hidden="true">→</span>
+          </a>
+          <a className="im-link" href="/pet-bottle-collection-dehradun">
+            Sell PET bottles <span aria-hidden="true">→</span>
+          </a>
+          <a className="im-link" href="/bar-restaurant-can-bottle-collection-dehradun">
+            For bars, restaurants and cafes <span aria-hidden="true">→</span>
+          </a>
+        </nav>
       </div>
 
       <style>{`
@@ -170,10 +178,12 @@ export default function Impact() {
           text-transform:uppercase;color:var(--copper-lit)}
         .im-foot{border-top:1px solid rgba(243,237,228,.08);padding-top:1rem;
           color:var(--on-char-mut);font-size:.78rem;line-height:1.6;max-width:70ch}
-        .im-link{display:inline-flex;align-items:center;gap:.4rem;margin-top:1.4rem;
+        .im-links{display:flex;flex-wrap:wrap;gap:0 1.8rem;margin-top:1.2rem}
+        .im-link{display:inline-flex;align-items:center;gap:.4rem;min-height:44px;
           font-family:var(--f-body);font-weight:600;font-size:1rem;color:var(--copper);text-decoration:none;
-          border-bottom:1px solid transparent;transition:border-color .2s,color .2s}
-        .im-link:hover{color:var(--copper-dk);border-color:var(--copper)}
+          transition:color .2s}
+        .im-link:hover{color:var(--copper-dk);text-decoration:underline;text-underline-offset:4px}
+        .im-link:focus-visible{outline:2px solid var(--copper);outline-offset:3px;border-radius:4px}
 
         /* staggered scroll-reveal (JS-gated via .im-anim so no-JS stays visible) */
         .im-panel.im-anim .im-stat{opacity:0;transform:translateY(18px)}

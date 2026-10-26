@@ -14,7 +14,7 @@ export default function PageHero({
   crumbs,
   children,
 }: {
-  eyebrow: string;
+  eyebrow?: string;
   h1: string;
   sub?: string;
   crumbs: Crumb[];
@@ -33,7 +33,7 @@ export default function PageHero({
             </span>
           ))}
         </nav>
-        <span className="ph-eyebrow">{eyebrow}</span>
+        {eyebrow && <span className="ph-eyebrow">{eyebrow}</span>}
         <h1 className="ph-h1">{h1}</h1>
         {sub && <p className="ph-sub">{sub}</p>}
         {children && <div className="ph-cta">{children}</div>}

@@ -59,6 +59,8 @@ export function organizationJsonLd() {
         },
         areaServed: ["IN", "AE", "CN", "EU", "US", "CA"],
         knowsAbout: [
+          "Aluminium can (UBC) collection",
+          "PET bottle collection",
           "Non-ferrous scrap trading",
           "Aluminium UBC",
           "Copper Millberry",

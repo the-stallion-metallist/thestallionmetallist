@@ -8,9 +8,9 @@ import "./globals.css";
 // service, so its metadata covers BOTH that and the trade, and matches the H1
 // ("Cans into cash"). Every other page sets its own title/description, so this
 // default only affects the homepage.
-const homeTitle = `${site.name} · Cans for Cash & Non-Ferrous Scrap`;
+const homeTitle = `${site.name} · Cash for Cans & PET Bottles in Dehradun`;
 const homeDescription =
-  "Get paid for used aluminium cans in Dehradun with doorstep pickup, paid on collection. The Stallion Metallist also trades non-ferrous scrap (aluminium, copper, brass, stainless) internationally.";
+  "Sell used aluminium cans (UBC) and PET bottles in Dehradun. Doorstep pickup for homes, bars, restaurants and cafes. The Stallion Metallist also trades non-ferrous scrap internationally.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(site.url),
@@ -22,7 +22,11 @@ export const metadata: Metadata = {
   applicationName: site.name,
   keywords: [
     "aluminium can collection Dehradun",
+    "UBC scrap Dehradun",
     "sell used cans Dehradun",
+    "PET bottle scrap Dehradun",
+    "sell plastic bottles Dehradun",
+    "can and bottle collection for bars Dehradun",
     "cash for cans",
     "non-ferrous scrap trading",
     "aluminium scrap",
