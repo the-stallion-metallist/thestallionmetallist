@@ -62,6 +62,16 @@ const REL = {
     href: "/bar-restaurant-can-bottle-collection-dehradun",
     blurb: "Free bins and scheduled pickups for venues.",
   },
+  ubcGuide: {
+    label: "What is UBC scrap?",
+    href: "/learn/what-is-ubc-scrap",
+    blurb: "Used beverage cans explained, and how they are recycled.",
+  },
+  petGuide: {
+    label: "How to recycle PET bottles",
+    href: "/learn/how-to-recycle-pet-bottles-dehradun",
+    blurb: "What counts as PET, how to prepare it, and where it goes.",
+  },
 };
 
 export const cansPage: ServiceData = {
@@ -163,7 +173,7 @@ export const cansPage: ServiceData = {
       a: "Open the app at app.thestallionmetallist.com, tell us roughly how many cans you have and pick a slot. You can also message us on WhatsApp at +91 99973 48394.",
     },
   ],
-  related: [REL.pet, REL.venues],
+  related: [REL.pet, REL.venues, REL.ubcGuide],
   cta: {
     heading: "Got cans? Get paid.",
     sub: "Free doorstep pickup across Dehradun. Paid on collection.",
@@ -259,7 +269,7 @@ export const petPage: ServiceData = {
       a: `We collect across Dehradun, including ${AREAS}. If your area is not listed, message us and we will tell you when we can reach it.`,
     },
   ],
-  related: [REL.cans, REL.venues],
+  related: [REL.cans, REL.venues, REL.petGuide],
   cta: {
     heading: "Got bottles? Get paid.",
     sub: "Doorstep PET bottle pickup across Dehradun. Paid by weight.",
@@ -349,7 +359,7 @@ export const venuesPage: ServiceData = {
       a: "Message us on WhatsApp with your venue name and area. We confirm your bin drop, as stock allows, and your collection day.",
     },
   ],
-  related: [REL.cans, REL.pet],
+  related: [REL.cans, REL.pet, REL.ubcGuide],
   cta: {
     heading: "Turn your empties into a regular payout.",
     sub: "Free bins. Scheduled pickups. Paid on the spot.",

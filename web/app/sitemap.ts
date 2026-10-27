@@ -9,6 +9,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/aluminium-can-collection-dehradun",
     "/pet-bottle-collection-dehradun",
     "/bar-restaurant-can-bottle-collection-dehradun",
+    "/learn/what-is-ubc-scrap",
+    "/learn/how-to-recycle-pet-bottles-dehradun",
     "/non-ferrous-scrap",
     "/services",
     "/about",
