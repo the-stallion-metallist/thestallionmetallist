@@ -129,14 +129,14 @@ const kilo: GuideData = {
       heading: "Why a bag of used cans weighs more",
       body: [
         "Those are weights for new, empty cans. A can that spent a weekend in a bar bin can hold leftover drink, ash and grit, and older can designs were heavier than today's.",
-        "Our working figure for cans we collect in Dehradun is about 65 to the kilo. That is the number we use for our own stock, not a rule. Your count will be higher if your cans are mostly small and clean, and lower if they are mostly 500 ml.",
+        "Our working figure for cans we collect in Dehradun is about 65 to the kilo. We use that number for our own stock. Your count will be higher if your cans are mostly small and clean, and lower if they are mostly 500 ml.",
       ],
     },
     {
       heading: "Per can or per kilo: same price, different money",
       body: [
         "Scrap dealers usually quote a price per kilo. We pay per can. The two are tied together by how many cans a kilo holds, so the same rate per kilo can mean very different money per can.",
-        `Here is what our ${RATE_CAN} per can works out to for a kilo of cans at different counts:`,
+        `At our ${RATE_CAN} per can, a kilo of cans pays:`,
       ],
       list: [
         `100 cans to the kilo: ${inr(100 * canRs)}`,
@@ -198,7 +198,7 @@ const crush: GuideData = {
   description:
     "Crush or not, rinse or not. Where the 'do not crush' advice comes from, why wet cans are the real problem, and what to do before a pickup.",
   h1: "Should you crush aluminium cans before recycling?",
-  sub: "The advice online contradicts itself. Here is where it comes from, and what applies when a person collects your cans.",
+  sub: "Online advice contradicts itself because plants sort cans in different ways. What applies to you depends on who handles yours.",
   crumb: "Should you crush cans",
   published: PUBLISHED,
   updatedLabel: UPDATED,
@@ -211,7 +211,7 @@ const crush: GuideData = {
       heading: "Where the 'do not crush' advice comes from",
       body: [
         "Many recycling plants use machines that \"see\" the shape of an item when deciding where to send paper, glass, metal and plastic. Writing in the Concord Monitor in 2024, David Brooks put the problem this way: a crushed can does not look like a can, so it can go to the wrong place and foul the system.",
-        "That is a real concern in single-stream kerbside systems, where cans, paper, plastic and glass travel mixed together. Most of the 'never crush your cans' headlines trace back to it.",
+        "Single-stream kerbside systems mix cans, paper, plastic and glass on the same belts, which is where the shape problem shows up. Most of the 'never crush your cans' headlines trace back to it.",
       ],
     },
     {
@@ -389,7 +389,7 @@ const cansIndia: GuideData = {
       heading: "What it means for the empties",
       body: [
         "Every can sold is a can that will be empty within hours. In a city like Dehradun the empties pile up in bars, restaurants, cafes and homes.",
-        `A bar that goes through 200 cans on a busy weekend is holding about ${inr(200 * canRs)} of cans at our ${RATE_CAN} per can. That is an example for scale, not a promise of volume. The point is that a can is worth something after the drink, and the habit of throwing it in the wet bin has a price.`,
+        `A bar that goes through 200 cans on a busy weekend is holding about ${inr(200 * canRs)} of cans at our ${RATE_CAN} per can. That is an example, not a promise of volume. In the wet bin, those cans earn nothing.`,
       ],
     },
     {
@@ -433,7 +433,7 @@ const petCaps: GuideData = {
   description:
     "Should the cap stay on? Do labels matter? Does colour change anything? What recyclers say about each, and how to prepare bottles before a pickup.",
   h1: "PET bottles: caps, labels and colours",
-  sub: "Three small choices change how well a bottle recycles. Here is what recyclers say about each one.",
+  sub: "Three small choices change how well a bottle recycles, and recyclers have a position on each.",
   crumb: "PET caps, labels and colours",
   published: PUBLISHED,
   updatedLabel: UPDATED,
@@ -552,7 +552,7 @@ const petWhere: GuideData = {
     {
       heading: "Why clean, sorted bottles matter",
       body: [
-        "Fibre makers can take a mixed stream. Food-grade recyclers cannot. It follows that bottles kept free of other plastics, dry and mostly clear are the ones most useful to the recyclers who pay the most for clean feed.",
+        "Fibre makers can take a mixed stream. Food-grade recyclers cannot. So the bottles most useful to a food-grade recycler are dry, mostly clear and free of other plastics.",
         "The new recycled-content targets for brands push the same way. We cover them in the guide to India's 2026 plastic rules.",
       ],
     },
@@ -593,7 +593,7 @@ const petRules: GuideData = {
   description:
     "Brands must now put recycled plastic into rigid packaging, 30% rising to 60%. What the March 2026 amendment says and why it matters for used PET bottles.",
   h1: "India's 2026 plastic rules and PET bottles",
-  sub: "A March 2026 amendment sets recycled-content targets for bottles and other rigid packaging. Here is the short version.",
+  sub: "A March 2026 amendment sets recycled-content targets for bottles and other rigid packaging.",
   crumb: "India's 2026 plastic rules",
   published: PUBLISHED,
   updatedLabel: UPDATED,
@@ -675,7 +675,7 @@ const venueRules: GuideData = {
   description:
     "The Solid Waste Management Rules 2026 took effect on 1 April 2026: four-stream segregation and extra duties for bulk generators. What it means for a venue.",
   h1: "Waste rules for bars, restaurants and cafes, 2026",
-  sub: "The 2026 solid waste rules apply from 1 April. This is what they say about segregation, bulk generators and dry waste like cans and bottles.",
+  sub: "The 2026 solid waste rules apply from 1 April. They cover segregation, bulk generators and dry waste like cans and bottles.",
   crumb: "Waste rules for venues, 2026",
   published: PUBLISHED,
   updatedLabel: UPDATED,
@@ -852,7 +852,7 @@ const compare: GuideData = {
   description:
     "Every industry has a study showing its own packaging wins. What the evidence says about cans, PET and glass, who paid for it, and what actually decides the answer.",
   h1: "Can, PET bottle or glass: which is better?",
-  sub: "Every industry has a study showing its own packaging wins. Here is what the numbers say, who paid for them, and what decides it.",
+  sub: "Every industry has a study showing its own packaging wins. The numbers differ by who paid for them and what they count.",
   crumb: "Can vs PET vs glass",
   published: PUBLISHED,
   updatedLabel: UPDATED,
@@ -894,7 +894,7 @@ const compare: GuideData = {
     {
       heading: "What to do with that",
       body: [
-        "The best container is the one that gets returned. A can in the can bag beats a can in the wet bin, and a PET bottle weighed and sold beats one in a drain.",
+        "A can in the can bag beats a can in the wet bin, and a PET bottle weighed and sold beats one in a drain.",
         `In Dehradun we collect cans at ${RATE_CAN} each and PET at ${RATE_PET} per kg. We currently collect cans and PET. For glass, message us.`,
       ],
     },
