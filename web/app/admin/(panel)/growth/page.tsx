@@ -5,7 +5,7 @@ import BarChart from "../BarChart";
 import { MonthSeg, PhFold, PhHead, PhRow } from "../bits";
 import { Empty } from "../icons";
 import { canMargin, lostCans, waiting, weeks, FULL_AT, type Week } from "@/lib/admin/growth";
-import { DATA_START, dnice, fmt, rs } from "@/lib/admin/logic";
+import { DATA_START, dnice, fmt, kg, rs } from "@/lib/admin/logic";
 
 const wkName = (w: Week) => (w.start.slice(5, 7) === w.end.slice(5, 7) ? `${+w.start.slice(8)}–${dnice(w.end)}` : `${dnice(w.start)} – ${dnice(w.end)}`);
 const ago = (n: number) => (n === 0 ? "today" : n === 1 ? "yesterday" : `${n} days ago`);
@@ -16,7 +16,7 @@ export default function Growth() {
   const c = usePanel(); const p = c.per;
   // cans lost this period (follows the month switch)
   let lost = 0, lostRs = 0, fullPicks = 0;
-  for (const v of c.vmap.values()) for (const l of lostCans(v, c.byV.get(v.id) ?? [], c.set, p)) { fullPicks++; lost += l.lost; lostRs += l.lost * canMargin(v, c.set); }
+  for (const v of c.vmap.values()) for (const l of lostCans(v, c.byV.get(v.id) ?? [], c.set, p)) { fullPicks++; lost += l.lost; lostRs += l.lost * canMargin(v, c.vset); }
   // bins likely full today (on-request venues left out)
   const full = c.venues.filter((v) => v.status === "Active" && v.visit !== "call").map((v) => ({ v, w: waiting(v, c.byV.get(v.id) ?? [], c.set, c.today) }))
     .filter((r) => r.w.full).sort((a, b) => b.w.est! - a.w.est!);
@@ -52,7 +52,7 @@ export default function Growth() {
     <h2 className="ph-sec">Week by week</h2>
     <PhFold title="Cans per week" sub={lw ? `Last week ${fmt(lw.cans)} cans` : "No full week yet"}><BarChart data={bars} label={(b) => wkName(ws.find((w) => w.start === b.k)!)} hi={(b) => b.k === lw?.start} /></PhFold>
     <div className="ph-list">{rev.map((w) => <PhRow key={w.start} title={wkName(w) + (w.end >= c.today ? " · so far" : "")}
-      sub={w.cans ? `${w.venues} venue${w.venues === 1 ? "" : "s"} · ${fmt(w.cans / w.visits)} cans a visit · ₹${dpc(w)!.toFixed(2)} diesel a can` : "No pickups"}
+      sub={w.cans ? `${w.venues} venue${w.venues === 1 ? "" : "s"}${w.kg ? ` · ${kg(w.kg)} kg plastic` : ""} · ${fmt(w.cans / w.visits)} cans a visit · ₹${dpc(w)!.toFixed(2)} diesel a can` : "No pickups"}
       right={<span className="ph-cans"><b>{fmt(w.cans)}</b><span>cans</span></span>} />)}</div>
     <div className="ph-card"><p className="muted" style={{ fontSize: 13 }}>{note}</p></div>
   </div>);
@@ -72,11 +72,11 @@ export default function Growth() {
       </tbody></table></div> : emptyFull}
     </div>
     <div className="card">
-      <div className="card-h"><h2>Week by week</h2><span className="hint">Monday to Sunday. Venue pickups only; diesel from Collection days.</span></div>
+      <div className="card-h"><h2>Week by week</h2><span className="hint">Monday to Sunday. Venue pickups only (cans and plastic); diesel from Collection days.</span></div>
       <BarChart data={bars} label={(b) => wkName(ws.find((w) => w.start === b.k)!)} hi={(b) => b.k === lw?.start} />
-      <div className="tbl-wrap"><table><thead><tr><th>Week</th><th className="n">Cans</th><th className="n">Venues giving cans</th><th className="n">Cans a visit</th><th className="n">Diesel per can</th></tr></thead><tbody>
+      <div className="tbl-wrap"><table><thead><tr><th>Week</th><th className="n">Cans</th><th className="n">Plastic</th><th className="n">Venues giving cans</th><th className="n">Cans a visit</th><th className="n">Diesel per can</th></tr></thead><tbody>
         {rev.map((w) => <tr key={w.start}><td><b>{wkName(w)}</b>{w.end >= c.today && <span className="muted"> · so far</span>}{w.start < DATA_START + "-01" && <span className="muted"> · from 1 Aug</span>}</td>
-          <td className="n"><b>{fmt(w.cans)}</b></td><td className="n">{w.venues || "–"}</td><td className="n">{w.visits ? fmt(w.cans / w.visits) : "–"}</td><td className="n">{dpc(w) != null ? `₹${dpc(w)!.toFixed(2)}` : "–"}</td></tr>)}
+          <td className="n"><b>{fmt(w.cans)}</b></td><td className="n">{w.kg ? kg(w.kg) + " kg" : "–"}</td><td className="n">{w.venues || "–"}</td><td className="n">{w.visits ? fmt(w.cans / w.visits) : "–"}</td><td className="n">{dpc(w) != null ? `₹${dpc(w)!.toFixed(2)}` : "–"}</td></tr>)}
       </tbody></table></div>
       <p className="muted" style={{ fontSize: 12.5, marginTop: 10 }}>{note}</p>
     </div>

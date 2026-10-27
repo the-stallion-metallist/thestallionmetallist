@@ -6,11 +6,11 @@ import VenueDrawer from "../VenueDrawer";
 import { setVisit } from "../forms";
 import { MonthSeg, PhHead, PhRow } from "../bits";
 import { Empty } from "../icons";
-import { collectionDays, dieselDay, fmt, inP, rs, venueEarn, visitCost, type Period, type Venue } from "@/lib/admin/logic";
+import { collectionDays, dieselDay, fmt, inP, kg, rs, venueEarn, visitCost, type Period, type Venue } from "@/lib/admin/logic";
 
 type Ctx = ReturnType<typeof usePanel>;
 type Verdict = "ok" | "fortnight" | "moved" | "loss" | "none";
-type Row = { v: Venue; visits: number; cans: number; earn: number; per: number; est: boolean; cost: number; profit: number; perVisit: number | null; verdict: Verdict };
+type Row = { v: Venue; visits: number; cans: number; kgs: number; earn: number; per: number; est: boolean; cost: number; profit: number; perVisit: number | null; verdict: Verdict };
 
 // What each venue earned after its payout, minus what its visits cost (extra km and minutes on its route day, plus the stop).
 function venueRows(c: Ctx, p: Period) {
@@ -19,13 +19,13 @@ function venueRows(c: Ctx, p: Period) {
   const all = [...cost.values()].sort((a, b) => a - b), typical = all.length ? all[Math.floor(all.length / 2)] : visitCost(c.set, 0, 0);
   const share = new Map(collectionDays(c.pickups, c.trips, c.set, p).map((g) => [g.d, g.venues ? g.diesel / g.venues : 0])); // diesel ÷ venues that day
   const rows: Row[] = c.venues.map((v) => {
-    const ps = (c.byV.get(v.id) ?? []).filter((x) => inP(x.d, p)), e = venueEarn(v, ps, c.set);
+    const ps = (c.byV.get(v.id) ?? []).filter((x) => inP(x.d, p)), e = venueEarn(v, ps, c.vset);
     const diesel = [...new Set(ps.filter((x) => x.src !== "App").map((x) => x.d))].reduce((a, d) => a + (share.get(d) ?? 0), 0);
     const per = cost.get(v.id) ?? typical, visits = ps.length, total = visits * per + diesel, profit = e.earn - total, perVisit = visits ? profit / visits : null;
     // losing money each visit: would every 2 weeks (twice the cans a visit) fix it?
     const fixable = (2 * e.earn) / visits - total / visits >= 0; // twice the cans a visit covers the cost
     const verdict: Verdict = !visits ? "none" : perVisit! >= 0 ? "ok" : fixable ? (v.visit === "fortnight" ? "moved" : "fortnight") : "loss";
-    return { v, visits, cans: e.cans, earn: e.earn, per, est: !cost.has(v.id), cost: total, profit, perVisit, verdict };
+    return { v, visits, cans: e.cans, kgs: e.kgs, earn: e.earn, per, est: !cost.has(v.id), cost: total, profit, perVisit, verdict };
   });
   const vis = rows.filter((r) => r.visits), avg = vis.length ? vis.reduce((a, r) => a + r.cost, 0) / vis.reduce((a, r) => a + r.visits, 0) : typical;
   return { rows, typical: avg };
@@ -55,7 +55,7 @@ export default function Profit() {
     </div>
     <div className="ph-chips" role="group" aria-label="Show">{chips.map(([k, l, n]) => <button key={k} className="ph-chip" aria-pressed={f === k} onClick={() => setF(k)}>{l} <span>{n}</span></button>)}</div>
     {shown.length ? <div className="ph-list">{shown.map((r) => <PhRow key={r.v.id} title={r.v.name}
-      sub={r.visits ? `${VERDICT[r.verdict][0]} · ${r.visits} visit${r.visits === 1 ? "" : "s"} · ${rs(r.perVisit!)} a visit` : "No pickups this period"}
+      sub={r.visits ? `${VERDICT[r.verdict][0]} · ${r.visits} visit${r.visits === 1 ? "" : "s"}${r.kgs ? ` · ${kg(r.kgs)} kg plastic` : ""} · ${rs(r.perVisit!)} a visit` : "No pickups this period"}
       tone={r.verdict === "ok" || r.verdict === "moved" ? "good" : r.verdict === "none" ? "idle" : "bad"}
       right={<span className="ph-cans"><b className={r.profit < 0 ? "neg" : ""}>{rs(r.profit)}</b><span>profit</span></span>} onClick={() => c.openDrawer(<VenueDrawer id={r.v.id} />)} />)}</div>
       : <div className="ph-card"><p className="muted">{f === "lose" ? "No venue loses money on its visits." : "Nothing here."}</p></div>}
@@ -70,11 +70,11 @@ export default function Profit() {
       <div className="kpi"><div className="l">No pickups</div><div className="v">{rows.length - visited.length}</div><div className="s">Nothing to judge yet</div></div>
     </section>
     <div className="card">
-      <div className="card-h"><h2>Profit by venue</h2><span className="hint">What each venue&apos;s cans and plastic earned after its payout, minus what its visits cost</span><span className="sp" />{seg}</div>
+      <div className="card-h"><h2>Profit by venue</h2><span className="hint">What each venue&apos;s cans and plastic earned after its payouts (cans ₹{c.vset.ubcRate}/kg, plastic ₹{c.vset.plasticSale ?? 0}/kg, the last sales), minus what its visits cost</span><span className="sp" />{seg}</div>
       {kmNote}
-      {shown.length ? <div className="tbl-wrap"><table><thead><tr><th>Venue</th><th className="n">Visits</th><th className="n">Cans</th><th className="n">Earned</th><th className="n">Visit cost</th><th className="n">Profit</th><th className="n">Per visit</th><th>Verdict</th><th /></tr></thead><tbody>
+      {shown.length ? <div className="tbl-wrap"><table><thead><tr><th>Venue</th><th className="n">Visits</th><th className="n">Cans</th><th className="n">Plastic</th><th className="n">Earned</th><th className="n">Visit cost</th><th className="n">Profit</th><th className="n">Per visit</th><th>Verdict</th><th /></tr></thead><tbody>
         {shown.map((r) => <tr key={r.v.id}><td><button className="linkb" onClick={() => c.openDrawer(<VenueDrawer id={r.v.id} />)}>{r.v.name}</button>{r.v.visit === "fortnight" && <span className="muted"> · every 2 weeks</span>}</td>
-          <td className="n">{r.visits}</td><td className="n">{fmt(r.cans)}</td><td className="n">{rs(r.earn)}</td><td className="n" title={r.est ? "Not on the route yet: typical visit cost" : undefined}>{rs(r.cost)}{r.est && r.visits ? "*" : ""}</td>
+          <td className="n">{r.visits}</td><td className="n">{fmt(r.cans)}</td><td className="n">{r.kgs ? kg(r.kgs) + " kg" : "–"}</td><td className="n">{rs(r.earn)}</td><td className="n" title={r.est ? "Not on the route yet: typical visit cost" : undefined}>{rs(r.cost)}{r.est && r.visits ? "*" : ""}</td>
           <td className={"n " + (r.profit < 0 ? "neg" : "")}><b>{rs(r.profit)}</b></td><td className="n">{r.perVisit != null ? rs(r.perVisit) : "–"}</td>
           <td><span className={"chip " + VERDICT[r.verdict][1]}>{VERDICT[r.verdict][0]}</span></td><td className="n">{action(r)}</td></tr>)}
       </tbody></table></div>

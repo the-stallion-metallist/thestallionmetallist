@@ -31,16 +31,16 @@ export function lostCans(v: Venue, mine: Pickup[], set: Settings, p?: Period) {
 // profit missed on a lost can: what it sells for minus what the venue would have been paid
 export const canMargin = (v: Venue, set: Settings) => set.ubcRate / set.cansPerKg - Number(v.can_rate);
 
-// Mon–Sun weeks since the data starts: venue cans, venues giving cans, venue visits and diesel (from collection days).
-export type Week = { start: string; end: string; cans: number; venues: number; visits: number; diesel: number; days: number; partial: boolean };
+// Mon–Sun weeks since the data starts: venue cans and plastic kg, venues giving cans, venue visits and diesel (from collection days).
+export type Week = { start: string; end: string; cans: number; kg: number; venues: number; visits: number; diesel: number; days: number; partial: boolean };
 const monday = (d: string) => addDays(d, -((new Date(d + "T00:00:00Z").getUTCDay() + 6) % 7));
 export function weeks(pickups: Pickup[], trips: Trip[], set: Settings, today: string) {
   const from = DATA_START + "-01", out: Week[] = [], seen = new Map<string, Set<number>>();
-  for (let s = monday(from); s <= today; s = addDays(s, 7)) { const e = addDays(s, 6); out.push({ start: s, end: e, cans: 0, venues: 0, visits: 0, diesel: 0, days: 0, partial: s < from || e > today }); seen.set(s, new Set()); }
+  for (let s = monday(from); s <= today; s = addDays(s, 7)) { const e = addDays(s, 6); out.push({ start: s, end: e, cans: 0, kg: 0, venues: 0, visits: 0, diesel: 0, days: 0, partial: s < from || e > today }); seen.set(s, new Set()); }
   const at = new Map(out.map((w) => [w.start, w]));
   for (const g of collectionDays(pickups, trips, set)) {
     const w = at.get(monday(g.d)); if (!w || !g.picks.length) continue;
-    w.cans += g.cans; w.visits += g.venues; w.diesel += g.diesel; w.days++;
+    w.cans += g.cans; w.kg += g.kg; w.visits += g.venues; w.diesel += g.diesel; w.days++;
     for (const x of g.picks) seen.get(w.start)!.add(x.venue_id!);
   }
   for (const w of out) w.venues = seen.get(w.start)!.size;

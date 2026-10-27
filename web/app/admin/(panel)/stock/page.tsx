@@ -2,6 +2,7 @@
 import { usePanel } from "../Panel";
 import { Empty } from "../icons";
 import { EditSale } from "../forms2";
+import { priceNote } from "../bits";
 import { DATA_START, addDays, dnice, fmt, godownOn, inP, kg, monthOf, monthsSince, period, rs, saleMoney } from "@/lib/admin/logic";
 
 // The godown = everything collected minus everything sold, the same count Home and Money show.
@@ -9,7 +10,7 @@ import { DATA_START, addDays, dnice, fmt, godownOn, inP, kg, monthOf, monthsSinc
 export default function Stock() {
   const c = usePanel();
   const now = godownOn(c.pickups, c.sales, c.set, null, null);
-  const val = (now.cans / c.set.cansPerKg) * c.set.ubcRate;
+  const val = (now.cans / c.set.cansPerKg) * c.vset.ubcRate;
   const months = monthsSince(DATA_START, monthOf(c.today));
   const rows = months.map((m) => {
     const p = period(m, c.today);
@@ -17,6 +18,10 @@ export default function Stock() {
   });
   const sales = c.sales.filter((s) => !s.deleted && inP(s.d, c.per)).sort((a, b) => (a.d < b.d ? 1 : -1));
   const total = godownOn(c.pickups, c.sales, c.set, DATA_START + "-01", c.today);
+  const plVal = now.pl * (c.vset.plasticSale ?? 0);
+  // every sale so far, per material: kg, money before GST, average and latest price per kg
+  const sold = (["UBC", "Plastic"] as const).map((m) => { const ss = c.sales.filter((s) => !s.deleted && s.material === m), kgs = ss.reduce((a, s) => a + Number(s.kg), 0), money = ss.reduce((a, s) => a + saleMoney(s, c.set).taxable, 0);
+    return { m, n: ss.length, kgs, money, avg: kgs ? money / kgs : null, last: m === "UBC" ? c.price.ubcSale : c.price.plSale }; });
   return (<>
     <section className="godown">
       <div className="card stock"><div className="l muted" style={{ fontSize: 12, letterSpacing: ".06em", textTransform: "uppercase" }}>Cans in godown today</div>
@@ -25,7 +30,8 @@ export default function Stock() {
         <p className="muted" style={{ fontSize: 12.5, marginTop: 12 }}>Buyers pay by kg, so each sale removes {c.set.cansPerKg} cans per kg (Settings). Changing that number changes the count for every sale, past months included.</p></div>
       <div className="card stock"><div className="l muted" style={{ fontSize: 12, letterSpacing: ".06em", textTransform: "uppercase" }}>Plastic in godown today</div>
         <div className="big">{kg(now.pl)} <small>kg</small></div>
-        <div className="flow"><span>Collected<b>{kg(total.plIn)} kg</b></span><span>Sold<b>{kg(total.plOut)} kg</b></span><span>Sale rate<b>{c.set.plasticSale ? `₹${c.set.plasticSale}/kg` : "Not set"}</b></span></div></div>
+        <div className="flow"><span>Collected<b>{kg(total.plIn)} kg</b></span><span>Sold<b>{kg(total.plOut)} kg</b></span><span>Worth now<b>{c.vset.plasticSale ? rs(plVal) : "Price not set"}</b></span></div>
+        <p className="muted" style={{ fontSize: 12.5, marginTop: 12 }}>Valued at the last sale prices: {priceNote(c)}. Together the godown is worth about {rs(val + plVal)}.</p></div>
     </section>
     <div className="card"><div className="card-h"><h2>Godown by month</h2><span className="hint">Cans, from the first pickup. Plastic in kg.</span></div>
       <div className="tbl-wrap"><table><thead><tr><th>Month</th><th className="n">At start</th><th className="n">Collected</th><th className="n">Sold</th><th className="n">At end</th><th className="n">Plastic at end</th></tr></thead><tbody>
@@ -33,6 +39,13 @@ export default function Stock() {
           <td>{r.label}{r.end.cans < 0 && <span className="missing"> · more sold than collected</span>}</td>
           <td className="n">{fmt(r.open.cans)}</td><td className="n">{fmt(r.flow.cansIn)}</td><td className="n">{fmt(r.flow.cansOut)}</td><td className="n"><b>{fmt(r.end.cans)}</b></td><td className="n">{kg(r.end.pl)} kg</td></tr>)}
         <tr style={{ borderTop: "1px solid var(--line)" }}><td><b>All months</b></td><td className="n">0</td><td className="n">{fmt(total.cansIn)}</td><td className="n">{fmt(total.cansOut)}</td><td className="n"><b>{fmt(now.cans)}</b></td><td className="n">{kg(now.pl)} kg</td></tr>
+      </tbody></table></div>
+    </div>
+    <div className="card"><div className="card-h"><h2>Sold so far</h2><span className="hint">Every sale since the start, before GST. The latest price is what the panel values stock and margins at.</span></div>
+      <div className="tbl-wrap"><table><thead><tr><th>Material</th><th className="n">Sales</th><th className="n">Kg sold</th><th className="n">Money before GST</th><th className="n">Average per kg</th><th className="n">Latest price</th></tr></thead><tbody>
+        {sold.map((r) => <tr key={r.m}><td><b>{r.m === "UBC" ? "Cans" : "Plastic"}</b>{r.m === "UBC" && r.kgs ? <span className="muted"> · ≈{fmt(r.kgs * c.set.cansPerKg)} cans</span> : null}</td><td className="n">{r.n}</td><td className="n">{kg(r.kgs)} kg</td><td className="n">{rs(r.money)}</td>
+          <td className="n">{r.avg != null ? `₹${r.avg.toFixed(2)}` : "–"}</td><td className="n">{r.last ? <>₹{Number(r.last.rate)} <span className="muted">· {dnice(r.last.d)}</span></> : <span className="missing">No sale yet</span>}</td></tr>)}
+        <tr style={{ borderTop: "1px solid var(--line)" }}><td><b>Total</b></td><td className="n">{sold[0].n + sold[1].n}</td><td className="n">{kg(sold[0].kgs + sold[1].kgs)} kg</td><td className="n"><b>{rs(sold[0].money + sold[1].money)}</b></td><td /><td /></tr>
       </tbody></table></div>
     </div>
     <div className="card"><div className="card-h"><h2>Sales to buyers</h2><span className="hint">{c.per.label} · tap a sale to edit it or mark the payment received</span><span className="sp" /><button className="btn btn-p btn-sm" onClick={() => c.openModal(<EditSale />)}>+ Record sale</button></div>

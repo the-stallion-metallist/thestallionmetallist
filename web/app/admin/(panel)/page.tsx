@@ -14,7 +14,7 @@ import { weekOf } from "@/lib/admin/routes";
 
 export default function Overview() {
   const c = usePanel(); const router = useRouter(); const p = c.per;
-  const T = useMemo(() => totals(p, c.pickups, c.vmap, c.set), [p, c.pickups, c.vmap, c.set]);
+  const T = useMemo(() => totals(p, c.pickups, c.vmap, c.vset), [p, c.pickups, c.vmap, c.vset]);
   const rows = c.venues.map((v) => ({ v, s: c.stats(v), n: c.stats(v, c.now) }));
   const cnt = (k: string) => rows.filter((x) => x.n.st === k).length;
   const top = rows.filter((x) => x.s.cans > 0).sort((a, b) => b.s.cans - a.s.cans);
@@ -73,7 +73,7 @@ export default function Overview() {
         <Link className="ph-nb dark" href="/admin/venues"><span className="l">Cans collected</span><span className="v">{fmt(T.cans)}</span><span className="s">{vsPrev}</span></Link>
         <Link className="ph-nb" href="/admin/pickups"><span className="l">Pickups</span><span className="v">{fmt(T.n)}</span><span className="s">{T.n ? fmt(T.cans / T.n) : 0} cans each</span></Link>
         <Link className="ph-nb" href="/admin/money"><span className="l">Paid to venues</span><span className="v">{rs(T.paid)}</span><span className="s">{T.pl ? `Cans + ${fmt(T.pl)} kg plastic` : "Paid on the spot"}</span></Link>
-        <Link className="ph-nb" href="/admin/money"><span className="l">Cans are worth</span><span className="v">{rs(T.canValue)}</span><span className="s">At ₹{c.set.ubcRate}/kg</span></Link>
+        <Link className="ph-nb" href="/admin/money"><span className="l">Cans and plastic are worth</span><span className="v">{rs(T.canValue + T.plValue)}</span><span className="s">Cans ₹{c.vset.ubcRate}/kg{c.vset.plasticSale ? ` · plastic ₹${c.vset.plasticSale}/kg` : ""}</span></Link>
       </div>
       <BreakEven />
       <div className="ph-today">
@@ -126,7 +126,7 @@ export default function Overview() {
       <div className="kpi"><div className="l">Cans collected</div><div className="v">{fmt(T.cans)}</div><div className="s">{prev} · plus {kg(T.pl)} kg plastic</div></div>
       <div className="kpi"><div className="l">Pickups</div><div className="v">{T.n}</div><div className="s">{T.n ? fmt(T.cans / T.n) : 0} cans per pickup</div></div>
       <div className="kpi"><div className="l">Paid to venues</div><div className="v">{rs(T.paid)}</div><div className="s">₹{c.set.canRate.toFixed(2)} per can + plastic per kg</div></div>
-      <div className="kpi hero"><div className="l">Profit before salaries &amp; rent</div><div className="v">{rs(T.canValue + T.plValue - T.paid - tripCost)}</div><div className="s">Cans valued at ₹{c.set.ubcRate}/kg, minus payouts and diesel</div></div>
+      <div className="kpi hero"><div className="l">Profit before salaries &amp; rent</div><div className="v">{rs(T.canValue + T.plValue - T.paid - tripCost)}</div><div className="s">Cans at ₹{c.vset.ubcRate}/kg and plastic at ₹{c.vset.plasticSale ?? 0}/kg (last sales), minus payouts and diesel</div></div>
     </section>
     <section className="grid2">
       <div className="card"><div className="card-h"><h2>Cans per day</h2><span className="hint">Tap a bar for the exact number</span></div>

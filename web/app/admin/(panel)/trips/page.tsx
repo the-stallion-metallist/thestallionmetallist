@@ -5,14 +5,16 @@ import { MonthSeg, PhHead, PhRow } from "../bits";
 import { Empty, I } from "../icons";
 import { EditTrip } from "../forms2";
 import { cansTxt } from "../forms";
-import { collectionDays, dayName, dieselDay, dieselOf, dnice, fmt, kg, rs, type CDay } from "@/lib/admin/logic";
+import { collectionDays, dayName, dieselDay, dieselOf, dnice, fmt, kg, rs, totals, type CDay } from "@/lib/admin/logic";
 
 // Collection days: every date with venue pickups is one trip. Shows which venues were collected together, and the diesel.
 export default function CollectionDays() {
   const c = usePanel(); const p = c.per;
   const days = collectionDays(c.pickups, c.trips, c.set, p).filter((g) => g.picks.length);
   const diesel = dieselOf(days), visits = days.reduce((a, g) => a + g.venues, 0), cans = days.reduce((a, g) => a + g.cans, 0), real = days.filter((g) => g.real).length;
-  const perCan = c.set.ubcRate / c.set.cansPerKg - c.set.canRate, need = perCan > 0 ? Math.ceil(dieselDay(c.set) / perCan) : null;
+  // what a can earns after its payout, plus the plastic that comes in with it (this period average)
+  const T = totals(p, c.pickups, c.vmap, c.vset), plPerCan = T.cans ? (T.plValue - T.paidPl) / T.cans : 0;
+  const perCan = c.vset.ubcRate / c.set.cansPerKg - c.set.canRate + plPerCan, need = perCan > 0 ? Math.ceil(dieselDay(c.set) / perCan) : null;
   const n = days.length, open = (g: CDay) => c.openDrawer(<Day g={g} />);
   const dsub = `₹${fmt(dieselDay(c.set))} a day${real ? ` · ${real} with real fuel` : ""}`;
   const empty = <Empty title="No collection days in this period" text="A day shows here once pickups from venues are logged for it." />;
@@ -36,7 +38,7 @@ export default function CollectionDays() {
       <div className="kpi"><div className="l">Collection days</div><div className="v">{n}</div><div className="s">{visits} venue visits</div></div>
       <div className="kpi"><div className="l">Diesel</div><div className="v">{rs(diesel)}</div><div className="s">{dsub}</div></div>
       <div className="kpi"><div className="l">Venues a day</div><div className="v">{n ? (visits / n).toFixed(1) : "–"}</div><div className="s">{n ? `About ${fmt(cans / n)} cans a day` : "No days yet"}</div></div>
-      <div className="kpi hero"><div className="l">A day pays its diesel at</div><div className="v">{need ? cansTxt(need) : "–"}</div><div className="s">₹{fmt(dieselDay(c.set))} of diesel at ₹{perCan.toFixed(2)} margin per can</div></div>
+      <div className="kpi hero"><div className="l">A day pays its diesel at</div><div className="v">{need ? cansTxt(need) : "–"}</div><div className="s">₹{fmt(dieselDay(c.set))} of diesel at ₹{perCan.toFixed(2)} a can{plPerCan > 0 ? `, ₹${plPerCan.toFixed(2)} of it from plastic` : ""}</div></div>
     </section>
     <div className="card">
       <div className="card-h"><h2>Collection days</h2><span className="hint">Venues collected on the same date count as one trip. Tap a day to see them.</span></div>

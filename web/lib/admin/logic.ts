@@ -165,6 +165,18 @@ export function totals(p: Period, pickups: Pickup[], venues: Map<number, Venue>,
   return { ps, cans, pl, paidV, paidPl, paid: paidV + paidPl, canValue, plValue, n };
 }
 
+// What cans and plastic sell for: the price (before GST) of the most recent real sale of each.
+// Until one is recorded, the Settings rate. Values, margins, profit and break-even all use this.
+export type Prices = { ubc: number; pl: number | null; ubcSale: Sale | null; plSale: Sale | null };
+export function salePrices(sales: Sale[], set: Settings): Prices {
+  const last = (m: Sale["material"]) => sales.filter((s) => !s.deleted && s.material === m && Number(s.rate) > 0)
+    .sort((a, b) => (a.d < b.d ? 1 : a.d > b.d ? -1 : b.id - a.id))[0] ?? null;
+  const u = last("UBC"), p = last("Plastic");
+  return { ubc: u ? Number(u.rate) : set.ubcRate, pl: p ? Number(p.rate) : set.plasticSale, ubcSale: u, plSale: p };
+}
+// Settings with the sale rates swapped for the real prices, for anything that values cans or plastic.
+export const valued = (set: Settings, pr: Prices): Settings => ({ ...set, ubcRate: pr.ubc, plasticSale: pr.pl });
+
 // A sale's money: the price before GST, the GST on top, and the invoice total. A sale keeps the GST rate it was recorded with;
 // an old sale with no rate uses the current Settings rate, so setting the rate applies it to those sales too.
 export function saleMoney(s: Sale, set: Settings) {

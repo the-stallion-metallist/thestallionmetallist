@@ -2,13 +2,13 @@
 import Link from "next/link";
 import { usePanel } from "../Panel";
 import { Empty, I } from "../icons";
-import { PhFold, PhHead, PhRow } from "../bits";
+import { PhFold, PhHead, PhRow, priceNote } from "../bits";
 import { EditExpense, EditPayment, EditSale } from "../forms2";
 import { CATS, collectionDays, dieselOf, dnice, fmt, godownOn, inP, saleMoney, itemLabel, kg, lastUnitCost, monthOf, rs, rsu, staffDue, totals } from "@/lib/admin/logic";
 
 export default function Money() {
   const c = usePanel(); const p = c.per;
-  const T = totals(p, c.pickups, c.vmap, c.set);
+  const T = totals(p, c.pickups, c.vmap, c.vset);
   const days = collectionDays(c.pickups, c.trips, c.set, p), tripCost = dieselOf(days);
   const exps = c.expenses.filter((e) => !e.deleted && inP(e.d, p)), byCat: Record<string, number> = {}; for (const e of exps) byCat[e.category] = (byCat[e.category] || 0) + Number(e.amount);
   const salesRows = c.sales.filter((s) => !s.deleted && inP(s.d, p)).map((s) => saleMoney(s, c.set));
@@ -18,16 +18,28 @@ export default function Money() {
   // unit costs: every cost in the period (diesel + all expenses, as in Profit) spread over the cans and pickups
   const costAll = tripCost + exps.reduce((a, e) => a + Number(e.amount), 0), catSum = (k: string) => exps.filter((e) => e.category === k).reduce((a, e) => a + Number(e.amount), 0);
   const costCan = T.cans ? costAll / T.cans : null, costPick = T.n ? costAll / T.n : null, profitCan = T.cans ? (T.canValue + T.plValue - T.paid - costAll) / T.cans : null;
-  const plMargin = c.set.plasticSale && T.pl ? (T.plValue - T.paidPl) / T.pl : null;
+  const plMargin = c.vset.plasticSale && T.pl ? (T.plValue - T.paidPl) / T.pl : null;
+  // plastic next to cans: what it earns after paying venues, its share, and what each can earns with its plastic
+  const canProfit = T.canValue - T.paidV, plProfit = T.plValue - T.paidPl, both = canProfit + plProfit;
+  const plPaidKg = T.pl ? T.paidPl / T.pl : null, plPicks = T.ps.filter((x) => Number(x.plastic_kg || 0) > 0).length;
+  const plRows = <>
+    <div><span>Prices used<br /><small className="muted">{priceNote(c)}</small></span><b>Last sales</b></div>
+    <div><span>Plastic sale price</span><b>{c.vset.plasticSale ? `₹${c.vset.plasticSale}/kg` : <Link className="missing" href="/admin/settings">Not set</Link>}</b></div>
+    <div><span>Paid per kg of plastic<br /><small className="muted">Average over {p.label}</small></span><b>{plPaidKg != null ? `₹${plPaidKg.toFixed(2)}` : "–"}</b></div>
+    <div><span>Plastic margin per kg<br /><small className="muted">Sale price minus what venues are paid per kg</small></span><b className={plMargin != null && plMargin < 0 ? "neg" : "pos"}>{plMargin != null ? `₹${plMargin.toFixed(2)}` : "–"}</b></div>
+    <div><span>Plastic collected<br /><small className="muted">{plPicks} of {T.n} pickups had plastic</small></span><b>{kg(T.pl)} kg{plPicks ? ` · ${kg(T.pl / plPicks)} kg each` : ""}</b></div>
+    <div><span>Profit from plastic before costs<br /><small className="muted">{both > 0 ? `${Math.round((plProfit / both) * 100)}% of what cans and plastic earn` : ""}</small></span><b className={plProfit < 0 ? "neg" : ""}>{rs(plProfit)}</b></div>
+    <div><span>Earned per can, with its plastic<br /><small className="muted">₹{T.cans ? (canProfit / T.cans).toFixed(2) : "0"} from the can + ₹{T.cans ? (plProfit / T.cans).toFixed(2) : "0"} from plastic. Break-even uses this.</small></span><b>{T.cans ? `₹${(both / T.cans).toFixed(2)}` : "–"}</b></div>
+  </>;
   const costSplit = [["salaries", catSum("Salaries")], ["rent", catSum("Rent")], ["diesel", tripCost], ["other", costAll - catSum("Salaries") - catSum("Rent") - tripCost]].map(([l, v]) => `${l} ₹${fmt(Math.round(Number(v)))}`).join(" · ");
-  const margin = c.set.ubcRate / c.set.cansPerKg - c.set.canRate;
+  const margin = c.vset.ubcRate / c.set.cansPerKg - c.set.canRate;
   const allBins = c.venues.reduce((a, v) => a + v.steel + v.plastic_bins, 0), cpb = allBins ? (T.cans / allBins) * (p.all ? 30 / p.days : 1) : 0, perBin = cpb * margin;
   const owed = c.venues.map((v) => c.pay(v)), od = owed.filter((s) => s.st === "overdue");
   const payNote = c.set.goLive ? "" : " Payouts are tracked from the go-live day (set in Settings).";
 
   if (c.phone) { // phone: the three money jobs, a plain summary, and where to look next
     const expTot = exps.reduce((a, e) => a + Number(e.amount), 0), costs = tripCost + expTot, owedTot = owed.reduce((a, s) => a + s.owed, 0), owedN = owed.filter((s) => s.owed > 0).length;
-    const cansNow = godownOn(c.pickups, c.sales, c.set, null, null).cans;
+    const g = godownOn(c.pickups, c.sales, c.set, null, null), cansNow = g.cans, gWorth = (g.cans / c.set.cansPerKg) * c.vset.ubcRate + g.pl * (c.vset.plasticSale ?? 0);
     const mo = monthOf(c.today), active = c.staff.filter((s) => s.active), salSet = active.filter((s) => s.salary).length;
     const toPay = active.reduce((a, s) => a + Math.max(0, staffDue(s, mo, c.marks, c.advances, c.expenses).pay ?? 0), 0);
     return (<div className="ph">
@@ -38,26 +50,26 @@ export default function Money() {
         <button onClick={() => c.openModal(<EditSale />)}>{I.stock}Sale</button>
       </div>
       <div className="ph-card"><div className="ph-stmt">
-        <div><span>Cans collected are worth<small>{fmt(T.cans)} cans at ₹{c.set.ubcRate}/kg{T.plValue ? ` · plus ${kg(T.pl)} kg plastic` : ""}</small></span><b>{rs(T.canValue + T.plValue)}</b></div>
+        <div><span>Cans and plastic are worth<small>{fmt(T.cans)} cans at ₹{c.vset.ubcRate}/kg{T.pl ? ` · ${kg(T.pl)} kg plastic at ₹${c.vset.plasticSale ?? 0}/kg` : ""}</small></span><b>{rs(T.canValue + T.plValue)}</b></div>
         <div><span>Paid to venues</span><b className="neg">{rs(-T.paid)}</b></div>
         <div><span>Diesel and expenses{!costs && <small>None yet</small>}</span><b className={costs ? "neg" : "muted"}>{costs ? rs(-costs) : "₹0"}</b></div>
         <div className="tot"><span>Left over</span><b className={profit < 0 ? "neg" : "pos"}>{rs(profit)}</b></div>
       </div>{!expTot && <p className="muted" style={{ fontSize: 13.5, marginTop: 10 }}>Add salaries and rent as expenses to see real profit. Diesel is counted for each collection day.</p>}</div>
       <div className="ph-list">
         <PhRow lead={owedN ? owedN : I.tick} tone={od.length ? "bad" : owedN ? "warn" : "good"} title="Venues owed" sub={owedN ? `${rs(owedTot)} to pay${od.length ? ` · ${od.length} not paid on time` : ""}` : "Everyone is paid"} href="/admin/payouts" />
-        <PhRow lead={I.stock} title="In the godown" sub={`${fmt(cansNow)} cans · worth ${rs((cansNow / c.set.cansPerKg) * c.set.ubcRate)}`} href="/admin/stock" />
+        <PhRow lead={I.stock} title="In the godown" sub={`${fmt(cansNow)} cans + ${kg(g.pl)} kg plastic · worth ${rs(gWorth)}`} href="/admin/stock" />
         <PhRow lead={I.staff} title="Staff pay" sub={!salSet ? `${active.length} staff · salaries not set yet` : toPay ? `${rs(toPay)} to pay this month` : "Nothing to pay this month"} href="/admin/staff" />
       </div>
-      <PhFold title="Per can" sub="Margin, diesel, bin payback"><div className="ph-stmt">
-        <div><span>Sale value per can</span><b>₹{(c.set.ubcRate / c.set.cansPerKg).toFixed(2)}</b></div>
+      <PhFold title="Per can and per kg" sub="Cans, plastic, diesel, all costs"><div className="ph-stmt">
+        <div><span>Sale value per can</span><b>₹{(c.vset.ubcRate / c.set.cansPerKg).toFixed(2)}</b></div>
         <div><span>Paid per can</span><b>₹{c.set.canRate.toFixed(2)}</b></div>
         <div><span>Margin per can</span><b className="pos">₹{margin.toFixed(2)}</b></div>
         <div><span>Diesel per can</span><b>{T.cans ? `₹${(tripCost / T.cans).toFixed(2)}` : "–"}</b></div>
         <div><span>Cans per pickup</span><b>{T.n ? fmt(T.cans / T.n) : "–"}</b></div>
         <div><span>Cost per can, all costs</span><b>{costCan != null ? `₹${costCan.toFixed(2)}` : "–"}</b></div>
-        <div><span>Profit per can after all costs</span><b className={profitCan != null && profitCan < 0 ? "neg" : ""}>{profitCan != null ? `₹${profitCan.toFixed(2)}` : "–"}</b></div>
+        <div><span>Profit per can after all costs<br /><small className="muted">Plastic included</small></span><b className={profitCan != null && profitCan < 0 ? "neg" : ""}>{profitCan != null ? `₹${profitCan.toFixed(2)}` : "–"}</b></div>
         <div><span>Cost per pickup</span><b>{costPick != null ? `₹${fmt(Math.round(costPick))}` : "–"}</b></div>
-        <div><span>Plastic margin per kg</span><b>{plMargin != null ? `₹${plMargin.toFixed(2)}` : "Set plastic sale rate"}</b></div>
+        {plRows}
       </div></PhFold>
       <PhFold title="Expenses" sub={exps.length ? `${exps.length} in ${p.label} · ${rs(expTot)}` : `Nothing entered in ${p.label}`}>
         {exps.length ? <div className="ph-list flat">{exps.slice().sort((a, b) => (a.d < b.d ? 1 : -1)).map((e) => <PhRow key={e.id} title={e.category === "Salaries" ? "Salary · " + sname(e.staff_id) : e.qty ? itemLabel(e) : e.category} sub={`${dnice(e.d)} · ${e.mode}`} right={<b className="ph-amt">{rs(Number(e.amount))}</b>} onClick={() => c.openModal(<EditExpense rec={e} />)} />)}</div>
@@ -67,11 +79,11 @@ export default function Money() {
   }
   return (
     <section className="grid2">
-      <div className="card"><div className="card-h"><h2>Profit for {p.label}</h2><span className="hint">Cans valued at ₹{c.set.ubcRate}/kg until they&apos;re sold</span></div>
+      <div className="card"><div className="card-h"><h2>Profit for {p.label}</h2><span className="hint">Cans at ₹{c.vset.ubcRate}/kg and plastic at ₹{c.vset.plasticSale ?? 0}/kg, the last sale prices</span></div>
         <div className="stmt">
           <div className="srow h">Money in</div>
           <div className="srow"><span className="lbl">Cans collected<span className="note">{fmt(T.cans)} cans ≈ {kg(T.cans / c.set.cansPerKg)} kg</span></span><span className="a">{rs(T.canValue)}</span></div>
-          <div className="srow"><span className="lbl">Plastic collected<span className="note">{kg(T.pl)} kg</span></span><span className="a">{c.set.plasticSale ? rs(T.plValue) : <Link className="missing" href="/admin/settings">Set plastic sale rate</Link>}</span></div>
+          <div className="srow"><span className="lbl">Plastic collected<span className="note">{kg(T.pl)} kg</span></span><span className="a">{c.vset.plasticSale ? rs(T.plValue) : <Link className="missing" href="/admin/settings">Set plastic sale rate</Link>}</span></div>
           <div className="srow h">Money out</div>
           <div className="srow"><span className="lbl">Paid to venues for cans<span className="note">Mostly ₹{c.set.canRate.toFixed(2)} per can</span></span><span className="a neg">{rs(-T.paidV)}</span></div>
           <div className="srow"><span className="lbl">Paid for plastic<span className="note">Per kg, depends on venue</span></span><span className="a neg">{rs(-T.paidPl)}</span></div>
@@ -82,17 +94,17 @@ export default function Money() {
         </div></div>
       <div style={{ display: "flex", flexDirection: "column", gap: 18, minWidth: 0 }}>
         <div className="kpi hero"><div className="l">Sales before GST</div><div className="v">{rs(salesIn)}</div><div className="s">{gstIn ? `Plus ${rs(gstIn)} GST to set aside, not profit` : `From sales recorded in ${p.label}`}</div></div>
-        <details className="card fold"><summary><h2>Unit economics</h2><span className="hint">Margin per can, diesel, bin payback</span></summary>
+        <details className="card fold"><summary><h2>Unit economics</h2><span className="hint">Cans, plastic, diesel, bin payback</span></summary>
           <div className="fold-b"><div className="kv">
-            <div><span>Sale value per can</span><b>₹{(c.set.ubcRate / c.set.cansPerKg).toFixed(2)}</b></div>
+            <div><span>Sale value per can</span><b>₹{(c.vset.ubcRate / c.set.cansPerKg).toFixed(2)}</b></div>
             <div><span>Paid per can</span><b>₹{c.set.canRate.toFixed(2)}</b></div>
             <div><span>Margin per can before costs</span><b>₹{margin.toFixed(2)}</b></div>
             <div><span>Diesel per can</span><b>{T.cans ? `₹${(tripCost / T.cans).toFixed(2)}` : "–"}</b></div>
             <div><span>Cans per pickup</span><b>{T.n ? fmt(T.cans / T.n) : "–"}</b></div>
             <div><span>Cost per can, all costs<br /><small className="muted">{costSplit}</small></span><b>{costCan != null ? `₹${costCan.toFixed(2)}` : "–"}</b></div>
-            <div><span>Profit per can after all costs</span><b className={profitCan != null && profitCan < 0 ? "neg" : ""}>{profitCan != null ? `₹${profitCan.toFixed(2)}` : "–"}</b></div>
+            <div><span>Profit per can after all costs<br /><small className="muted">Plastic included</small></span><b className={profitCan != null && profitCan < 0 ? "neg" : ""}>{profitCan != null ? `₹${profitCan.toFixed(2)}` : "–"}</b></div>
             <div><span>Cost per pickup</span><b>{costPick != null ? `₹${fmt(Math.round(costPick))}` : "–"}</b></div>
-            <div><span>Plastic margin per kg<br /><small className="muted">Sale rate minus what venues are paid per kg</small></span><b>{plMargin != null ? `₹${plMargin.toFixed(2)}` : <Link className="missing" href="/admin/settings">Set plastic sale rate</Link>}</b></div>
+            {plRows}
             {([["Steel bin", "steel bin"], ["Plastic bin", "plastic bin"], ["Garbage bags", "garbage bag"]] as const).map(([k, l]) => { const cost = lastUnitCost(c.expenses, k);
               return cost == null ? <div key={k}><span>Cost per {l}</span><b className="missing">Add a Bins &amp; bags expense</b></div>
                 : [<div key={k}><span>Cost per {l}</span><b>{rsu(cost)}</b></div>, k !== "Garbage bags" && perBin > 0 && <div key={k + "p"}><span>A {l} pays for itself in<br /><small className="muted">At {fmt(cpb)} cans per bin {p.all ? "a month on average" : "this month"}</small></span><b>{(cost / perBin).toFixed(1)} months</b></div>]; })}

@@ -47,26 +47,31 @@ export function MonthSeg() {
   return <div className="seg" role="group" aria-label="Month">{list.map((m) => <button key={m} aria-pressed={c.month === m} onClick={() => c.setMonth(m)}>{m === "all" ? (ms.length === 2 ? "Both" : "All") : MON[+m.slice(5, 7) - 1]}</button>)}</div>;
 }
 
-// Cash sitting in the godown: unsold cans and plastic, what they are worth at the Settings rates, and what was paid for them.
+// "Cans ₹210/kg (sale 15 Oct) · plastic ₹33/kg (sale 10 Oct)": the prices every value and margin uses.
+export function priceNote(c: ReturnType<typeof usePanel>) {
+  const one = (name: string, v: number | null, s: { d: string } | null) => v == null ? `${name} price not set` : `${name} ₹${v}/kg (${s ? "sale " + dnice(s.d) : "Settings, no sale yet"})`;
+  return `${one("Cans", c.price.ubc, c.price.ubcSale)} · ${one("plastic", c.price.pl, c.price.plSale)}`;
+}
+
+// Cash sitting in the godown: unsold cans and plastic, what they are worth at the last sale prices, and what was paid for them.
 function GodownLine() {
   const c = usePanel();
   const now = godownOn(c.pickups, c.sales, c.set, null, null), cans = now.cans, pl = now.pl;
-  const ubcSold = c.sales.filter((s) => !s.deleted && s.material === "UBC");
   if (cans <= 0 && pl <= 0) return null;
-  const worth = (cans / c.set.cansPerKg) * c.set.ubcRate + (c.set.plasticSale ? pl * c.set.plasticSale : 0), paid = cans * c.set.canRate + pl * c.set.plasticBuy;
+  const worth = (cans / c.set.cansPerKg) * c.vset.ubcRate + (c.vset.plasticSale ? pl * c.vset.plasticSale : 0), paid = cans * c.set.canRate + pl * c.set.plasticBuy;
   return <p className="note-bar" style={{ marginTop: 12, fontSize: 13 }}>
-    {!ubcSold.length && <><b>No cans sold yet, so ₹{c.set.ubcRate}/kg is a guess.</b> Update the sale rate in Settings after each buyer quote. </>}
-    In the godown: {fmt(cans)} cans (≈{kg(cans / c.set.cansPerKg)} kg){pl > 0 ? ` and ${kg(pl)} kg plastic` : ""}, worth about {rs(worth)} at these rates. About {rs(paid)} was paid to venues for it. <Link className="linkb" href="/admin/stock">Stock &amp; sales</Link></p>;
+    {!c.price.ubcSale && <><b>No cans sold yet, so ₹{c.vset.ubcRate}/kg is a guess.</b> Update the sale rate in Settings after each buyer quote. </>}
+    In the godown: {fmt(cans)} cans (≈{kg(cans / c.set.cansPerKg)} kg){pl > 0 ? ` and ${kg(pl)} kg plastic` : ""}, worth about {rs(worth)} at the last sale prices ({priceNote(c)}). About {rs(paid)} was paid to venues for it. <Link className="linkb" href="/admin/stock">Stock &amp; sales</Link></p>;
 }
 
 // Break-even for this month: cans so far against the cans needed to cover salaries, rent and running costs.
 export function BreakEven() {
   const c = usePanel(); const p = c.now;
-  const T = totals(p, c.pickups, c.vmap, c.set);
+  const T = totals(p, c.pickups, c.vmap, c.vset);
   const salaries = c.staff.filter((s) => s.active).reduce((a, s) => a + Number(s.salary || 0), 0);
   const running = dieselOf(collectionDays(c.pickups, c.trips, c.set, p))
     + c.expenses.filter((e) => !e.deleted && inP(e.d, p) && e.category !== "Salaries" && e.category !== "Rent").reduce((a, e) => a + Number(e.amount), 0);
-  const B = breakEven(p, T, c.set, { salaries, running });
+  const B = breakEven(p, T, c.vset, { salaries, running });
   const mo = MONL[+p.key.slice(5, 7) - 1], last = dnice(p.end);
   if (!B.need) return <div className="card be"><div className="be-h"><h2>Break-even, {mo}</h2></div><p className="muted">At today&apos;s rates a can earns nothing after the venue is paid. Check the sale rate and payouts in Settings.</p><GodownLine /></div>;
   const covered = T.cans >= B.need, scale = Math.max(B.need, T.cans), pct = Math.min(100, Math.round((T.cans / B.need) * 100));
@@ -77,7 +82,8 @@ export function BreakEven() {
       : { l: "Needed from now", v: B.perDay != null ? `${fmt(B.perDay)} a day` : "–", s: B.left ? `For the ${B.left} day${B.left === 1 ? "" : "s"} left` : "Month is over", tone: B.perDay && B.perDay > B.pace * 1.5 ? "neg" : "" },
     { l: "Profit so far", v: rs(B.profitNow), s: `At this pace, ${rs(B.profitEnd)} by ${last}`, tone: B.profitNow < 0 ? "neg" : "pos" },
   ];
-  const note = <>Each can earns ₹{B.perCan.toFixed(2)} after paying the venue{T.pl ? ", plastic included" : ""}. Monthly costs {rs(B.costs)}: salaries {rs(salaries)} · rent and fixed {rs(Number(c.set.fixedOther || 0))} · diesel and running {running ? rs(running) : "none yet"}. Profit so far spreads fixed costs over the month. <Link className="linkb" href="/admin/settings">Change costs</Link></>;
+  const canPart = T.cans ? (T.canValue - T.paidV) / T.cans : 0, plPart = T.cans ? (T.plValue - T.paidPl) / T.cans : 0;
+  const note = <>Each can earns ₹{B.perCan.toFixed(2)} after paying the venue{T.pl ? <>: ₹{canPart.toFixed(2)} from the can and ₹{plPart.toFixed(2)} from the plastic that comes with it ({kg(T.pl)} kg this month)</> : ""}. Prices: {priceNote(c)}. Monthly costs {rs(B.costs)}: salaries {rs(salaries)} · rent and fixed {rs(Number(c.set.fixedOther || 0))} · diesel and running {running ? rs(running) : "none yet"}. Profit so far spreads fixed costs over the month. <Link className="linkb" href="/admin/settings">Change costs</Link></>;
   return (
     <div className="card be">
       <div className="be-h"><h2>Break-even, {mo}</h2><span className="hint">Can this month pay its salaries, rent and running costs?</span><span className="be-pct">{pct}%</span></div>

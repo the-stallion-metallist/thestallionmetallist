@@ -5,8 +5,8 @@ import { usePathname, useRouter } from "next/navigation";
 import { adminDb } from "@/lib/admin/supabase-browser";
 import {
   type Advance, type BinChange, type Expense, type LogRow, type Mark, type Payment, type Period, type Pickup, type Sale,
-  type Settings, type StaffRow, type Stats, type Trip, type Venue, type PayState,
-  DATA_START, MON, areaName, byVenue, monthOf, monthsSince, payState, period, todayIST, venueStats,
+  type Settings, type StaffRow, type Stats, type Trip, type Venue, type PayState, type Prices,
+  DATA_START, MON, areaName, byVenue, monthOf, monthsSince, payState, period, salePrices, todayIST, valued, venueStats,
 } from "@/lib/admin/logic";
 import { type AreaRule, type Matrix, type Pin, type Plan, type Zones, buildZones, optimisePlan } from "@/lib/admin/routes";
 import { type Move, type Spare, type Suggestion, movePlan } from "@/lib/admin/moves";
@@ -34,6 +34,7 @@ type Ctx = Data & {
   openDrawer: (node: React.ReactNode) => void; openModal: (node: React.ReactNode) => void; closeModal: () => void; closeLayers: () => void;
   fail: (e: { message: string } | null) => boolean; badges: Record<string, number | string>;
   phone: boolean; // 880px wide or under: the phone layouts
+  price: Prices; vset: Settings; // last real sale prices, and Settings with them swapped in (for valuing cans and plastic)
 };
 const PanelCtx = createContext<Ctx | null>(null);
 export const usePanel = () => useContext(PanelCtx)!;
@@ -208,8 +209,9 @@ function Loaded(props: {
     return b;
   }, [venues, data.run, pay, stats, now, sug]);
 
+  const price = useMemo(() => salePrices(data.sales, data.set), [data.sales, data.set]), vset = useMemo(() => valued(data.set, price), [data.set, price]);
   const ctx: Ctx = { ...data, venues, me, today, db, vmap, byV, month, setMonth, per, now, stats, plan, sug, pay, god, patch, reload, logIt, toast,
-    openDrawer: props.openDrawer, openModal: props.openModal, closeModal, closeLayers, fail, badges, phone };
+    openDrawer: props.openDrawer, openModal: props.openModal, closeModal, closeLayers, fail, badges, phone, price, vset };
 
   useEffect(() => { // "/" opens search
     const k = (e: KeyboardEvent) => { if (e.key === "/" && !/INPUT|TEXTAREA|SELECT/.test((document.activeElement as HTMLElement)?.tagName || "")) { e.preventDefault(); openSearch(ctx); } };
