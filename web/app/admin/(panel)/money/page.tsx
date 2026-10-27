@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { usePanel } from "../Panel";
 import { Empty, I } from "../icons";
-import { PhFold, PhHead, PhRow, priceNote } from "../bits";
+import { PhFold, PhHead, PhRow, SplitBar, priceNote } from "../bits";
 import { EditExpense, EditPayment, EditSale } from "../forms2";
 import { CATS, collectionDays, dieselOf, dnice, fmt, godownOn, inP, saleMoney, itemLabel, kg, lastUnitCost, monthOf, rs, rsu, staffDue, totals } from "@/lib/admin/logic";
 
@@ -33,6 +33,16 @@ export default function Money() {
   </>;
   const costSplit = [["salaries", catSum("Salaries")], ["rent", catSum("Rent")], ["diesel", tripCost], ["other", costAll - catSum("Salaries") - catSum("Rent") - tripCost]].map(([l, v]) => `${l} ₹${fmt(Math.round(Number(v)))}`).join(" · ");
   const margin = c.vset.ubcRate / c.set.cansPerKg - c.set.canRate;
+  // earnings (cans + plastic, after paying venues) against the costs entered for this period: diesel and expenses
+  const cEarn = Math.max(0, T.canValue - T.paidV), pEarn = Math.max(0, T.plValue - T.paidPl), earnedAll = cEarn + pEarn;
+  const coveredAll = costAll > 0 && earnedAll >= costAll, pctAll = costAll ? Math.round((earnedAll / costAll) * 100) : null;
+  const earnCard = <div className="card be">
+    <div className="be-h"><h2>Earnings against costs, {p.label}</h2><span className="hint">Cans and plastic after paying venues, against diesel and the expenses entered</span>{pctAll != null && <span className={"be-pct" + (coveredAll ? " ok" : "")}>{pctAll}%</span>}</div>
+    <div className="be-top"><div className="be-v"><b>{rs(earnedAll)}</b> earned</div><div className="be-money"><b>{rs(costAll)}</b> costs entered</div></div>
+    <SplitBar canEarn={cEarn} plEarn={pEarn} plKg={T.pl} target={costAll} label={`Earned ${rs(earnedAll)} (cans ${rs(cEarn)}, plastic ${rs(pEarn)}) against ${rs(costAll)} of costs entered`}
+      mark={coveredAll ? costAll : null} markNote={`Costs entered end here: ${rs(costAll)}`} />
+    {!exps.some((e) => e.category === "Salaries") && <p className="be-note">No salaries entered for {p.label} yet, so costs are only diesel{exps.length ? " and the expenses entered" : ""}.</p>}
+  </div>;
   const allBins = c.venues.reduce((a, v) => a + v.steel + v.plastic_bins, 0), cpb = allBins ? (T.cans / allBins) * (p.all ? 30 / p.days : 1) : 0, perBin = cpb * margin;
   const owed = c.venues.map((v) => c.pay(v)), od = owed.filter((s) => s.st === "overdue");
   const payNote = c.set.goLive ? "" : " Payouts are tracked from the go-live day (set in Settings).";
@@ -49,6 +59,7 @@ export default function Money() {
         <button onClick={() => c.openModal(<EditExpense />)}>{I.plus}Expense</button>
         <button onClick={() => c.openModal(<EditSale />)}>{I.stock}Sale</button>
       </div>
+      {earnCard}
       <div className="ph-card"><div className="ph-stmt">
         <div><span>Cans and plastic are worth<small>{fmt(T.cans)} cans at ₹{c.vset.ubcRate}/kg{T.pl ? ` · ${kg(T.pl)} kg plastic at ₹${c.vset.plasticSale ?? 0}/kg` : ""}</small></span><b>{rs(T.canValue + T.plValue)}</b></div>
         <div><span>Paid to venues</span><b className="neg">{rs(-T.paid)}</b></div>
@@ -77,7 +88,8 @@ export default function Money() {
       </PhFold>
     </div>);
   }
-  return (
+  return (<>
+    {earnCard}
     <section className="grid2">
       <div className="card"><div className="card-h"><h2>Profit for {p.label}</h2><span className="hint">Cans at ₹{c.vset.ubcRate}/kg and plastic at ₹{c.vset.plasticSale ?? 0}/kg, the last sale prices</span></div>
         <div className="stmt">
@@ -120,5 +132,5 @@ export default function Money() {
         </div>
       </div>
     </section>
-  );
+  </>);
 }

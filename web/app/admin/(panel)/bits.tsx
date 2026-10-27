@@ -53,6 +53,25 @@ export function priceNote(c: ReturnType<typeof usePanel>) {
   return `${one("Cans", c.price.ubc, c.price.ubcSale)} · ${one("plastic", c.price.pl, c.price.plSale)}`;
 }
 
+// One bar for money against a target: what cans earned (copper), then what plastic added (teal), both after paying venues.
+// mark = a line on the bar in ₹ (where the month should be today, or where recorded costs end when earnings pass them).
+// The bar keeps its copper/teal colours when the target is covered (the key must match); the green % says covered.
+export function SplitBar({ canEarn, plEarn, plKg, target, mark, markNote, label }: { canEarn: number; plEarn: number; plKg: number; target: number; mark?: number | null; markNote?: string; label: string }) {
+  const scale = Math.max(target, canEarn + plEarn, 1), w = (v: number) => `${(v / scale) * 100}%`;
+  return <>
+    <div className="be-bar" role="img" aria-label={label}>
+      <i style={{ width: w(canEarn) }} />
+      {plEarn > 0 && <i className="pl" style={{ left: w(canEarn), width: w(plEarn) }} />}
+      {mark != null && <b style={{ left: w(mark) }} />}
+    </div>
+    <div className="be-key">
+      <span><i />Cans <b>{rs(canEarn)}</b></span>
+      {plKg > 0 && <span><i className="pl" />Plastic <b>{rs(plEarn)}</b> from {kg(plKg)} kg</span>}
+      {mark != null && markNote && <span className="mk"><i className="ln" />{markNote}</span>}
+    </div>
+  </>;
+}
+
 // Cash sitting in the godown: unsold cans and plastic, what they are worth at the last sale prices, and what was paid for them.
 function GodownRow() {
   const c = usePanel();
@@ -78,9 +97,8 @@ export function BreakEven() {
   const godown = <GodownRow />;
   if (!B.need) return <div className="card be"><div className="be-h"><h2>Break-even, {mo}</h2></div><p className="muted">At today&apos;s rates a can earns nothing after the venue is paid. Check the sale rate and payouts in Settings.</p><div className="be-rows">{godown}</div></div>;
   const canEarn = Math.max(0, T.canValue - T.paidV), plEarn = Math.max(0, T.plValue - T.paidPl), earned = canEarn + plEarn;
-  const covered = T.cans >= B.need, scale = Math.max(B.costs, earned), pct = Math.min(100, Math.round((T.cans / B.need) * 100));
+  const covered = T.cans >= B.need, pct = Math.min(100, Math.round((T.cans / B.need) * 100));
   const today = Math.round((B.need * B.elapsed) / p.days); // where the month needs to be by today
-  const w = (v: number) => `${(v / scale) * 100}%`;
   const canPart = T.cans ? canEarn / T.cans : 0, plPart = T.cans ? plEarn / T.cans : 0;
   const facts = [
     { l: "Pace", v: `${fmt(B.pace)} a day`, s: `About ${fmt(B.projected)} by ${last}` },
@@ -96,16 +114,8 @@ export function BreakEven() {
         <div className="be-v"><b>{fmt(T.cans)}</b> of {fmt(B.need)} cans</div>
         <div className="be-money"><b>{rs(earned)}</b> of {rs(B.costs)} costs</div>
       </div>
-      <div className="be-bar" role="img" aria-label={`${pct}% of this month's costs covered: cans earned ${rs(canEarn)}, plastic ${rs(plEarn)}, of ${rs(B.costs)}`}>
-        <i className={covered ? "ok" : ""} style={{ width: w(canEarn) }} />
-        {plEarn > 0 && <i className="pl" style={{ left: w(canEarn), width: w(plEarn) }} />}
-        {!covered && B.left > 0 && <b style={{ left: `${(today / B.need) * (B.costs / scale) * 100}%` }} title={`${fmt(today)} cans needed by today`} />}
-      </div>
-      <div className="be-key">
-        <span><i />Cans <b>{rs(canEarn)}</b></span>
-        {T.pl > 0 && <span><i className="pl" />Plastic <b>{rs(plEarn)}</b> from {kg(T.pl)} kg</span>}
-        {!covered && B.left > 0 && <span className="mk"><i className="ln" />Where the month should be today: {fmt(today)} cans</span>}
-      </div>
+      <SplitBar canEarn={canEarn} plEarn={plEarn} plKg={T.pl} target={B.costs} label={`${pct}% of this month's costs covered: cans earned ${rs(canEarn)}, plastic ${rs(plEarn)}, of ${rs(B.costs)}`}
+        mark={!covered && B.left > 0 ? (B.costs * B.elapsed) / p.days : null} markNote={`Where the month should be today: ${fmt(today)} cans`} />
       <div className="be-facts">{facts.map((f) => <div key={f.l}><span className="l">{f.l}</span><span className={"v " + (f.tone ?? "")}>{f.v}</span><span className="s">{f.s}</span></div>)}</div>
       <div className="be-rows">
         {T.pl > 0 && <div><span className="k">Plastic</span>
