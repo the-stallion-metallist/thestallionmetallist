@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { clashDisplay, satoshi } from "./fonts";
 import { site } from "@/lib/content";
+import { RATE_CAN, RATE_PET } from "@/lib/rates";
 import { organizationJsonLd } from "@/lib/jsonld";
 import "./globals.css";
 
@@ -9,8 +10,7 @@ import "./globals.css";
 // ("Cans into cash"). Every other page sets its own title/description, so this
 // default only affects the homepage.
 const homeTitle = `${site.name} · Cash for Cans & PET Bottles in Dehradun`;
-const homeDescription =
-  "Sell used aluminium cans (UBC) and PET bottles in Dehradun. Doorstep pickup for homes, bars, restaurants and cafes. The Stallion Metallist also trades non-ferrous scrap internationally.";
+const homeDescription = `Sell used aluminium cans (UBC) at ${RATE_CAN} each and PET bottles at ${RATE_PET} per kg in Dehradun. Doorstep pickup for homes, bars and restaurants.`;
 
 export const metadata: Metadata = {
   metadataBase: new URL(site.url),

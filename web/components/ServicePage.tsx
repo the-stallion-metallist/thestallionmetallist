@@ -4,6 +4,7 @@ import FaqList from "@/components/FaqList";
 import { site } from "@/lib/content";
 import { breadcrumbJsonLd } from "@/lib/jsonld";
 import { AREAS, WHATSAPP_CA, WHATSAPP_IN, type ServiceData, type ServiceLink } from "@/lib/services";
+import { RATES_AS_OF } from "@/lib/rates";
 
 /**
  * One collection-service page (cans, PET bottles, venues). Same look as the rest
@@ -85,6 +86,24 @@ export default function ServicePage({ d }: { d: ServiceData }) {
               <p className="lead" key={p}>{p}</p>
             ))}
           </div>
+
+          {d.rates && (
+            <div className="sv-block">
+              <h2>{d.rates.heading}</h2>
+              <dl className="sv-rates">
+                {d.rates.rows.map((r) => (
+                  <div className="sv-rate" key={r.item}>
+                    <dt>
+                      {r.item}
+                      <span>{r.note}</span>
+                    </dt>
+                    <dd>{r.rate}</dd>
+                  </div>
+                ))}
+              </dl>
+              <p className="sv-asof">Rates last updated {RATES_AS_OF}.</p>
+            </div>
+          )}
 
           <div className="sv-block">
             <h2>{d.stepsHeading}</h2>
@@ -171,6 +190,16 @@ export default function ServicePage({ d }: { d: ServiceData }) {
         .sv h2, .sv h3 { word-spacing: 0.1em; }
         .sv-intro { max-width: 68ch; display: flex; flex-direction: column; gap: 1.1rem; }
         .sv-block { margin-top: clamp(3rem, 6vw, 4.8rem); }
+
+        .sv-rates { margin: 0; border-top: 1px solid var(--line); }
+        .sv-rate { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between;
+          gap: 0.3rem 1.5rem; padding: 1.15rem 0; border-bottom: 1px solid var(--line); }
+        .sv-rate dt { font-family: var(--f-disp); font-weight: 600; font-size: 1.2rem; word-spacing: 0.1em; }
+        .sv-rate dt span { display: block; margin-top: 0.15rem; font-family: var(--f-body); font-weight: 400;
+          font-size: 0.95rem; color: var(--ink-soft); word-spacing: 0; }
+        .sv-rate dd { margin: 0; font-family: var(--f-disp); font-weight: 700; font-size: clamp(1.5rem, 3.4vw, 1.9rem);
+          color: var(--copper-dk); font-variant-numeric: tabular-nums; white-space: nowrap; }
+        .sv-asof { margin: 0.9rem 0 0; font-size: 0.9rem; color: var(--ink-soft); }
 
         .sv-steps { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
         .sv-step { display: grid; grid-template-columns: 2.4rem 1fr; column-gap: 1rem; align-items: baseline;

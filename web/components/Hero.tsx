@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { site } from "@/lib/content";
+import { RATE_CAN, RATE_PET } from "@/lib/rates";
 
 /* ============================================================================
  * HERO — app-first. Leads the homepage with the UBC can-collection service
@@ -61,7 +62,7 @@ export default function Hero() {
             <span className="ch-stars" aria-hidden="true">★★★★★</span>
             <span><b>5.0</b> on Google</span>
             <span className="ch-sep" aria-hidden="true">·</span>
-            <span>Cans and PET bottles, Dehradun</span>
+            <span>{RATE_CAN} per can, {RATE_PET} per kg PET</span>
           </div>
         </div>
 

@@ -6,9 +6,19 @@
  * file, so they always match). Add a question by copying a { q, a } block.
  * ========================================================================== */
 
+import { RATE_CAN, RATE_PET, RATES_AS_OF } from "./rates";
+
 export type Faq = { q: string; a: string };
 
 export const faqs: Faq[] = [
+  {
+    q: "Do you buy used aluminium cans and PET bottles in Dehradun?",
+    a: "Yes. In Dehradun we run a doorstep collection service for used aluminium cans (UBC) and PET bottles, for homes and for bars, restaurants and cafes. Book a can pickup in our app, or message us on WhatsApp for cans or PET bottles.",
+  },
+  {
+    q: "How much do you pay for cans and PET bottles?",
+    a: `We pay ${RATE_CAN} per aluminium can and ${RATE_PET} per kg of PET bottles. Cans are counted and PET is weighed at your door. Rates last updated ${RATES_AS_OF}.`,
+  },
   {
     q: "What does The Stallion Metallist trade?",
     a: "Non-ferrous metal scrap: aluminium (UBC and Zorba), copper (Millberry and bare bright), brass (honey), and stainless steel 304 and 316. We source it from exporters in the UAE, China, Europe and North America and supply it to furnaces, foundries and mills in India.",
@@ -24,10 +34,6 @@ export const faqs: Faq[] = [
   {
     q: "What payment terms do you offer?",
     a: "We work on international trade terms, including letter of credit (LC) at sight and T/T (telegraphic transfer).",
-  },
-  {
-    q: "Do you buy used aluminium cans from individuals?",
-    a: "Yes. In Dehradun we run a doorstep collection service for used beverage cans. You can book a pickup through our app and get paid on collection.",
   },
   {
     q: "How do I get a quote or contact you?",

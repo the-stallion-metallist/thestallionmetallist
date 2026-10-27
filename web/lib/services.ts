@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { RATE_CAN, RATE_PET, RATES_AS_OF } from "./rates";
 
 /* ============================================================================
  * COLLECTION SERVICE PAGES (cans, PET bottles, bars and restaurants).
@@ -34,6 +35,7 @@ export type ServiceData = {
   serviceType: string;
   offer?: string; // set only when the customer really pays nothing for the service
   intro: string[]; // opening paragraphs
+  rates?: { heading: string; rows: { item: string; rate: string; note: string }[] }; // payout rates (from lib/rates.ts)
   stepsHeading: string;
   steps: { title: string; body: string }[];
   lists: { title: string; items: string[] }[]; // exactly two
@@ -64,11 +66,10 @@ const REL = {
 
 export const cansPage: ServiceData = {
   slug: "aluminium-can-collection-dehradun",
-  title: "Sell Aluminium Cans (UBC) in Dehradun | Doorstep Pickup | The Stallion Metallist",
-  description:
-    "Sell used aluminium cans (UBC) in Dehradun. Free doorstep pickup, counted at your door and paid on collection. For homes, bars, cafes and restaurants.",
+  title: `Sell Aluminium Cans (UBC) in Dehradun | ${RATE_CAN} per Can | The Stallion Metallist`,
+  description: `Sell used aluminium cans (UBC) in Dehradun at ${RATE_CAN} per can. Free doorstep pickup, counted at your door and paid on collection. For homes, bars and cafes.`,
   h1: "Aluminium can (UBC) collection in Dehradun",
-  sub: "Sell your used drink cans for cash. Book a free doorstep pickup. We count your cans at your door and pay you on collection.",
+  sub: `Sell your used drink cans for ${RATE_CAN} each. Book a free doorstep pickup. We count your cans at your door and pay you on collection.`,
   crumb: "Aluminium can collection Dehradun",
   schemaName: "Aluminium can (UBC) doorstep collection",
   serviceType: "Used beverage can collection",
@@ -77,6 +78,10 @@ export const cansPage: ServiceData = {
     "The Stallion Metallist runs a doorstep collection service for used aluminium beverage cans across Dehradun. Instead of throwing cans away or hauling them to a scrap dealer, you book a pickup in our app and get paid at your door. The aluminium is then recycled.",
     "UBC stands for used beverage cans: the empty soft-drink, beer and energy-drink cans most homes and venues throw away. The service is free to use, and every can you recycle stays out of landfill.",
   ],
+  rates: {
+    heading: "What we pay",
+    rows: [{ item: "Used aluminium cans (UBC)", rate: `${RATE_CAN} per can`, note: "Counted at your door, paid on collection" }],
+  },
   stepsHeading: "Four steps, paid on collection",
   steps: [
     { title: "Book a pickup", body: "Open the app, tell us roughly how many cans you have and pick a slot. It takes under a minute." },
@@ -107,7 +112,7 @@ export const cansPage: ServiceData = {
   hindi: {
     heading: "देहरादून में खाली एल्यूमिनियम कैन बेचें",
     body: [
-      "कोल्ड ड्रिंक, बीयर और एनर्जी ड्रिंक के खाली कैन कूड़े में न फेंकें। हमारे ऐप से पिकअप बुक करें। हम आपके दरवाज़े पर आकर कैन आपके सामने गिनते हैं और पैसे उसी समय दे देते हैं।",
+      `कोल्ड ड्रिंक, बीयर और एनर्जी ड्रिंक के खाली कैन कूड़े में न फेंकें। हमारे ऐप से पिकअप बुक करें। हम आपके दरवाज़े पर आकर कैन आपके सामने गिनते हैं और ${RATE_CAN} प्रति कैन के हिसाब से पैसे उसी समय दे देते हैं।`,
       "घर, कैफे, रेस्टोरेंट, बार और होटल, सभी जगह से कलेक्शन होता है। पिकअप की कोई फीस नहीं है।",
     ],
   },
@@ -127,7 +132,11 @@ export const cansPage: ServiceData = {
     },
     {
       q: "How much do you pay for aluminium cans?",
-      a: "You are paid per can at the current rate, settled on collection. The more clean, dry cans you gather, the more your pickup is worth. Message us on WhatsApp at +91 99973 48394 for today's rate.",
+      a: `We pay ${RATE_CAN} per can, settled on collection. The more clean, dry cans you gather, the more your pickup is worth. Rates last updated ${RATES_AS_OF}.`,
+    },
+    {
+      q: "How many cans make a kilo?",
+      a: "Roughly 60 to 70 standard drink cans weigh a kilo, depending on the can size. We pay per can, so you do not need to weigh them.",
     },
     {
       q: "What kind of cans do you accept?",
@@ -165,25 +174,28 @@ export const cansPage: ServiceData = {
 
 export const petPage: ServiceData = {
   slug: "pet-bottle-collection-dehradun",
-  title: "Sell PET Bottles in Dehradun | Doorstep Pickup | The Stallion Metallist",
-  description:
-    "Sell used PET bottles in Dehradun. Doorstep pickup for homes, bars, cafes and restaurants, paid by weight. Book on WhatsApp.",
+  title: `Sell PET Bottles in Dehradun | ${RATE_PET} per kg | The Stallion Metallist`,
+  description: `Sell used PET bottles in Dehradun at ${RATE_PET} per kg. Doorstep pickup for homes, bars, cafes and restaurants. Book on WhatsApp.`,
   h1: "Sell your PET bottles in Dehradun",
-  sub: "We collect empty PET bottles from homes and businesses across Dehradun and pay you by weight. Book a pickup on WhatsApp.",
+  sub: `We collect empty PET bottles from homes and businesses across Dehradun and pay ${RATE_PET} per kg, weighed at your door. Book a pickup on WhatsApp.`,
   crumb: "PET bottle collection Dehradun",
   schemaName: "PET bottle doorstep collection",
   serviceType: "PET bottle collection",
   intro: [
     "PET is the clear, light plastic used for most water, soft-drink and juice bottles. It is one of the most recyclable plastics, and empty PET bottles have resale value as scrap.",
-    "The Stallion Metallist collects PET bottles from households, bars, restaurants, cafes, hotels and shops in Dehradun. Tell us roughly how much you have, we confirm a pickup, and we come to you. Message us for today's rate.",
+    `The Stallion Metallist collects PET bottles from households, bars, restaurants, cafes, hotels and shops in Dehradun. Tell us roughly how much you have, we confirm a pickup, and we come to you. We pay ${RATE_PET} per kg.`,
     "If you also have used aluminium cans, tell us and we will collect both on the same visit.",
   ],
+  rates: {
+    heading: "What we pay",
+    rows: [{ item: "PET bottles", rate: `${RATE_PET} per kg`, note: "Weighed at your door" }],
+  },
   stepsHeading: "How a PET pickup works",
   steps: [
     { title: "Message us", body: "Send a WhatsApp message with your area and roughly how much PET you have." },
     { title: "We confirm a pickup", body: "We tell you when our route covers your area and book your slot." },
     { title: "We weigh at your door", body: "Your bottles are weighed in front of you, so you see the weight." },
-    { title: "You get paid", body: "You are paid by weight at our current rate." },
+    { title: "You get paid", body: `You are paid ${RATE_PET} per kg for the weight we record.` },
   ],
   lists: [
     {
@@ -208,7 +220,7 @@ export const petPage: ServiceData = {
   hindi: {
     heading: "देहरादून में PET प्लास्टिक की खाली बोतलें बेचें",
     body: [
-      "पानी, कोल्ड ड्रिंक और जूस की खाली PET बोतलें घर या दुकान से उठवाएँ। हम आपके पास आकर बोतलें आपके सामने तौलते हैं और वज़न के हिसाब से भुगतान करते हैं।",
+      `पानी, कोल्ड ड्रिंक और जूस की खाली PET बोतलें घर या दुकान से उठवाएँ। हम आपके पास आकर बोतलें आपके सामने तौलते हैं और ${RATE_PET} प्रति किलो के हिसाब से भुगतान करते हैं।`,
       "पिकअप बुक करने के लिए हमें WhatsApp पर अपना इलाका और बोतलों की अंदाज़न मात्रा बताएँ।",
     ],
   },
@@ -220,7 +232,7 @@ export const petPage: ServiceData = {
     },
     {
       q: "How much do you pay for PET bottles?",
-      a: "You are paid by weight at our current rate. Message us on WhatsApp at +91 99973 48394 for today's rate.",
+      a: `We pay ${RATE_PET} per kg, weighed at your door. Rates last updated ${RATES_AS_OF}. Message us on WhatsApp at +91 99973 48394 to confirm before you book.`,
     },
     {
       q: "What is PET plastic?",
@@ -263,8 +275,7 @@ export const petPage: ServiceData = {
 export const venuesPage: ServiceData = {
   slug: "bar-restaurant-can-bottle-collection-dehradun",
   title: "Bar & Restaurant Can and Bottle Collection in Dehradun | The Stallion Metallist",
-  description:
-    "Free bins and scheduled pickups for aluminium cans and PET bottles from bars, restaurants, cafes and hotels in Dehradun. Paid on the spot at every pickup.",
+  description: `Free bins and scheduled pickups for cans and PET bottles from bars, restaurants and cafes in Dehradun. ${RATE_CAN} per can, ${RATE_PET}/kg PET, paid on the spot.`,
   h1: "Can and bottle collection for Dehradun bars and restaurants",
   sub: "Free collection bins (as stock allows), scheduled pickups for your empty aluminium cans and PET bottles, and payment on the spot at every visit.",
   crumb: "Bar and restaurant collection Dehradun",
@@ -273,8 +284,15 @@ export const venuesPage: ServiceData = {
   offer: "Free collection bins (as stock allows) and scheduled pickups; paid on the spot at every pickup.",
   intro: [
     "Bars, restaurants and cafes go through a lot of cans and bottles. We collect them from your venue so they leave as recycling instead of general waste, and you are paid for them.",
-    "Your team drops empties into our bins during service. We collect on a fixed day for your area, count the cans, weigh the PET, and pay you right then. Message us for the current rates. We currently collect aluminium cans and PET bottles.",
+    `Your team drops empties into our bins during service. We collect on a fixed day for your area, count the cans, weigh the PET, and pay you right then. Our standard rates are ${RATE_CAN} per can and ${RATE_PET} per kg of PET. We currently collect aluminium cans and PET bottles.`,
   ],
+  rates: {
+    heading: "What we pay venues",
+    rows: [
+      { item: "Aluminium cans (UBC)", rate: `${RATE_CAN} per can`, note: "Counted at pickup, paid on the spot" },
+      { item: "PET bottles", rate: `${RATE_PET} per kg`, note: "Weighed at pickup, paid on the spot" },
+    ],
+  },
   stepsHeading: "How it works for your venue",
   steps: [
     { title: "Tell us about your venue", body: "Message us your venue name, area and roughly what you go through in a typical week." },
@@ -316,7 +334,7 @@ export const venuesPage: ServiceData = {
     },
     {
       q: "How and when do you pay?",
-      a: "You are paid on the spot at every pickup. We count the cans and weigh the PET in front of you. Message us on WhatsApp at +91 99973 48394 for the current rates.",
+      a: `You are paid on the spot at every pickup. We count the cans and weigh the PET in front of you. Our standard rates are ${RATE_CAN} per can and ${RATE_PET} per kg of PET, last updated ${RATES_AS_OF}. Message us on WhatsApp at +91 99973 48394 to confirm your rate.`,
     },
     {
       q: "Do you take glass bottles?",
