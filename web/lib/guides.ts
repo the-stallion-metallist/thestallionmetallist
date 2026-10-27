@@ -94,6 +94,12 @@ export const ubcGuide: GuideData = {
       body: ["Roughly 60 to 70 standard drink cans weigh a kilo, depending on the can size."],
     },
     {
+      heading: "UBC can also mean used beverage cartons",
+      body: [
+        "You may see the same three letters used for used beverage cartons, the paper-based packs that milk and juice come in. Those are recycled at paper mills, not melted like metal. This guide and our service are about aluminium cans. We currently collect cans and PET bottles, not cartons.",
+      ],
+    },
+    {
       heading: "Selling UBC in Dehradun",
       body: [
         `The Stallion Metallist collects used aluminium cans from homes, bars, restaurants and cafes in Dehradun. We count the cans at your door and pay ${RATE_CAN} per can on collection.`,
