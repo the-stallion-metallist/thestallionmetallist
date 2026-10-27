@@ -95,6 +95,8 @@ export function BreakEven() {
       {!covered && B.left > 0 && <div className="be-mark">Line: where the month needs to be today, {fmt(today)} cans</div>}
       <GodownLine />
       <div className="be-facts">{facts.map((f) => <div key={f.l}><span className="l">{f.l}</span><span className={"v " + (f.tone ?? "")}>{f.v}</span><span className="s">{f.s}</span></div>)}</div>
+      {T.pl > 0 && <p className="be-note"><b>Plastic: {kg(T.pl)} kg this month</b>, earning {rs(T.plValue - T.paidPl)} after paying venues, so ₹{plPart.toFixed(2)} on top of every can.
+        {canPart > 0 && B.need ? <> Without plastic you would need {fmt(Math.ceil(B.costs / canPart))} cans; with it, {fmt(B.need)}.</> : null}</p>}
       {c.phone ? <details className="be-more"><summary>How this is worked out</summary><p className="be-note">{note}</p></details> : <p className="be-note">{note}</p>}
     </div>
   );
