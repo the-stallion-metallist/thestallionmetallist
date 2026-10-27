@@ -647,6 +647,27 @@ details.fold>summary{list-style:none;cursor:pointer;display:flex;align-items:bas
 .adm .be-note{margin:0;font-size:13px;color:var(--muted)}
 .adm .be-more summary{cursor:pointer;font-size:13.5px;font-weight:600;color:var(--copper-dk);min-height:40px;display:flex;align-items:center}
 .adm .be-more .be-note{margin-top:6px}
+/* break-even: one money bar, cans (copper) + plastic (sea-glass teal), a key, and compact rows */
+.adm{--pet:#3f7480}
+.adm .be-top{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 16px}
+.adm .be-money{font-size:15px;color:var(--muted)}
+.adm .be-money b{font:600 20px/1 var(--f-disp);color:var(--ink);margin-right:4px;font-variant-numeric:tabular-nums}
+.adm .be-pct.ok{color:var(--good)}
+.adm .be-bar i.pl{background:var(--pet);min-width:4px;border-radius:0 99px 99px 0;box-shadow:-2px 0 0 var(--card)}
+.adm .be-key{display:flex;flex-wrap:wrap;align-items:center;gap:6px 18px;font-size:12.5px;color:var(--muted);margin-top:-2px}
+.adm .be-key span{display:inline-flex;align-items:center;gap:6px}
+.adm .be-key b{color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums}
+.adm .be-key i{width:10px;height:10px;border-radius:3px;background:var(--copper);flex:none}
+.adm .be-key i.pl{background:var(--pet)}
+.adm .be-key i.ln{width:3px;height:12px;border-radius:2px;background:var(--ink)}
+.adm .be-key .mk{margin-left:auto}
+.adm .be-rows{display:flex;flex-direction:column}
+.adm .be-rows:empty{display:none}
+.adm .be-rows>div{display:grid;grid-template-columns:120px minmax(0,1fr) auto;gap:4px 16px;align-items:baseline;padding:11px 0;border-top:1px solid var(--line-2);font-size:13.5px}
+.adm .be-rows .k{font-weight:600;color:var(--ink)}
+.adm .be-rows .d{color:var(--muted)}
+.adm .be-rows .d b{color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums}
+@media (max-width:599px){.adm .be-key .mk{margin-left:0}.adm .be-rows>div{grid-template-columns:minmax(0,1fr) auto}.adm .be-rows .d{grid-column:1/-1;order:3}}
 @media (max-width:880px){
   .adm .be{margin-bottom:0}
   .adm .be{gap:10px}

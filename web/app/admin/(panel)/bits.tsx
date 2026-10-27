@@ -54,17 +54,19 @@ export function priceNote(c: ReturnType<typeof usePanel>) {
 }
 
 // Cash sitting in the godown: unsold cans and plastic, what they are worth at the last sale prices, and what was paid for them.
-function GodownLine() {
+function GodownRow() {
   const c = usePanel();
   const now = godownOn(c.pickups, c.sales, c.set, null, null), cans = now.cans, pl = now.pl;
   if (cans <= 0 && pl <= 0) return null;
   const worth = (cans / c.set.cansPerKg) * c.vset.ubcRate + (c.vset.plasticSale ? pl * c.vset.plasticSale : 0), paid = cans * c.set.canRate + pl * c.set.plasticBuy;
-  return <p className="note-bar" style={{ marginTop: 12, fontSize: 13 }}>
-    {!c.price.ubcSale && <><b>No cans sold yet, so ₹{c.vset.ubcRate}/kg is a guess.</b> Update the sale rate in Settings after each buyer quote. </>}
-    In the godown: {fmt(cans)} cans (≈{kg(cans / c.set.cansPerKg)} kg){pl > 0 ? ` and ${kg(pl)} kg plastic` : ""}, worth about {rs(worth)} at the last sale prices ({priceNote(c)}). About {rs(paid)} was paid to venues for it. <Link className="linkb" href="/admin/stock">Stock &amp; sales</Link></p>;
+  return <div><span className="k">In the godown</span>
+    <span className="d"><b>{fmt(cans)} cans</b> (≈{kg(cans / c.set.cansPerKg)} kg){pl > 0 ? <> and <b>{kg(pl)} kg plastic</b></> : null}, worth about <b>{rs(worth)}</b>. About {rs(paid)} was paid to venues for it.
+      {!c.price.ubcSale && <> No cans sold yet, so ₹{c.vset.ubcRate}/kg is a guess.</>}</span>
+    <Link className="linkb" href="/admin/stock">Stock &amp; sales</Link></div>;
 }
 
-// Break-even for this month: cans so far against the cans needed to cover salaries, rent and running costs.
+// Break-even for this month: one bar for the month's costs, filled by what cans earn (copper) and what plastic adds (teal),
+// both after paying venues. In cans it reads "cans so far of cans needed": the same share, since each can is valued with its plastic.
 export function BreakEven() {
   const c = usePanel(); const p = c.now;
   const T = totals(p, c.pickups, c.vmap, c.vset);
@@ -73,31 +75,45 @@ export function BreakEven() {
     + c.expenses.filter((e) => !e.deleted && inP(e.d, p) && e.category !== "Salaries" && e.category !== "Rent").reduce((a, e) => a + Number(e.amount), 0);
   const B = breakEven(p, T, c.vset, { salaries, running });
   const mo = MONL[+p.key.slice(5, 7) - 1], last = dnice(p.end);
-  if (!B.need) return <div className="card be"><div className="be-h"><h2>Break-even, {mo}</h2></div><p className="muted">At today&apos;s rates a can earns nothing after the venue is paid. Check the sale rate and payouts in Settings.</p><GodownLine /></div>;
-  const covered = T.cans >= B.need, scale = Math.max(B.need, T.cans), pct = Math.min(100, Math.round((T.cans / B.need) * 100));
+  const godown = <GodownRow />;
+  if (!B.need) return <div className="card be"><div className="be-h"><h2>Break-even, {mo}</h2></div><p className="muted">At today&apos;s rates a can earns nothing after the venue is paid. Check the sale rate and payouts in Settings.</p><div className="be-rows">{godown}</div></div>;
+  const canEarn = Math.max(0, T.canValue - T.paidV), plEarn = Math.max(0, T.plValue - T.paidPl), earned = canEarn + plEarn;
+  const covered = T.cans >= B.need, scale = Math.max(B.costs, earned), pct = Math.min(100, Math.round((T.cans / B.need) * 100));
   const today = Math.round((B.need * B.elapsed) / p.days); // where the month needs to be by today
+  const w = (v: number) => `${(v / scale) * 100}%`;
+  const canPart = T.cans ? canEarn / T.cans : 0, plPart = T.cans ? plEarn / T.cans : 0;
   const facts = [
     { l: "Pace", v: `${fmt(B.pace)} a day`, s: `About ${fmt(B.projected)} by ${last}` },
     covered ? { l: "Needed from now", v: "Covered", s: "Every can from here is profit", tone: "pos" }
       : { l: "Needed from now", v: B.perDay != null ? `${fmt(B.perDay)} a day` : "–", s: B.left ? `For the ${B.left} day${B.left === 1 ? "" : "s"} left` : "Month is over", tone: B.perDay && B.perDay > B.pace * 1.5 ? "neg" : "" },
     { l: "Profit so far", v: rs(B.profitNow), s: `At this pace, ${rs(B.profitEnd)} by ${last}`, tone: B.profitNow < 0 ? "neg" : "pos" },
   ];
-  const canPart = T.cans ? (T.canValue - T.paidV) / T.cans : 0, plPart = T.cans ? (T.plValue - T.paidPl) / T.cans : 0;
-  const note = <>Each can earns ₹{B.perCan.toFixed(2)} after paying the venue{T.pl ? <>: ₹{canPart.toFixed(2)} from the can and ₹{plPart.toFixed(2)} from the plastic that comes with it ({kg(T.pl)} kg this month)</> : ""}. Prices: {priceNote(c)}. Monthly costs {rs(B.costs)}: salaries {rs(salaries)} · rent and fixed {rs(Number(c.set.fixedOther || 0))} · diesel and running {running ? rs(running) : "none yet"}. Profit so far spreads fixed costs over the month. <Link className="linkb" href="/admin/settings">Change costs</Link></>;
+  const note = <>Each can earns ₹{B.perCan.toFixed(2)} after paying the venue: ₹{canPart.toFixed(2)} from the can{T.pl ? <> and ₹{plPart.toFixed(2)} from the plastic that comes with it</> : null}. Prices: {priceNote(c)}. Monthly costs {rs(B.costs)}: salaries {rs(salaries)}, rent and fixed {rs(Number(c.set.fixedOther || 0))}, diesel and running {running ? rs(running) : "none yet"}. Profit so far spreads fixed costs over the month. <Link className="linkb" href="/admin/settings">Change costs</Link></>;
   return (
     <div className="card be">
-      <div className="be-h"><h2>Break-even, {mo}</h2><span className="hint">Can this month pay its salaries, rent and running costs?</span><span className="be-pct">{pct}%</span></div>
-      <div className="be-v"><b>{fmt(T.cans)}</b> of {fmt(B.need)} cans</div>
-      <div className="be-bar" role="img" aria-label={`${fmt(T.cans)} of ${fmt(B.need)} cans needed this month`}>
-        <i className={covered ? "ok" : ""} style={{ width: `${(T.cans / scale) * 100}%` }} />
-        {!covered && B.left > 0 && <b style={{ left: `${(today / scale) * 100}%` }} title={`${fmt(today)} cans needed by today`} />}
+      <div className="be-h"><h2>Break-even, {mo}</h2><span className="hint">Can this month pay its salaries, rent and running costs?</span><span className={"be-pct" + (covered ? " ok" : "")}>{pct}%</span></div>
+      <div className="be-top">
+        <div className="be-v"><b>{fmt(T.cans)}</b> of {fmt(B.need)} cans</div>
+        <div className="be-money"><b>{rs(earned)}</b> of {rs(B.costs)} costs</div>
       </div>
-      {!covered && B.left > 0 && <div className="be-mark">Line: where the month needs to be today, {fmt(today)} cans</div>}
-      <GodownLine />
+      <div className="be-bar" role="img" aria-label={`${pct}% of this month's costs covered: cans earned ${rs(canEarn)}, plastic ${rs(plEarn)}, of ${rs(B.costs)}`}>
+        <i className={covered ? "ok" : ""} style={{ width: w(canEarn) }} />
+        {plEarn > 0 && <i className="pl" style={{ left: w(canEarn), width: w(plEarn) }} />}
+        {!covered && B.left > 0 && <b style={{ left: `${(today / B.need) * (B.costs / scale) * 100}%` }} title={`${fmt(today)} cans needed by today`} />}
+      </div>
+      <div className="be-key">
+        <span><i />Cans <b>{rs(canEarn)}</b></span>
+        {T.pl > 0 && <span><i className="pl" />Plastic <b>{rs(plEarn)}</b> from {kg(T.pl)} kg</span>}
+        {!covered && B.left > 0 && <span className="mk"><i className="ln" />Where the month should be today: {fmt(today)} cans</span>}
+      </div>
       <div className="be-facts">{facts.map((f) => <div key={f.l}><span className="l">{f.l}</span><span className={"v " + (f.tone ?? "")}>{f.v}</span><span className="s">{f.s}</span></div>)}</div>
-      {T.pl > 0 && <p className="be-note"><b>Plastic: {kg(T.pl)} kg this month</b>, earning {rs(T.plValue - T.paidPl)} after paying venues, so ₹{plPart.toFixed(2)} on top of every can.
-        {canPart > 0 && B.need ? <> Without plastic you would need {fmt(Math.ceil(B.costs / canPart))} cans; with it, {fmt(B.need)}.</> : null}</p>}
-      {c.phone ? <details className="be-more"><summary>How this is worked out</summary><p className="be-note">{note}</p></details> : <p className="be-note">{note}</p>}
+      <div className="be-rows">
+        {T.pl > 0 && <div><span className="k">Plastic</span>
+          <span className="d"><b>{kg(T.pl)} kg</b> this month adds <b>₹{plPart.toFixed(2)}</b> to every can.{canPart > 0 ? <> Without it you would need <b>{fmt(Math.ceil(B.costs / canPart))}</b> cans, not {fmt(B.need)}.</> : null}</span>
+          <Link className="linkb" href="/admin/money">Money</Link></div>}
+        {godown}
+      </div>
+      <details className="be-more"><summary>How this is worked out</summary><p className="be-note">{note}</p></details>
     </div>
   );
 }
