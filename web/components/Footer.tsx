@@ -50,6 +50,7 @@ export default function Footer() {
           <a href="/aluminium-can-collection-dehradun">Aluminium cans (UBC)</a>
           <a href="/pet-bottle-collection-dehradun">PET bottles</a>
           <a href="/bar-restaurant-can-bottle-collection-dehradun">Bars and restaurants</a>
+          <a href="/learn">Guides</a>
         </div>
         <div className="col">
           <span className="h">Grades</span>

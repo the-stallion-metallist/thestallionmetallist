@@ -22,9 +22,12 @@ export type GuideData = {
   faqs: ServiceFaq[];
   related: { label: string; href: string; blurb: string }[];
   cta: { heading: string; sub: string; primary: ServiceLink; secondary: ServiceLink };
+  sources?: { label: string; href: string }[]; // shown under the FAQ
+  ogHeading?: string; // short headline for the share card (posts only)
+  ogSub?: string;
 };
 
-const REL = {
+export const REL = {
   cans: {
     label: "Sell aluminium cans (UBC)",
     href: "/aluminium-can-collection-dehradun",
@@ -91,7 +94,9 @@ export const ubcGuide: GuideData = {
     },
     {
       heading: "How many cans make a kilo",
-      body: ["Roughly 60 to 70 standard drink cans weigh a kilo, depending on the can size."],
+      body: [
+        "It depends on the can. A new 330 ml can weighs about 9.5 to 10 g, so a kilo holds roughly 100. A 500 ml can weighs about 12 to 13 g, so a kilo holds roughly 80. Used cans from collection weigh more, and our working figure is about 65 to the kilo.",
+      ],
     },
     {
       heading: "UBC can also mean used beverage cartons",
@@ -123,6 +128,11 @@ export const ubcGuide: GuideData = {
       q: "Where can I sell used cans in Dehradun?",
       a: `The Stallion Metallist collects used aluminium cans from your door across Dehradun and pays ${RATE_CAN} per can on collection.`,
     },
+  ],
+  sources: [
+    { label: "Hydro: Remelting and recycling", href: "https://drp.hydro.com/en-AT/aluminium/products/extruded-profiles/services/remelting-and-recycling/" },
+    { label: "European Commission LIFE project: Recycling aluminium", href: "https://webgate.ec.europa.eu/life/publicWebsite/project/LIFE96-ENV-B-000477/recycling-aluminium" },
+    { label: "Cantech: Ball reduces weight of beverage cans (2012)", href: "https://www.cantechonline.com/news/3522/ball-reduces-weight-of-beverage-cans/" },
   ],
   related: [REL.cans, REL.venues, REL.pet],
   cta: {

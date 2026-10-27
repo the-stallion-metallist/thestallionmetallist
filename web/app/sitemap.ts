@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { site } from "@/lib/content";
 import { products } from "@/lib/products";
+import { allGuides } from "@/lib/posts";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();
@@ -9,16 +10,16 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/aluminium-can-collection-dehradun",
     "/pet-bottle-collection-dehradun",
     "/bar-restaurant-can-bottle-collection-dehradun",
-    "/learn/what-is-ubc-scrap",
-    "/learn/how-to-recycle-pet-bottles-dehradun",
+    "/learn",
     "/non-ferrous-scrap",
     "/services",
     "/about",
     "/contact",
   ];
   const productPaths = products.map((p) => `/${p.slug}`);
+  const guidePaths = allGuides.map((g) => `/${g.slug}`);
 
-  return [...staticPaths, ...productPaths].map((path) => ({
+  return [...staticPaths, ...guidePaths, ...productPaths].map((path) => ({
     url: `${site.url}${path === "/" ? "" : path}`,
     lastModified: now,
     changeFrequency: "monthly",

@@ -31,6 +31,7 @@ export default function GuidePage({ d }: { d: GuideData }) {
     "@graph": [
       breadcrumbJsonLd([
         { name: "Home", path: "/" },
+        { name: "Guides", path: "/learn" },
         { name: d.crumb, path: `/${d.slug}` },
       ]),
       {
@@ -65,7 +66,11 @@ export default function GuidePage({ d }: { d: GuideData }) {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
-      <PageHero h1={d.h1} sub={d.sub} crumbs={[{ label: "Home", href: "/" }, { label: d.crumb }]} />
+      <PageHero
+        h1={d.h1}
+        sub={d.sub}
+        crumbs={[{ label: "Home", href: "/" }, { label: "Guides", href: "/learn" }, { label: d.crumb }]}
+      />
 
       <article className="gd">
         <div className="wrap">
@@ -96,6 +101,21 @@ export default function GuidePage({ d }: { d: GuideData }) {
             <h2>Common questions</h2>
             <FaqList items={d.faqs} />
           </div>
+
+          {d.sources && d.sources.length > 0 && (
+            <div className="gd-block">
+              <h2>Sources</h2>
+              <ul className="gd-src">
+                {d.sources.map((s) => (
+                  <li key={s.href}>
+                    <a href={s.href} target="_blank" rel="noopener noreferrer">
+                      {s.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           <div className="gd-block">
             <h2>Next steps</h2>
@@ -140,6 +160,12 @@ export default function GuidePage({ d }: { d: GuideData }) {
         .gd-list li::before { content: ""; position: absolute; left: 0; top: 0.8em; width: 0.6rem; height: 2px; background: var(--copper); }
 
         .gd-block { margin-top: clamp(3rem, 6vw, 4.6rem); }
+        .gd-src { list-style: none; margin: 0; padding: 0; max-width: 68ch; border-top: 1px solid var(--line); }
+        .gd-src li { border-bottom: 1px solid var(--line); }
+        .gd-src a { display: block; padding: 0.8rem 0; min-height: 44px; color: var(--ink-soft); font-size: 0.97rem;
+          line-height: 1.45; text-decoration: none; transition: color .2s; overflow-wrap: anywhere; }
+        .gd-src a:hover { color: var(--copper); }
+        .gd-src a:focus-visible { outline: 2px solid var(--copper); outline-offset: 3px; border-radius: 4px; }
         .gd-rel { list-style: none; margin: 0; padding: 0; display: grid;
           grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); column-gap: 2.4rem; border-top: 1px solid var(--line); }
         .gd-rel a { display: flex; flex-direction: column; gap: 0.2rem; padding: 1.1rem 0; min-height: 44px;

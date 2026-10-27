@@ -62,6 +62,11 @@ const REL = {
     href: "/bar-restaurant-can-bottle-collection-dehradun",
     blurb: "Free bins and scheduled pickups for venues.",
   },
+  guides: {
+    label: "All guides",
+    href: "/learn",
+    blurb: "Researched explainers on cans and PET bottles, with sources.",
+  },
   ubcGuide: {
     label: "What is UBC scrap?",
     href: "/learn/what-is-ubc-scrap",
@@ -146,7 +151,7 @@ export const cansPage: ServiceData = {
     },
     {
       q: "How many cans make a kilo?",
-      a: "Roughly 60 to 70 standard drink cans weigh a kilo, depending on the can size. We pay per can, so you do not need to weigh them.",
+      a: "It depends on the can size. A new 330 ml can weighs about 9.5 to 10 g (roughly 100 to a kilo) and a 500 ml can about 12 to 13 g (roughly 80 to a kilo). Used cans weigh more, and our working figure is about 65 to the kilo. We pay per can, so you do not need to weigh them.",
     },
     {
       q: "What kind of cans do you accept?",
@@ -173,7 +178,7 @@ export const cansPage: ServiceData = {
       a: "Open the app at app.thestallionmetallist.com, tell us roughly how many cans you have and pick a slot. You can also message us on WhatsApp at +91 99973 48394.",
     },
   ],
-  related: [REL.pet, REL.venues, REL.ubcGuide],
+  related: [REL.pet, REL.venues, REL.ubcGuide, REL.guides],
   cta: {
     heading: "Got cans? Get paid.",
     sub: "Free doorstep pickup across Dehradun. Paid on collection.",
@@ -269,7 +274,7 @@ export const petPage: ServiceData = {
       a: `We collect across Dehradun, including ${AREAS}. If your area is not listed, message us and we will tell you when we can reach it.`,
     },
   ],
-  related: [REL.cans, REL.venues, REL.petGuide],
+  related: [REL.cans, REL.venues, REL.petGuide, REL.guides],
   cta: {
     heading: "Got bottles? Get paid.",
     sub: "Doorstep PET bottle pickup across Dehradun. Paid by weight.",
@@ -359,7 +364,7 @@ export const venuesPage: ServiceData = {
       a: "Message us on WhatsApp with your venue name and area. We confirm your bin drop, as stock allows, and your collection day.",
     },
   ],
-  related: [REL.cans, REL.pet, REL.ubcGuide],
+  related: [REL.cans, REL.pet, REL.ubcGuide, REL.guides],
   cta: {
     heading: "Turn your empties into a regular payout.",
     sub: "Free bins. Scheduled pickups. Paid on the spot.",
