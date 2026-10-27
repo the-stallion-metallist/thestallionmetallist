@@ -355,7 +355,7 @@ export function AddVenue() {
         </div>}
         <div className="two">
           <Field id="vRate" label="Payout per can (₹)"><input id="vRate" name="rate" type="number" step="any" defaultValue={c.set.canRate} /></Field>
-          <Field id="vPr" label="Plastic payout (₹/kg)"><input id="vPr" name="pr" type="number" step="any" defaultValue={c.set.plasticBuy} /></Field>
+          <Field id="vPr" label="Plastic payout (₹/kg)"><input id="vPr" name="pr" type="number" step="any" placeholder={`Standard ₹${c.set.plasticBuy}`} /></Field>
         </div>
         <div className="two">
           <Field id="vC" label="Contact name"><input id="vC" name="c" /></Field>

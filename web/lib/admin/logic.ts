@@ -21,6 +21,7 @@ export type Pickup = {
   src: "Bin" | "App" | "Walk-in"; staff: string; fill: string; trip: string; deleted: boolean;
   created_at: string; created_by: string; updated_by: string | null;
   app_id?: string | null; app_payout?: number | null; // household pickups copied from the customer app
+  plastic_rate?: number | null; // ₹/kg paid for this pickup's plastic, kept so a later rate change doesn't rewrite it
 };
 export type BinChange = { id: number; d: string; venue_id: number; change: 1 | -1; steel: number; plastic: number; note: string; created_by: string };
 export type Payment = { id: number; d: string; venue_id: number; amount: number; mode: string; note: string; pickup_id: number | null; deleted: boolean; created_by: string };
@@ -145,10 +146,13 @@ export function lowTxt(s: Stats) {
 }
 
 // ---------- money ----------
-export function pickupCost(p: Pick<Pickup, "venue_id" | "cans" | "plastic_kg"> & { app_payout?: number | null }, venues: Map<number, Venue>, set: Settings) {
+// ₹/kg for a pickup's plastic: the rate it was paid at, else the venue's rate, else the Settings default.
+export const plRate = (p: { plastic_rate?: number | null }, v: Venue | null | undefined, set: Settings) =>
+  p.plastic_rate != null ? Number(p.plastic_rate) : Number((v && v.plastic_rate) || set.plasticBuy);
+export function pickupCost(p: Pick<Pickup, "venue_id" | "cans" | "plastic_kg"> & { app_payout?: number | null; plastic_rate?: number | null }, venues: Map<number, Venue>, set: Settings) {
   if (p.venue_id == null) return p.app_payout != null ? Number(p.app_payout) : p.cans * set.canRate;
   const v = venues.get(p.venue_id)!;
-  return p.cans * Number(v.can_rate) + Number(p.plastic_kg || 0) * Number(v.plastic_rate || set.plasticBuy);
+  return p.cans * Number(v.can_rate) + Number(p.plastic_kg || 0) * plRate(p, v, set);
 }
 
 export function totals(p: Period, pickups: Pickup[], venues: Map<number, Venue>, set: Settings) {
@@ -158,7 +162,7 @@ export function totals(p: Period, pickups: Pickup[], venues: Map<number, Venue>,
   for (const x of ps) {
     const v = x.venue_id != null ? venues.get(x.venue_id) : null;
     paidV += v ? x.cans * Number(v.can_rate) : x.app_payout != null ? Number(x.app_payout) : x.cans * set.canRate;
-    paidPl += Number(x.plastic_kg || 0) * Number((v && v.plastic_rate) || set.plasticBuy);
+    paidPl += Number(x.plastic_kg || 0) * plRate(x, v, set);
   }
   const canValue = (cans / set.cansPerKg) * set.ubcRate, plValue = set.plasticSale ? pl * set.plasticSale : 0;
   const n = ps.filter((x) => x.cans > 0).length;
@@ -261,7 +265,8 @@ export const visitCost = (set: Settings, addKm: number, addMin: number) => addKm
 // What a venue's cans and plastic earn after paying the venue, in a period.
 export function venueEarn(v: Venue, ps: Pickup[], set: Settings) {
   const cans = ps.reduce((a, x) => a + x.cans, 0), kgs = ps.reduce((a, x) => a + Number(x.plastic_kg || 0), 0);
-  return { cans, kgs, earn: cans * (set.ubcRate / set.cansPerKg - Number(v.can_rate)) + (set.plasticSale ? kgs * (set.plasticSale - Number(v.plastic_rate || set.plasticBuy)) : 0) };
+  const plPaid = ps.reduce((a, x) => a + Number(x.plastic_kg || 0) * plRate(x, v, set), 0);
+  return { cans, kgs, earn: cans * (set.ubcRate / set.cansPerKg - Number(v.can_rate)) + (set.plasticSale ? kgs * set.plasticSale - plPaid : 0) };
 }
 
 // ---------- collection days ----------
