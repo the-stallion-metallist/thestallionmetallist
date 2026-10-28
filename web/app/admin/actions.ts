@@ -11,7 +11,7 @@ export async function refreshRoads(): Promise<{ ok?: number; err?: string }> {
   const db = adminDbSecret();
   const [{ data: set }, { data: venues }] = await Promise.all([
     db.from("settings").select("data").eq("id", 1).single(),
-    db.from("venues").select("lat, lng").not("lat", "is", null).neq("status", "Pulled"),
+    db.from("venues").select("lat, lng").not("lat", "is", null).neq("status", "Pulled").eq("deleted", false), // removed venues are not routed
   ]);
   const god = (set?.data?.godown ?? [30.27847, 78.00318]) as [number, number];
   const key = (p: [number, number]) => p[0].toFixed(5) + "," + p[1].toFixed(5);
@@ -45,7 +45,7 @@ export async function syncAppPickups(force = false): Promise<{ added?: number; u
     if (error) return { err: "Couldn't read the app: " + error.message };
     rows.push(...(data as AppPickup[])); if (!data || data.length < 1000) break;
   }
-  const { data: mine } = await db.from("pickups").select("id, app_id, d, cans, app_payout, deleted").not("app_id", "is", null);
+  const { data: mine } = await db.from("pickups").select("id, app_id, d, cans, app_payout, deleted, updated_by").not("app_id", "is", null);
   const byApp = new Map((mine ?? []).map((p) => [p.app_id as string, p]));
   const ist = (t: string) => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(new Date(t));
   let added = 0, updated = 0, removed = 0;
@@ -59,6 +59,8 @@ export async function syncAppPickups(force = false): Promise<{ added?: number; u
     if (!have) {
       const { error } = await db.from("pickups").insert({ ...vals, venue_id: null, src: "App", app_id: r.id, created_by: "App sync" });
       if (!error) added++;
+    } else if (have.deleted && have.updated_by !== "App sync") {
+      continue; // a person on the team deleted this pickup: leave it deleted (only one the sync itself removed comes back if the app collects it again)
     } else if (have.deleted || have.d !== vals.d || have.cans !== vals.cans || Number(have.app_payout) !== Number(vals.app_payout)) {
       await db.from("pickups").update({ ...vals, deleted: false, updated_by: "App sync" }).eq("id", have.id); updated++;
     }

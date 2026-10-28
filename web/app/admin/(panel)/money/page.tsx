@@ -4,7 +4,7 @@ import { usePanel } from "../Panel";
 import { Empty, I } from "../icons";
 import { PhFold, PhHead, PhRow, SplitBar, priceNote } from "../bits";
 import { EditExpense, EditPayment, EditSale } from "../forms2";
-import { CATS, collectionDays, dieselOf, dnice, fmt, godownOn, inP, saleMoney, itemLabel, kg, lastUnitCost, monthOf, rs, rsu, staffDue, totals } from "@/lib/admin/logic";
+import { CATS, collectionDays, dieselOf, dnice, fmt, godownOn, inP, saleMoney, saleTransport, itemLabel, kg, lastUnitCost, monthOf, rs, rsu, staffDue, totals } from "@/lib/admin/logic";
 
 export default function Money() {
   const c = usePanel(); const p = c.per;
@@ -13,10 +13,11 @@ export default function Money() {
   const exps = c.expenses.filter((e) => !e.deleted && inP(e.d, p)), byCat: Record<string, number> = {}; for (const e of exps) byCat[e.category] = (byCat[e.category] || 0) + Number(e.amount);
   const salesRows = c.sales.filter((s) => !s.deleted && inP(s.d, p)).map((s) => saleMoney(s, c.set));
   const salesIn = salesRows.reduce((a, m) => a + m.taxable, 0), gstIn = salesRows.reduce((a, m) => a + m.gst, 0); // GST is not income: it is set aside to pay the government
-  const profit = T.canValue + T.plValue - T.paid - tripCost - exps.reduce((a, e) => a + Number(e.amount), 0);
+  const saleTr = saleTransport(c.sales, p); // shipping the stock sold, from the Transport box on each sale
+  const profit = T.canValue + T.plValue - T.paid - tripCost - saleTr - exps.reduce((a, e) => a + Number(e.amount), 0);
   const sname = (id: number | null) => c.staff.find((s) => s.id === id)?.name ?? "";
   // unit costs: every cost in the period (diesel + all expenses, as in Profit) spread over the cans and pickups
-  const costAll = tripCost + exps.reduce((a, e) => a + Number(e.amount), 0), catSum = (k: string) => exps.filter((e) => e.category === k).reduce((a, e) => a + Number(e.amount), 0);
+  const costAll = tripCost + saleTr + exps.reduce((a, e) => a + Number(e.amount), 0), catSum = (k: string) => exps.filter((e) => e.category === k).reduce((a, e) => a + Number(e.amount), 0);
   const costCan = T.cans ? costAll / T.cans : null, costPick = T.n ? costAll / T.n : null, profitCan = T.cans ? (T.canValue + T.plValue - T.paid - costAll) / T.cans : null;
   const plMargin = c.vset.plasticSale && T.pl ? (T.plValue - T.paidPl) / T.pl : null;
   // plastic next to cans: what it earns after paying venues, its share, and what each can earns with its plastic
@@ -37,18 +38,18 @@ export default function Money() {
   const cEarn = Math.max(0, T.canValue - T.paidV), pEarn = Math.max(0, T.plValue - T.paidPl), earnedAll = cEarn + pEarn;
   const coveredAll = costAll > 0 && earnedAll >= costAll, pctAll = costAll ? Math.round((earnedAll / costAll) * 100) : null;
   const earnCard = <div className="card be">
-    <div className="be-h"><h2>Earnings against costs, {p.label}</h2><span className="hint">Cans and plastic after paying venues, against diesel and the expenses entered</span>{pctAll != null && <span className={"be-pct" + (coveredAll ? " ok" : "")}>{pctAll}%</span>}</div>
+    <div className="be-h"><h2>Earnings against costs, {p.label}</h2><span className="hint">Cans and plastic after paying venues, against diesel, sale transport and the expenses entered</span>{pctAll != null && <span className={"be-pct" + (coveredAll ? " ok" : "")}>{pctAll}%</span>}</div>
     <div className="be-top"><div className="be-v"><b>{rs(earnedAll)}</b> earned</div><div className="be-money"><b>{rs(costAll)}</b> costs entered</div></div>
     <SplitBar canEarn={cEarn} plEarn={pEarn} plKg={T.pl} target={costAll} label={`Earned ${rs(earnedAll)} (cans ${rs(cEarn)}, plastic ${rs(pEarn)}) against ${rs(costAll)} of costs entered`}
       mark={coveredAll ? costAll : null} markNote={`Costs entered end here: ${rs(costAll)}`} />
-    {!exps.some((e) => e.category === "Salaries") && <p className="be-note">No salaries entered for {p.label} yet, so costs are only diesel{exps.length ? " and the expenses entered" : ""}.</p>}
+    {!exps.some((e) => e.category === "Salaries") && <p className="be-note">No salaries entered for {p.label} yet, so costs are only diesel{saleTr ? ", sale transport" : ""}{exps.length ? " and the expenses entered" : ""}.</p>}
   </div>;
   const allBins = c.venues.reduce((a, v) => a + v.steel + v.plastic_bins, 0), cpb = allBins ? (T.cans / allBins) * (p.all ? 30 / p.days : 1) : 0, perBin = cpb * margin;
   const owed = c.venues.map((v) => c.pay(v)), od = owed.filter((s) => s.st === "overdue");
   const payNote = c.set.goLive ? "" : " Payouts are tracked from the go-live day (set in Settings).";
 
   if (c.phone) { // phone: the three money jobs, a plain summary, and where to look next
-    const expTot = exps.reduce((a, e) => a + Number(e.amount), 0), costs = tripCost + expTot, owedTot = owed.reduce((a, s) => a + s.owed, 0), owedN = owed.filter((s) => s.owed > 0).length;
+    const expTot = exps.reduce((a, e) => a + Number(e.amount), 0), costs = tripCost + saleTr + expTot, owedTot = owed.reduce((a, s) => a + s.owed, 0), owedN = owed.filter((s) => s.owed > 0).length;
     const g = godownOn(c.pickups, c.sales, c.set, null, null), cansNow = g.cans, gWorth = (g.cans / c.set.cansPerKg) * c.vset.ubcRate + g.pl * (c.vset.plasticSale ?? 0);
     const mo = monthOf(c.today), active = c.staff.filter((s) => s.active), salSet = active.filter((s) => s.salary).length;
     const toPay = active.reduce((a, s) => a + Math.max(0, staffDue(s, mo, c.marks, c.advances, c.expenses).pay ?? 0), 0);
@@ -63,7 +64,7 @@ export default function Money() {
       <div className="ph-card"><div className="ph-stmt">
         <div><span>Cans and plastic are worth<small>{fmt(T.cans)} cans at ₹{c.vset.ubcRate}/kg{T.pl ? ` · ${kg(T.pl)} kg plastic at ₹${c.vset.plasticSale ?? 0}/kg` : ""}</small></span><b>{rs(T.canValue + T.plValue)}</b></div>
         <div><span>Paid to venues</span><b className="neg">{rs(-T.paid)}</b></div>
-        <div><span>Diesel and expenses{!costs && <small>None yet</small>}</span><b className={costs ? "neg" : "muted"}>{costs ? rs(-costs) : "₹0"}</b></div>
+        <div><span>Diesel, sale transport and expenses{!costs && <small>None yet</small>}</span><b className={costs ? "neg" : "muted"}>{costs ? rs(-costs) : "₹0"}</b></div>
         <div className="tot"><span>Left over</span><b className={profit < 0 ? "neg" : "pos"}>{rs(profit)}</b></div>
       </div>{!expTot && <p className="muted" style={{ fontSize: 13.5, marginTop: 10 }}>Add salaries and rent as expenses to see real profit. Diesel is counted for each collection day.</p>}</div>
       <div className="ph-list">
@@ -100,6 +101,7 @@ export default function Money() {
           <div className="srow"><span className="lbl">Paid to venues for cans<span className="note">Mostly ₹{c.set.canRate.toFixed(2)} per can</span></span><span className="a neg">{rs(-T.paidV)}</span></div>
           <div className="srow"><span className="lbl">Paid for plastic<span className="note">Per kg, depends on venue</span></span><span className="a neg">{rs(-T.paidPl)}</span></div>
           <div className="srow"><span className="lbl">Diesel<span className="note">{days.length} collection day{days.length === 1 ? "" : "s"}</span></span><span className="a neg">{rs(-tripCost)}</span></div>
+          {saleTr > 0 && <div className="srow"><span className="lbl">Transport on sales<span className="note">Shipping the stock sold</span></span><span className="a neg">{rs(-saleTr)}</span></div>}
           {CATS.map((k) => { const who = k === "Salaries" ? [...new Set(exps.filter((e) => e.category === k).map((e) => sname(e.staff_id)))].join(", ") : k === "Bins & bags" ? exps.filter((e) => e.category === k && e.qty).map(itemLabel).join(", ") : "";
             return <div key={k} className="srow"><span className="lbl">{k}{who && <span className="note">{who}</span>}</span><span className={"a" + (byCat[k] ? " neg" : "")}>{byCat[k] ? rs(-byCat[k]) : <span className="missing">Not entered</span>}</span></div>; })}
           <div className="srow tot"><span className="lbl">Profit</span><span className={"a " + (profit < 0 ? "neg" : "pos")}>{rs(profit)}</span></div>

@@ -37,6 +37,7 @@ export type Settings = {
   routeDays?: number | null; longDays?: number | null; longHours?: number | null; // route days a week, how many may run long, and how long
   otwCans?: number | null; // pick up a venue the route passes when its bins should hold at least this many cans (0 = off)
   dieselDay?: number | null; // diesel for a collection day with no trip fuel logged (₹400 when not set)
+  fuelPrice?: number | null; // ₹ per litre of the fuel put in the vehicle (₹104 until set), used to cost the fuel on a trip
 };
 
 // What each number in Settings may be. A blank, a zero or a minus in the wrong place turns every money screen into Infinity or NaN,
@@ -49,7 +50,7 @@ export const SETTING_RULES: Record<string, Rule> = {
   vehCap: { name: "Vehicle capacity", gt: 0, blank: true }, capSteel: { name: "Full steel bin holds", gt: 0 }, capPl: { name: "Full plastic bin holds", gt: 0 },
   routeHours: { name: "Route length", gt: 0, max: 24 }, stopMin: { name: "Time per stop", gt: 0, max: 240 }, traffic: { name: "Traffic buffer", min: 0 },
   fixedOther: { name: "Rent and other fixed costs", min: 0, blank: true }, kmCost: { name: "Vehicle cost per km", min: 0, blank: true }, hourCost: { name: "Route team cost per hour", min: 0, blank: true },
-  dieselDay: { name: "Diesel per collection day", min: 0, blank: true }, gstUBC: { name: "GST on cans", min: 0, max: 100, blank: true }, gstPlastic: { name: "GST on plastic", min: 0, max: 100, blank: true },
+  dieselDay: { name: "Diesel per collection day", min: 0, blank: true }, fuelPrice: { name: "Fuel price per litre", gt: 0, blank: true }, gstUBC: { name: "GST on cans", min: 0, max: 100, blank: true }, gstPlastic: { name: "GST on plastic", min: 0, max: 100, blank: true },
   routeDays: { name: "Route days a week", min: 1, max: 6, whole: true, blank: true }, longDays: { name: "Long days allowed", min: 0, max: 6, whole: true, blank: true },
   longHours: { name: "Longest day", gt: 0, max: 24, blank: true }, otwCans: { name: "Pick up on the way from", min: 0, blank: true },
 };
@@ -268,7 +269,8 @@ export type Advance = { id: number; d: string; staff_id: number; amount: number;
 export type Mark = { d: string; staff_id: number; mark: "P" | "H" | "A" };
 export const CATS = ["Salaries", "Rent", "Bins & bags", "Vehicle", "Phone & misc"] as const;
 export const ITEMS = ["Steel bin", "Plastic bin", "Garbage bags", "Other"];
-export const FUEL_RS_PER_L = 104; // petrol price used to cost a trip's fuel
+export const FUEL_RS_PER_L = 104; // the price per litre used until the real one is set in Settings
+export const fuelPrice = (set: Settings) => set.fuelPrice ?? FUEL_RS_PER_L;
 
 export const itemLabel = (e: Pick<Expense, "item" | "other" | "qty">) => {
   if (e.item === "Garbage bags") return `${fmt(e.qty)} garbage bag${e.qty === 1 ? "" : "s"}`;
@@ -320,6 +322,8 @@ export function collectionDays(pickups: Pickup[], trips: Trip[], set: Settings, 
   return [...by.values()].sort((a, b) => (a.d < b.d ? 1 : -1));
 }
 export const dieselOf = (days: CDay[]) => days.reduce((a, g) => a + g.diesel, 0);
+// What it cost to ship the stock sold in a period (the Transport box on each sale): a cost of selling, so it comes off profit.
+export const saleTransport = (sales: Sale[], p: Period) => sales.filter((s) => !s.deleted && inP(s.d, p)).reduce((a, s) => a + Number(s.transport || 0), 0);
 
 export function staffDue(s: StaffRow, mo: string, marks: Mark[], advances: Advance[], expenses: Expense[]) {
   const days = marks.filter((m) => m.staff_id === s.id && monthOf(m.d) === mo).reduce((a, m) => a + (m.mark === "P" ? 1 : m.mark === "H" ? 0.5 : 0), 0);

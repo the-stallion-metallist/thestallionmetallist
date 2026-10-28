@@ -11,6 +11,8 @@ type Ctx = ReturnType<typeof usePanel>;
 export type Errs = Record<string, string>;
 export const vname = (c: Ctx, id: number | null) => (id == null ? "Household (app)" : c.vmap.get(id)?.name ?? "Unknown venue");
 export const cansTxt = (n: number) => `${fmt(n)} can${n === 1 ? "" : "s"}`;
+// Staff to pick from: everyone active, plus anyone already on this record (a removed person stays on their old pickups when you edit them)
+const staffNames = (c: Ctx, current?: string) => [...new Set([...c.staff.filter((x) => x.active).map((x) => x.name), ...(current ? current.split(", ") : [])])];
 const pickupLabel = (c: Ctx, p: Pickup) => `${vname(c, p.venue_id)} · ${cansTxt(p.cans)}`;
 export const metaOf = (r: { created_by: string; updated_by?: string | null; created_at?: string }) =>
   `Added by ${r.created_by}${r.created_at ? " on " + dnice(r.created_at.slice(0, 10)) : ""}${r.updated_by ? ` · last edited by ${r.updated_by}` : ""}`;
@@ -132,13 +134,14 @@ function LogPickup({ venueId, rec }: { venueId?: number; rec?: Pickup }) {
         if (Object.keys(e).length) return e;
         const vals = { d: String(fd.get("d") || c.today), venue_id: app ? null : Number(fd.get("venue_id")), cans: Number(fd.get("cans")), plastic_kg: Number(fd.get("pl")) || 0,
           src: (String(fd.get("src")) || "Bin") as Pickup["src"], staff: String(fd.get("staff") || ""), fill: String(fd.get("fill") || "") };
-        return savePickup(c, vals, rec, !!fd.get("paynow"));
+        return savePickup(c, vals, rec, !!fd.get("paynow"), String(fd.get("paymode") || "Cash"));
       }}>
       {(errs) => c.phone ? <>
         {app ? <Field id="pApp" label="Venue"><input id="pApp" value="Household (app)" disabled /></Field> : <VenuePicker id="pVen" initial={rec?.venue_id ?? venueId} err={errs.venue_id} />}
         <Field id="pCans" label="Cans" err={errs.cans}><input id="pCans" name="cans" type="number" inputMode="numeric" min={0} placeholder="e.g. 180" defaultValue={rec?.cans ?? ""} /></Field>
-        <Field label="Staff on pickup"><Opts name="staff" values={c.staff.filter((s) => s.active).map((s) => s.name)} initial={rec?.staff} multi /></Field>
-        {!rec && <label className="check"><input type="checkbox" name="paynow" defaultChecked /> Paid the venue on the spot</label>}
+        <Field label="Staff on pickup"><Opts name="staff" values={staffNames(c, rec?.staff)} initial={rec?.staff} multi /></Field>
+        {!rec && <><label className="check"><input type="checkbox" name="paynow" defaultChecked /> Paid the venue on the spot</label>
+          <Field label="Paid by"><Opts name="paymode" values={["Cash", "UPI", "Bank"]} initial="Cash" /></Field></>}
         <details className="ph-fold inset" open={!!rec}><summary><span className="ph-m"><span className="ph-t">More details</span><span className="ph-d">Date, plastic kg, bin fill, source</span></span><span className="ph-chev down">{I.chev}</span></summary>
           <div className="ph-fold-b">
             <Field id="pDate" label="Date"><input id="pDate" name="d" type="date" defaultValue={rec?.d ?? c.today} max={c.today} /></Field>
@@ -157,15 +160,16 @@ function LogPickup({ venueId, rec }: { venueId?: number; rec?: Pickup }) {
           <Field id="pPl" label={<>Plastic kg <span className="muted">(optional)</span></>}><input id="pPl" name="pl" type="number" inputMode="decimal" step="any" min={0} placeholder="e.g. 3.5" defaultValue={rec?.plastic_kg || ""} /></Field>
         </div>
         <Field label={<>Bin fill when you arrived <span className="muted">(optional)</span></>}><Opts name="fill" values={["25%", "50%", "75%", "Full", "Overflow"]} initial={rec?.fill} /></Field>
-        <Field label="Staff on pickup"><Opts name="staff" values={c.staff.filter((s) => s.active).map((s) => s.name)} initial={rec?.staff} multi /></Field>
+        <Field label="Staff on pickup"><Opts name="staff" values={staffNames(c, rec?.staff)} initial={rec?.staff} multi /></Field>
         <Field label="Source"><Opts name="src" values={["Bin", "App", "Walk-in"]} initial={rec?.src ?? "Bin"} /></Field>
-        {!rec && <label className="check"><input type="checkbox" name="paynow" defaultChecked /> Paid the venue on the spot</label>}
+        {!rec && <><label className="check"><input type="checkbox" name="paynow" defaultChecked /> Paid the venue on the spot</label>
+          <Field label="Paid by"><Opts name="paymode" values={["Cash", "UPI", "Bank"]} initial="Cash" /></Field></>}
       </>}
     </FormModal>
   );
 }
 
-async function savePickup(c: Ctx, vals: Omit<Pickup, "id" | "deleted" | "created_at" | "created_by" | "updated_by" | "trip">, rec?: Pickup, paynow?: boolean) {
+async function savePickup(c: Ctx, vals: Omit<Pickup, "id" | "deleted" | "created_at" | "created_by" | "updated_by" | "trip">, rec?: Pickup, paynow?: boolean, paymode = "Cash") {
   if (rec) {
     const { data, error } = await c.db.from("pickups").update(vals).eq("id", rec.id).select().single();
     if (c.fail(error)) return false;
@@ -176,9 +180,10 @@ async function savePickup(c: Ctx, vals: Omit<Pickup, "id" | "deleted" | "created
     let payments = c.payments;
     if (pay && next.venue_id != null) {
       const amount = Math.round(pickupCost(next, c.vmap, c.set));
-      if (amount > 0 && amount !== Number(pay.amount)) {
-        const { data: pd, error: pe } = await c.db.from("payments").update({ amount, venue_id: next.venue_id }).eq("id", pay.id).select().single();
-        if (pd) payments = payments.map((p) => (p.id === pay.id ? (pd as typeof p) : p));
+      if (amount !== Number(pay.amount)) {
+        // a pickup now worth ₹0 (no cans, no plastic) has nothing to pay: its payment is removed instead of left behind
+        const { data: pd, error: pe } = await c.db.from("payments").update(amount > 0 ? { amount, venue_id: next.venue_id } : { deleted: true }).eq("id", pay.id).select().single();
+        if (pd) { payments = payments.map((p) => (p.id === pay.id ? (pd as typeof p) : p)); if (amount <= 0) warnNext(`Its ${rs(Number(pay.amount))} payment was removed, as the pickup is worth ₹0 now.`); }
         else warnNext(`The payment did not follow the new amount${pe ? " (" + pe.message + ")" : ""}. Change it on Payouts.`);
       }
     }
@@ -192,7 +197,7 @@ async function savePickup(c: Ctx, vals: Omit<Pickup, "id" | "deleted" | "created
   let payRow: typeof c.payments[number] | null = null;
   const cost = Math.round(pickupCost(p, c.vmap, c.set));
   if (paynow && p.venue_id != null && cost > 0) {
-    const { data: pd, error: pe } = await c.db.from("payments").insert({ d: p.d, venue_id: p.venue_id, amount: cost, mode: "Cash", note: "Paid on the spot", pickup_id: p.id }).select().single();
+    const { data: pd, error: pe } = await c.db.from("payments").insert({ d: p.d, venue_id: p.venue_id, amount: cost, mode: paymode, note: "Paid on the spot", pickup_id: p.id }).select().single();
     if (!pe && pd) { payRow = pd as typeof payRow; msg += `, ${rs(cost)} paid`; } else msg += ". Payment not saved: " + pe?.message;
   }
   c.patch((d) => ({ ...d, pickups: [...d.pickups, p], payments: payRow ? [...d.payments, payRow] : d.payments }));

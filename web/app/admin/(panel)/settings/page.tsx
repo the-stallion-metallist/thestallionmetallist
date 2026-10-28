@@ -38,6 +38,7 @@ export default function SettingsPage() {
         {inp("fixedOther", "Rent and other fixed costs", "Everything paid every month apart from salaries. Salaries come from the Staff page.", "₹ per month")}
         {inp("kmCost", "Vehicle cost per km", "Fuel plus tyres and servicing. Leave empty until you know it; visit costs then count time only.", "₹ per km")}
         {inp("hourCost", "Route team cost per hour", "Driver and helper pay for an hour on the route.", "₹ per hour")}
+        {inp("fuelPrice", "Fuel price", "What you pay per litre of the fuel your vehicle runs on. Used to cost the fuel on a trip.", "₹ per litre", 104)}
         {inp("dieselDay", "Diesel per collection day", "Counted for every day with venue pickups, unless a trip with real fuel is logged that day. Changing it changes past days too.", "₹ per day", 400)}
       </div>
       <div className="card"><div className="card-h"><h2>Bin rules</h2><span className="hint">Set from your September numbers</span></div>
@@ -105,7 +106,7 @@ function AppSyncCard() {
     {msg && <p className="muted" style={{ fontSize: 12.5, marginTop: 8 }}>{msg}</p>}</div>;
 }
 
-const LABEL: Partial<Record<K, string>> = { gstUBC: "GST on cans", gstPlastic: "GST on plastic", ubcRate: "Can sale rate", cansPerKg: "Cans per kg", plasticSale: "Plastic sale rate", canRate: "Default payout per can", plasticBuy: "Default plastic payout", add: "Add a bin at", pull: "Take a bin back under", grace: "New venue grace days", vehCap: "Vehicle capacity", capSteel: "Full steel bin holds", capPl: "Full plastic bin holds", routeHours: "Route length", stopMin: "Time per stop", traffic: "Traffic buffer", fixedOther: "Rent and other fixed costs", kmCost: "Vehicle cost per km", hourCost: "Route team cost per hour", dieselDay: "Diesel per collection day" };
+const LABEL: Partial<Record<K, string>> = { gstUBC: "GST on cans", gstPlastic: "GST on plastic", ubcRate: "Can sale rate", cansPerKg: "Cans per kg", plasticSale: "Plastic sale rate", canRate: "Default payout per can", plasticBuy: "Default plastic payout", add: "Add a bin at", pull: "Take a bin back under", grace: "New venue grace days", vehCap: "Vehicle capacity", capSteel: "Full steel bin holds", capPl: "Full plastic bin holds", routeHours: "Route length", stopMin: "Time per stop", traffic: "Traffic buffer", fixedOther: "Rent and other fixed costs", kmCost: "Vehicle cost per km", hourCost: "Route team cost per hour", dieselDay: "Diesel per collection day", fuelPrice: "Fuel price" };
 
 function TeamCard({ team, onAdded, onRemoved }: { team: { name: string; role: string; email: string }[]; onAdded: (t: { name: string; role: string; email: string }) => void; onRemoved: (email: string) => void }) {
   const c = usePanel(); const owner = c.me.role === "Owner";

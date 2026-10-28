@@ -47,7 +47,8 @@ export type PanelCtxT = Ctx;
 async function fetchAll<T>(db: ReturnType<typeof adminDb>, table: string, order: string) {
   const out: T[] = [];
   for (let from = 0; ; from += 1000) {
-    const { data, error } = await db.from(table).select("*").order(order).range(from, from + 999);
+    // "order" may list several columns ("d,staff_id"): paging needs an order that is never tied, or a row can be skipped or repeated between pages
+    const { data, error } = await order.split(",").reduce((q, col) => q.order(col), db.from(table).select("*")).range(from, from + 999);
     if (error) throw error;
     out.push(...(data as T[]));
     if (!data || data.length < 1000) return out;
@@ -113,7 +114,7 @@ export default function Panel({ children }: { children: React.ReactNode }) {
         one<{ data: Data["set"] }>(db.from("settings").select("data").eq("id", 1).single()),
         fetchAll<Trip>(db, "trips", "id"), fetchAll<Sale>(db, "sales", "id"), fetchAll<Expense>(db, "expenses", "id"),
         one<StaffRow[]>(db.from("staff").select("id, name, salary, active").order("id")),
-        fetchAll<Mark>(db, "attendance", "d"), fetchAll<Advance>(db, "advances", "id"), fetchAll<Move>(db, "bin_moves", "id"),
+        fetchAll<Mark>(db, "attendance", "d,staff_id"), fetchAll<Advance>(db, "advances", "id"), fetchAll<Move>(db, "bin_moves", "id"),
         one<Spare>(db.from("spare_bins").select("steel, plastic, counted").eq("id", 1).single()),
         one<Run[]>(db.from("route_runs").select("*").is("finished_at", null).limit(1)),
         one<{ key: string; value: unknown }[]>(db.from("plan_state").select("key, value")),
@@ -201,6 +202,7 @@ function Loaded(props: {
     building.current = true;
     const z = buildZones(rctx);
     if (z) db.from("plan_state").update({ value: z }).eq("key", "zones").then(({ error }) => { if (!error) patch((d) => ({ ...d, zones: z })); building.current = false; });
+    else building.current = false; // not enough venues yet: try again when the venues or road data change
   }, [data.zones, data.matrix, rctx, db, patch]);
   const pay = useCallback((v: Venue) => payState(v, byV.get(v.id) ?? [], data.payments, vmap, data.set, today), [byV, data.payments, vmap, data.set, today]);
   const sug = useMemo(() => movePlan({ venues, stats, now, set: data.set, plan, moves: data.moves, spare: data.spare, today, vmap }),

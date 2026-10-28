@@ -5,7 +5,7 @@ import { usePanel, warnNext, type PanelCtxT } from "./Panel";
 import { adjustSpare } from "./moveslib";
 import { FormModal, Field, Opts, VenuePicker, diffs, metaOf, vname, type Errs } from "./forms";
 import {
-  type Advance, type Expense, type Payment, type Sale, type Trip, CATS, FUEL_RS_PER_L, ITEMS, checkSetting, dnice, fmt, itemLabel, kg, lastUnitCost, monthLabel, rs, rsu, staffDue,
+  type Advance, type Expense, type Payment, type Sale, type Trip, CATS, ITEMS, checkSetting, dnice, fuelPrice, fmt, itemLabel, kg, lastUnitCost, monthLabel, rs, rsu, staffDue,
 } from "@/lib/admin/logic";
 
 type C = PanelCtxT;
@@ -118,7 +118,7 @@ export function EditExpense({ rec, preset }: { rec?: Expense; preset?: Partial<E
         </div>
         {cat === "Salaries" && <Field id="eStaff" label="Paid to" err={errs.staff} help={due}>
           <select id="eStaff" name="staff" value={staffId} onChange={(e) => { setStaffId(e.target.value); const s = c.staff.find((x) => x.id === +e.target.value); if (s && !amt) { const d = staffDue(s, mo, c.marks, c.advances, c.expenses); if (d.pay) setAmt(String(d.pay)); } }}>
-            <option value="">Choose staff member</option>{c.staff.filter((s) => s.active).map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></Field>}
+            <option value="">Choose staff member</option>{c.staff.filter((s) => s.active || String(s.id) === staffId).map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></Field>}
         {cat === "Vehicle" && <p className="muted" style={{ fontSize: 13 }}>Diesel is counted for each collection day, so don&apos;t add it here. Use Vehicle for repairs, tyres and insurance.</p>}
         {cat === "Bins & bags" && <>
           <Field label="What did you buy?"><Opts name="item" values={ITEMS} initial={item} onChange={(v) => v && setItem(v)} /></Field>
@@ -138,14 +138,17 @@ export function EditExpense({ rec, preset }: { rec?: Expense; preset?: Partial<E
 // ---------- sales ----------
 const saleLabel = (s: Sale) => `${s.code} · ${s.buyer} · ${kg(Number(s.kg))} kg`;
 export function EditSale({ rec }: { rec?: Sale }) {
-  const c = usePanel();
+  const c = usePanel(); const [mat, setMat] = useState<Sale["material"]>(rec?.material ?? "UBC");
+  // the rate box starts at the Settings rate of the material chosen; an old sale keeps its own rate unless its material changes
+  const rateStart = rec && rec.material === mat ? rec.rate : mat === "Plastic" ? c.set.plasticSale ?? "" : c.set.ubcRate;
   return (
     <FormModal title={rec ? "Edit sale " + rec.code : "Record sale"} meta={rec ? metaOf(rec) : undefined} onDelete={rec ? () => softDelete(c, "sales", rec, saleLabel(rec)) : undefined}
       onSave={async (fd) => {
-        const e: Errs = {}; if (!String(fd.get("buyer")).trim()) e.buyer = "Enter the buyer."; if (!(Number(fd.get("kg")) > 0)) e.kg = "Enter the weight sold."; if (Object.keys(e).length) return e;
+        const e: Errs = {}; if (!String(fd.get("buyer")).trim()) e.buyer = "Enter the buyer."; if (!(Number(fd.get("kg")) > 0)) e.kg = "Enter the weight sold."; if (!(Number(fd.get("rate")) > 0)) e.rate = "Enter the rate per kg."; if (Object.keys(e).length) return e;
         const next = Math.max(0, ...c.sales.map((s) => +s.code.slice(2) || 0)) + 1;
         const gstNow = String(fd.get("mat") || "UBC") === "Plastic" ? c.set.gstPlastic : c.set.gstUBC;
-        const vals = { gst_rate: rec ? (rec.gst_rate ?? gstNow ?? null) : (gstNow ?? null), d: String(fd.get("d")), buyer: String(fd.get("buyer")).trim(), material: String(fd.get("mat") || "UBC") as Sale["material"], kg: Number(fd.get("kg")), rate: Number(fd.get("rate")), transport: Number(fd.get("tr")) || 0, paid_on: String(fd.get("paid")) || null,
+        // editing keeps the sale's own GST (blank = follows Settings); today's rate is stamped only on a new sale or when the material changes
+        const vals = { gst_rate: rec && rec.material === String(fd.get("mat") || "UBC") ? rec.gst_rate : (gstNow ?? null), d: String(fd.get("d")), buyer: String(fd.get("buyer")).trim(), material: String(fd.get("mat") || "UBC") as Sale["material"], kg: Number(fd.get("kg")), rate: Number(fd.get("rate")), transport: Number(fd.get("tr")) || 0, paid_on: String(fd.get("paid")) || null,
           ...(rec ? {} : { code: "S-" + String(next).padStart(3, "0") }) };
         const row = await saveRow<Sale>(c, "sales", vals, saleLabel, rec, [["d", "Date", dnice as never], ["buyer", "Buyer"], ["material", "Material"], ["kg", "Kg"], ["rate", "Rate"], ["transport", "Transport", rs as never], ["paid_on", "Received on", dnice as never]]);
         if (!row) return false; if (!rec) c.toast("Sale recorded. Stock updated.");
@@ -155,10 +158,10 @@ export function EditSale({ rec }: { rec?: Sale }) {
           <Field id="sDate" label="Date"><input id="sDate" name="d" type="date" defaultValue={rec?.d ?? c.today} max={c.today} /></Field>
           <Field id="sBuyer" label="Buyer" err={errs.buyer}><input id="sBuyer" name="buyer" placeholder="Buyer name" defaultValue={rec?.buyer ?? ""} /></Field>
         </div>
-        <Field label="Material"><Opts name="mat" values={["UBC", "Plastic"]} initial={rec?.material ?? "UBC"} /></Field>
+        <Field label="Material"><Opts name="mat" values={["UBC", "Plastic"]} initial={rec?.material ?? "UBC"} onChange={(v) => v && setMat(v as Sale["material"])} /></Field>
         <div className="two">
           <Field id="sKg" label="Weight (kg)" err={errs.kg}><input id="sKg" name="kg" type="number" step="any" inputMode="decimal" min={0} defaultValue={rec?.kg ?? ""} /></Field>
-          <Field id="sRate" label="Rate (₹/kg, before GST)" help={`GST is added on top: cans ${c.set.gstUBC != null ? c.set.gstUBC + "%" : "not set"}, plastic ${c.set.gstPlastic != null ? c.set.gstPlastic + "%" : "not set"} (Settings).`}><input id="sRate" name="rate" type="number" step="any" inputMode="decimal" defaultValue={rec?.rate ?? c.set.ubcRate} /></Field>
+          <Field id="sRate" label="Rate (₹/kg, before GST)" err={errs.rate} help={`GST is added on top: cans ${c.set.gstUBC != null ? c.set.gstUBC + "%" : "not set"}, plastic ${c.set.gstPlastic != null ? c.set.gstPlastic + "%" : "not set"} (Settings).`}><input id="sRate" name="rate" type="number" step="any" inputMode="decimal" key={mat} defaultValue={rateStart} /></Field>
         </div>
         <div className="two">
           <Field id="sTr" label="Transport cost (₹)"><input id="sTr" name="tr" type="number" inputMode="numeric" min={0} defaultValue={rec?.transport ?? 0} /></Field>
@@ -180,12 +183,12 @@ export function TripFields({ r, errs, drivers }: { r: Partial<Trip>; errs: Errs;
       <Field id="tDate" label="Date"><input id="tDate" name="d" type="date" defaultValue={r.d ?? c.today} max={c.today} /></Field>
       <Field id="tVeh" label="Vehicle"><select id="tVeh" name="veh" defaultValue={r.vehicle ?? "Tata Ace"}>{["Tata Ace", "Scooty"].map((x) => <option key={x}>{x}</option>)}</select></Field>
     </div>
-    <Field label="Driver"><Opts name="drv" values={drivers?.length ? drivers : c.staff.filter((s) => s.active).map((s) => s.name)} initial={r.driver ?? (drivers?.[0] ?? "")} /></Field>
+    <Field label="Driver"><Opts name="drv" values={[...new Set([...(drivers?.length ? drivers : c.staff.filter((s) => s.active).map((s) => s.name)), ...(r.driver ? [r.driver] : [])])]} initial={r.driver ?? (drivers?.[0] ?? "")} /></Field>
     <div className="two">
       <Field id="tK1" label="Start km"><input id="tK1" name="k1" type="number" inputMode="numeric" defaultValue={r.km_start ?? lastKm(c)} /></Field>
       <Field id="tK2" label="End km" err={errs.k2}><input id="tK2" name="k2" type="number" inputMode="numeric" defaultValue={r.km_end ?? ""} /></Field>
     </div>
-    <Field id="tFuel" label="Fuel filled (litres)" help={`Costed at ₹${FUEL_RS_PER_L} a litre.`}><input id="tFuel" name="fl" type="number" step="any" inputMode="decimal" min={0} defaultValue={r.fuel_l ?? ""} /></Field>
+    <Field id="tFuel" label="Fuel filled (litres)" help={`Costed at ₹${fuelPrice(c.set)} a litre (change it in Settings).`}><input id="tFuel" name="fl" type="number" step="any" inputMode="decimal" min={0} defaultValue={r.fuel_l ?? ""} /></Field>
   </>;
 }
 export const checkKm = (fd: FormData): Errs => (!fd.get("k2") ? { k2: "Enter the end km reading." } : Number(fd.get("k2")) <= Number(fd.get("k1")) ? { k2: "End km must be more than start km." } : {});
@@ -195,7 +198,7 @@ export function EditTrip({ rec }: { rec?: Trip }) {
     <FormModal title={rec ? "Edit trip " + rec.code : "Add trip"} meta={rec ? metaOf(rec) : undefined} onDelete={rec ? () => softDelete(c, "trips", rec, tripLabel(rec)) : undefined}
       onSave={async (fd) => {
         const e = checkKm(fd); if (Object.keys(e).length) return e; const fl = Number(fd.get("fl")) || 0, d = String(fd.get("d"));
-        const vals = { d, vehicle: String(fd.get("veh")), driver: String(fd.get("drv")), km_start: Number(fd.get("k1")), km_end: Number(fd.get("k2")), stops: Number(fd.get("stops")) || 0, fuel_l: fl, fuel_cost: Math.round(fl * FUEL_RS_PER_L), cans: Number(fd.get("cans")) || 0, ...(rec ? {} : { code: tripCode(c, d) }) };
+        const vals = { d, vehicle: String(fd.get("veh")), driver: String(fd.get("drv")), km_start: Number(fd.get("k1")), km_end: Number(fd.get("k2")), stops: Number(fd.get("stops")) || 0, fuel_l: fl, fuel_cost: Math.round(fl * fuelPrice(c.set)), cans: Number(fd.get("cans")) || 0, ...(rec ? {} : { code: tripCode(c, d) }) };
         const row = await saveRow<Trip>(c, "trips", vals, tripLabel, rec, [["d", "Date", dnice as never], ["vehicle", "Vehicle"], ["driver", "Driver"], ["km_start", "Start km"], ["km_end", "End km"], ["stops", "Stops"], ["fuel_l", "Fuel L"], ["cans", "Cans"]]);
         if (!row) return false; if (!rec) c.toast("Trip added");
       }}>

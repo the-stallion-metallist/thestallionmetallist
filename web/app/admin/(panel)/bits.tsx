@@ -5,7 +5,7 @@ import { usePanel } from "./Panel";
 import { DAYS } from "@/lib/admin/routes";
 import { type Move, binsTxt } from "@/lib/admin/moves";
 import { I } from "./icons";
-import { DATA_START, MON, MONL, breakEven, collectionDays, dieselOf, dnice, fmt, godownOn, inP, kg, monthOf, monthsSince, rs, totals, type State } from "@/lib/admin/logic";
+import { DATA_START, MON, MONL, breakEven, collectionDays, dieselOf, dnice, fmt, godownOn, inP, kg, monthOf, monthsSince, rs, saleTransport, totals, type State } from "@/lib/admin/logic";
 
 // "Route in progress" bar on Overview and the Route planner.
 export function RunBar() {
@@ -90,7 +90,7 @@ export function BreakEven() {
   const c = usePanel(); const p = c.now;
   const T = totals(p, c.pickups, c.vmap, c.vset);
   const salaries = c.staff.filter((s) => s.active).reduce((a, s) => a + Number(s.salary || 0), 0);
-  const running = dieselOf(collectionDays(c.pickups, c.trips, c.set, p))
+  const running = dieselOf(collectionDays(c.pickups, c.trips, c.set, p)) + saleTransport(c.sales, p)
     + c.expenses.filter((e) => !e.deleted && inP(e.d, p) && e.category !== "Salaries" && e.category !== "Rent").reduce((a, e) => a + Number(e.amount), 0);
   const B = breakEven(p, T, c.vset, { salaries, running });
   const mo = MONL[+p.key.slice(5, 7) - 1], last = dnice(p.end);
