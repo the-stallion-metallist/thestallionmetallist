@@ -1,7 +1,8 @@
 "use client";
 // Forms for money, trips, sales, staff and venue payments (ported from the approved mockup).
 import { useState } from "react";
-import { usePanel, type PanelCtxT } from "./Panel";
+import { usePanel, warnNext, type PanelCtxT } from "./Panel";
+import { adjustSpare } from "./moveslib";
 import { FormModal, Field, Opts, VenuePicker, diffs, metaOf, vname, type Errs } from "./forms";
 import {
   type Advance, type Expense, type Payment, type Sale, type Trip, CATS, FUEL_RS_PER_L, ITEMS, checkSetting, dnice, fmt, itemLabel, kg, lastUnitCost, monthLabel, rs, rsu, staffDue,
@@ -106,7 +107,7 @@ export function EditExpense({ rec, preset }: { rec?: Expense; preset?: Partial<E
         if (!row) return false;
         if (!rec) {
           const newBins = isBin && (item === "Steel bin" || item === "Plastic bin");
-          if (newBins) { const { data } = await c.db.rpc("adjust_spare", { d_steel: item === "Steel bin" ? row.qty : 0, d_plastic: item === "Plastic bin" ? row.qty : 0 }); if (data) c.patch((d) => ({ ...d, spare: data })); }
+          if (newBins && !(await adjustSpare(c, item === "Steel bin" ? row.qty : 0, item === "Plastic bin" ? row.qty : 0))) warnNext("The spare bin count did not change. Set it on Bin moves.");
           c.toast(cat === "Salaries" ? `Salary paid to ${c.staff.find((s) => s.id === row.staff_id)?.name} added` : isBin ? `${itemLabel(row)} added at ${rsu(Number(row.amount) / row.qty)} each${newBins ? ". Added to spare bins at the godown." : ""}` : "Expense added");
         }
       }}>

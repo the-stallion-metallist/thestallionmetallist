@@ -13,9 +13,11 @@ export async function startRun(c: PanelCtxT, day: number, week: "A" | "B") {
   await c.logIt("Started", "Route", `${DAYS[day]} · ${stops.length} stops`);
   return true;
 }
+// The screen updates first (so a retry sees what was already saved), then the database. false = the database did not take it.
 export async function saveRun(c: PanelCtxT, run: Run, change: Partial<Pick<Run, "stops" | "staff">>) {
   const next = { ...run, ...change };
   c.patch((x) => ({ ...x, run: next }));
   const { error } = await c.db.from("route_runs").update(change).eq("id", run.id);
-  c.fail(error);
+  if (error) { c.toast(`The route checklist did not save (${error.message}). Try again.`); return false; }
+  return true;
 }

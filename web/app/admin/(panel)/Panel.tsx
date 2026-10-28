@@ -36,6 +36,9 @@ type Ctx = Data & {
   phone: boolean; // 880px wide or under: the phone layouts
   price: Prices; vset: Settings; // last real sale prices, and Settings with them swapped in (for valuing cans and plastic)
 };
+// Something went wrong behind a save (a history line, a spare count): the next message carries it, so a "Saved" that follows can't bury it.
+let toastNote = ""; let toastNoteTimer: ReturnType<typeof setTimeout> | undefined;
+export function warnNext(text: string) { toastNote = toastNote ? toastNote + " " + text : text; clearTimeout(toastNoteTimer); toastNoteTimer = setTimeout(() => { toastNote = ""; }, 8000); }
 const PanelCtx = createContext<Ctx | null>(null);
 export const usePanel = () => useContext(PanelCtx)!;
 export type PanelCtxT = Ctx;
@@ -139,8 +142,9 @@ export default function Panel({ children }: { children: React.ReactNode }) {
   }, [closeLayers, closeModal]);
   useEffect(() => { closeLayers(); }, [path, closeLayers]);
   const toast = useCallback((m: string, undo?: () => void | Promise<void>) => {
+    if (toastNote) { m += " " + toastNote; toastNote = ""; }
     clearTimeout(toastT.current); setToastMsg({ m, undo });
-    toastT.current = setTimeout(() => setToastMsg(null), undo ? 5000 : 2600);
+    toastT.current = setTimeout(() => setToastMsg(null), undo ? 5000 : Math.min(9000, Math.max(2600, m.length * 70))); // long messages stay long enough to read
   }, []);
 
   if (outsider) return <div className="content" style={{ maxWidth: 560, margin: "0 auto", paddingTop: 80 }}><div className="card"><h2>This account isn&apos;t on the team</h2>
@@ -177,9 +181,12 @@ function Loaded(props: {
   }, [cache, per, byV, data.set, today]);
   const patch = useCallback((fn: (d: Data) => Data) => setData((d) => (d ? fn(d) : d)), [setData]);
   const logIt = useCallback(async (action: string, what: string, label: string, changes = "", ref?: { table: string; id: number }) => {
-    const { data: row } = await db.from("change_log").insert({ action, what, label, changes, ref_table: ref?.table ?? null, ref_id: ref?.id ?? null }).select().single();
+    const line = { action, what, label, changes, ref_table: ref?.table ?? null, ref_id: ref?.id ?? null };
+    let { data: row } = await db.from("change_log").insert(line).select().single();
+    if (!row) ({ data: row } = await db.from("change_log").insert(line).select().single()); // one more try
     if (row) patch((d) => ({ ...d, log: [row as LogRow, ...d.log] }));
-  }, [db, patch]);
+    else { toast("The change was saved, but its history line could not be written."); warnNext("The history line was not saved."); }
+  }, [db, patch, toast]);
   const fail = useCallback((e: { message: string } | null) => { if (e) { toast("Not saved: " + e.message); return true; } return false; }, [toast]);
 
   // the route plan: zones are built once from road times and kept, so venues keep their day

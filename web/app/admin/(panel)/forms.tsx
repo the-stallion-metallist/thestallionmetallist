@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { usePanel } from "./Panel";
+import { usePanel, warnNext } from "./Panel";
+import { adjustSpare } from "./moveslib";
 import { I } from "./icons";
 import { TYPES,
   type Pickup, type Venue, AREAS, VSTATUS, bins, dnice, fmt, parsePin, pickupCost, rs,
@@ -176,8 +177,9 @@ async function savePickup(c: Ctx, vals: Omit<Pickup, "id" | "deleted" | "created
     if (pay && next.venue_id != null) {
       const amount = Math.round(pickupCost(next, c.vmap, c.set));
       if (amount > 0 && amount !== Number(pay.amount)) {
-        const { data: pd } = await c.db.from("payments").update({ amount, venue_id: next.venue_id }).eq("id", pay.id).select().single();
+        const { data: pd, error: pe } = await c.db.from("payments").update({ amount, venue_id: next.venue_id }).eq("id", pay.id).select().single();
         if (pd) payments = payments.map((p) => (p.id === pay.id ? (pd as typeof p) : p));
+        else warnNext(`The payment did not follow the new amount${pe ? " (" + pe.message + ")" : ""}. Change it on Payouts.`);
       }
     }
     c.patch((d) => ({ ...d, pickups: d.pickups.map((p) => (p.id === rec.id ? next : p)), payments }));
@@ -202,8 +204,9 @@ export async function deletePickup(c: Ctx, rec: Pickup) {
   const set = async (deleted: boolean) => {
     const { error } = await c.db.from("pickups").update({ deleted }).eq("id", rec.id);
     if (c.fail(error)) return false;
-    await c.db.from("payments").update({ deleted }).eq("pickup_id", rec.id);
-    c.patch((d) => ({ ...d, pickups: d.pickups.map((p) => (p.id === rec.id ? { ...p, deleted } : p)), payments: d.payments.map((p) => (p.pickup_id === rec.id ? { ...p, deleted } : p)) }));
+    const { error: pe } = await c.db.from("payments").update({ deleted }).eq("pickup_id", rec.id);
+    if (pe) warnNext(`The pickup's payment could not be ${deleted ? "removed" : "restored"} (${pe.message}). Check it on Payouts.`);
+    c.patch((d) => ({ ...d, pickups: d.pickups.map((p) => (p.id === rec.id ? { ...p, deleted } : p)), payments: pe ? d.payments : d.payments.map((p) => (p.pickup_id === rec.id ? { ...p, deleted } : p)) }));
     await c.logIt(deleted ? "Deleted" : "Restored", "Pickup", pickupLabel(c, rec), "", { table: "pickups", id: rec.id });
     return true;
   };
@@ -213,8 +216,9 @@ export async function restorePickup(c: Ctx, id: number) {
   const rec = c.pickups.find((p) => p.id === id); if (!rec) return;
   const { error } = await c.db.from("pickups").update({ deleted: false }).eq("id", id);
   if (c.fail(error)) return;
-  await c.db.from("payments").update({ deleted: false }).eq("pickup_id", id);
-  c.patch((d) => ({ ...d, pickups: d.pickups.map((p) => (p.id === id ? { ...p, deleted: false } : p)), payments: d.payments.map((p) => (p.pickup_id === id ? { ...p, deleted: false } : p)) }));
+  const { error: pe } = await c.db.from("payments").update({ deleted: false }).eq("pickup_id", id);
+  if (pe) warnNext(`The pickup's payment could not be restored (${pe.message}). Check it on Payouts.`);
+  c.patch((d) => ({ ...d, pickups: d.pickups.map((p) => (p.id === id ? { ...p, deleted: false } : p)), payments: pe ? d.payments : d.payments.map((p) => (p.pickup_id === id ? { ...p, deleted: false } : p)) }));
   await c.logIt("Restored", "Pickup", pickupLabel(c, rec), "", { table: "pickups", id });
   c.toast("Pickup restored");
 }
@@ -331,7 +335,7 @@ export function AddVenue() {
       const { data, error } = await c.db.from("venues").insert(row).select().single();
       if (c.fail(error)) return false;
       const v = data as Venue;
-      if (hasBins) { const { data: b } = await c.db.from("bin_log").insert({ d: row.bin_since, venue_id: v.id, change: 1, steel, plastic: pb, note: "New venue" }).select().single(); if (b) c.patch((d) => ({ ...d, binlog: [...d.binlog, b as typeof d.binlog[number]] })); }
+      if (hasBins) { const { data: b } = await c.db.from("bin_log").insert({ d: row.bin_since, venue_id: v.id, change: 1, steel, plastic: pb, note: "New venue" }).select().single(); if (b) c.patch((d) => ({ ...d, binlog: [...d.binlog, b as typeof d.binlog[number]] })); else warnNext("The bin history line for the new venue was not saved."); }
       c.patch((d) => ({ ...d, venues: [...d.venues, v] }));
       await c.logIt("Added", "Venue", name + (wait ? " · waiting for a bin" : ""), "", { table: "venues", id: v.id });
       c.toast(pp.p ? `${name} added` : `${name} added. Add its map location in Edit venue so it can go on a route.`);
@@ -411,13 +415,18 @@ export function BinChangeForm({ venueId }: { venueId?: number }) {
       const vals: Partial<Venue> = { steel: v.steel + sign * steel, plastic_bins: v.plastic_bins + sign * pb };
       if (sign > 0 && (!v.bin_since || bins(v) === 0)) Object.assign(vals, { bin_since: d, bin_est: false });
       if (sign > 0 && v.status === "Waiting") Object.assign(vals, { status: "Active", promised: 0 });
-      const { data: b, error } = await c.db.from("bin_log").insert({ d, venue_id: v.id, change: sign, steel, plastic: pb }).select().single();
+      // the venue's bins change first, and only if they are still what this screen showed; the spare count and the history follow
+      const { data: vr, error } = await c.db.from("venues").update(vals).eq("id", v.id).eq("steel", v.steel).eq("plastic_bins", v.plastic_bins).select();
       if (c.fail(error)) return false;
-      if (!(await saveVenueRow(c, v.id, vals))) return false;
-      c.patch((x) => ({ ...x, binlog: [...x.binlog, b as typeof x.binlog[number]] }));
+      if (!vr?.length) { c.toast(`The bins at ${v.name} changed while you were working. Reloading. Check the numbers and try again.`); await c.reload(); return false; }
+      c.patch((x) => ({ ...x, venues: x.venues.map((y) => (y.id === v.id ? (vr[0] as Venue) : y)) }));
+      const lost: string[] = [];
       // bins taken back go to the spare count at the godown; bins placed come out of it
-      const { data: sp } = await c.db.rpc("adjust_spare", { d_steel: -sign * steel, d_plastic: -sign * pb }); if (sp) c.patch((x) => ({ ...x, spare: sp }));
+      if (!(await adjustSpare(c, -sign * steel, -sign * pb))) lost.push("the spare bin count did not change (set it again on Bin moves)");
+      const { data: b, error: be } = await c.db.from("bin_log").insert({ d, venue_id: v.id, change: sign, steel, plastic: pb }).select().single();
+      if (be || !b) lost.push("the bin history line was not saved"); else c.patch((x) => ({ ...x, binlog: [...x.binlog, b as typeof x.binlog[number]] }));
       await c.logIt(sign > 0 ? "Placed" : "Took back", "Bins", `${v.name} · ${steel} steel, ${pb} plastic`, "", { table: "venues", id: v.id });
+      if (lost.length) warnNext(`The bins were changed, but ${lost.join(" and ")}.`);
       c.toast(`Bins updated at ${v.name}`);
     }}>
       {(errs) => <>

@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { usePanel, type Run, type RunStop } from "../Panel";
+import { usePanel, warnNext, type Run, type RunStop } from "../Panel";
 import VenueDrawer from "../VenueDrawer";
 import { EditVenue, FormModal, VenuePicker, vname, cansTxt } from "../forms";
 import { TripFields, checkKm, tripCode, tripLabel } from "../forms2";
@@ -20,6 +20,7 @@ export default function RunPage() {
   const [open, setOpen] = useState<{ k: number; kind: "form" | "skip" } | null>(null);
   const [fill, setFill] = useState(""); const [reason, setReason] = useState(""); const [err, setErr] = useState(""); const [busy, setBusy] = useState(false);
   const [wake, setWake] = useState(""); const lock = useRef<WakeLockSentinel | null>(null);
+  const saving = useRef(false); // a second tap on Save stop before the screen has caught up must not save the stop twice
   useEffect(() => { // keep the phone screen on during the route
     const get = async () => { try { if (r && !lock.current && "wakeLock" in navigator) { lock.current = await navigator.wakeLock.request("screen"); lock.current.addEventListener("release", () => { lock.current = null; }); setWake("Screen stays on during the route"); } } catch {} };
     get(); const v = () => { if (document.visibilityState === "visible") get(); };
@@ -35,6 +36,11 @@ export default function RunPage() {
   const openForm = (k: number, kind: "form" | "skip") => { setErr(""); setOpen({ k, kind }); setFill(r.stops[k]?.fill || ""); setReason(r.stops[k]?.reason || ""); };
 
   async function saveStop(k: number) {
+    if (saving.current) return;
+    saving.current = true;
+    try { await saveStopNow(k); } finally { saving.current = false; }
+  }
+  async function saveStopNow(k: number) {
     const s = r!.stops[k]; const cansEl = document.getElementById("rc" + k) as HTMLInputElement, plEl = document.getElementById("rp" + k) as HTMLInputElement, paid = (document.getElementById("ry" + k) as HTMLInputElement).checked;
     const mv = openMoves(s.vid).filter((t) => (document.getElementById(`rm${k}_${t.id}`) as HTMLInputElement | null)?.checked);
     if (cansEl.value === "" && !mv.length) { setErr("Enter the cans. Use 0 if only plastic."); cansEl.focus(); return; }
@@ -49,10 +55,10 @@ export default function RunPage() {
       else { const { data, error } = await c.db.from("pickups").insert({ ...vals, trip: "On route" }).select().single(); if (c.fail(error)) { setBusy(false); return; } rec = data as Pickup; c.patch((d) => ({ ...d, pickups: [...d.pickups, rec!] })); await c.logIt("Added", "Pickup", `${vname(c, s.vid)} · ${cansTxt(cans)}`, "On the route", { table: "pickups", id: rec.id }); }
       const cost = Math.round(pickupCost(rec, c.vmap, c.set)); next.pid = rec.id; next.cans = cans; next.pl = pl; next.cost = cost; next.paid = paid;
       const pay = s.payId ? c.payments.find((p) => p.id === s.payId) : undefined;
-      if (paid && cost > 0 && !pay) { const { data } = await c.db.from("payments").insert({ d: c.today, venue_id: s.vid, amount: cost, mode: "Cash", note: "Paid on the route", pickup_id: rec.id }).select().single(); if (data) { next.payId = data.id; c.patch((d) => ({ ...d, payments: [...d.payments, data] })); await c.logIt("Added", "Payment", `${vname(c, s.vid)} · ${rs(cost)}`, "On the route", { table: "payments", id: data.id }); } }
-      else if (pay) { const { data } = await c.db.from("payments").update({ amount: Math.max(cost, 1), deleted: !paid || cost <= 0 }).eq("id", pay.id).select().single(); if (data) c.patch((d) => ({ ...d, payments: d.payments.map((p) => (p.id === pay.id ? data : p)) })); }
+      if (paid && cost > 0 && !pay) { const { data, error: pe } = await c.db.from("payments").insert({ d: c.today, venue_id: s.vid, amount: cost, mode: "Cash", note: "Paid on the route", pickup_id: rec.id }).select().single(); if (data) { next.payId = data.id; c.patch((d) => ({ ...d, payments: [...d.payments, data] })); await c.logIt("Added", "Payment", `${vname(c, s.vid)} · ${rs(cost)}`, "On the route", { table: "payments", id: data.id }); } else { next.paid = false; warnNext(`${vname(c, s.vid)}: the payment of ${rs(cost)} was not saved${pe ? " (" + pe.message + ")" : ""}. Add it on Payouts.`); } }
+      else if (pay) { const { data, error: pe } = await c.db.from("payments").update({ amount: Math.max(cost, 1), deleted: !paid || cost <= 0 }).eq("id", pay.id).select().single(); if (data) c.patch((d) => ({ ...d, payments: d.payments.map((p) => (p.id === pay.id ? data : p)) })); else warnNext(`${vname(c, s.vid)}: the payment did not follow the new amount${pe ? " (" + pe.message + ")" : ""}. Change it on Payouts.`); }
     } else Object.assign(next, { cans: 0, pl: 0, paid: false, cost: 0 });
-    await setStops(r!.stops.map((x, i) => (i === k ? next : x)));
+    if (!(await setStops(r!.stops.map((x, i) => (i === k ? next : x))))) { setBusy(false); return; } // the pickup is saved; the form stays open so Save stop can be tapped again
     setBusy(false); setOpen(null); c.toast(`${vname(c, s.vid)}: ${cansTxt(next.cans || 0)} saved${moved.length ? ", " + moved.join(", ") : ""}`);
     setTimeout(() => document.querySelector(".run-stop.todo")?.scrollIntoView({ block: "center" }), 50);
   }
@@ -119,11 +125,17 @@ function FinishRun({ run, onDone }: { run: Run; onDone: () => void }) {
       const e = checkKm(fd); if (Object.keys(e).length) return e; const fl = Number(fd.get("fl")) || 0, d = String(fd.get("d"));
       const vals = { code: tripCode(c, d), d, vehicle: String(fd.get("veh")), driver: String(fd.get("drv")), km_start: Number(fd.get("k1")), km_end: Number(fd.get("k2")), stops: done.length, fuel_l: fl, fuel_cost: Math.round(fl * FUEL_RS_PER_L), cans,
         route: DAYS[run.day], plan_min: run.plan_min, act_min: Math.round((Date.now() - Date.parse(run.started_at)) / 60000) };
-      const { data, error } = await c.db.from("trips").insert(vals).select().single(); if (c.fail(error)) return false;
-      const t = data as Trip; const pids = done.map((s) => s.pid).filter(Boolean) as number[];
-      if (pids.length) await c.db.from("pickups").update({ trip: t.code }).in("id", pids);
-      const { error: re } = await c.db.from("route_runs").update({ finished_at: new Date().toISOString(), trip_id: t.id }).eq("id", run.id); if (c.fail(re)) return false;
-      c.patch((x) => ({ ...x, run: null, trips: [...x.trips, t], pickups: x.pickups.map((p) => (pids.includes(p.id) ? { ...p, trip: t.code } : p)) }));
+      // finish the run first: it can only be finished once (a second tap, or another phone, finds it already finished)
+      const { data: fin, error: fe } = await c.db.from("route_runs").update({ finished_at: new Date().toISOString() }).eq("id", run.id).is("finished_at", null).select();
+      if (c.fail(fe)) return false;
+      if (!fin?.length) { c.toast("This route was already finished. Reloading."); await c.reload(); return false; }
+      const { data, error } = await c.db.from("trips").insert(vals).select().single();
+      if (error || !data) { await c.db.from("route_runs").update({ finished_at: null }).eq("id", run.id); c.fail(error); return false; } // nothing saved: the route stays open to try again
+      const t = data as Trip; const pids = done.map((s) => s.pid).filter(Boolean) as number[], lost: string[] = [];
+      if (pids.length) { const { error: pe } = await c.db.from("pickups").update({ trip: t.code }).in("id", pids); if (pe) lost.push("the pickups were not tagged with the trip"); }
+      const { error: re } = await c.db.from("route_runs").update({ trip_id: t.id }).eq("id", run.id); if (re) lost.push("the trip was not linked to the route");
+      if (lost.length) warnNext(`The trip was saved, but ${lost.join(" and ")}.`);
+      c.patch((x) => ({ ...x, run: null, trips: [...x.trips, t], pickups: x.pickups.map((p) => (pids.includes(p.id) && !lost.length ? { ...p, trip: t.code } : p)) }));
       await c.logIt("Finished", "Route", `${DAYS[run.day]} · ${done.length} stops · ${cansTxt(cans)}`); await c.logIt("Added", "Trip", tripLabel(t), "From the route", { table: "trips", id: t.id });
       c.toast(`Route finished: ${cansTxt(cans)} from ${done.length} stops. Trip ${t.code} saved.`); onDone();
     }}>
