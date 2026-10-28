@@ -5,7 +5,7 @@ import { EditPayment } from "./forms2";
 import { usePanel } from "./Panel";
 import { I, Empty } from "./icons";
 import { BinChangeForm, DatesForm, EditVenue, openLogPickup, setVenueRemoved, setVisit } from "./forms";
-import { PST, ST, addDays, areaName, bins, dayName, dnice, fmt, kg, lowTxt, rs, vstatus, type State, type Venue } from "@/lib/admin/logic";
+import { JUDGE_AFTER_DAYS, MONL, PST, ST, addDays, areaName, bins, dayName, dnice, fmt, kg, lowTxt, rs, vstatus, type State, type Venue } from "@/lib/admin/logic";
 import type { Plan } from "@/lib/admin/routes";
 import { waiting } from "@/lib/admin/growth";
 
@@ -24,18 +24,19 @@ export default function VenueDrawer({ id, tab: tab0 = "sum" }: { id: number; tab
   const c = usePanel(); const [tab, setTab] = useState(tab0);
   const v = c.vmap.get(id); if (!v) return null;
   const s = c.stats(v); const n = bins(v);
+  const j = s.judged ?? s, mo = s.early ? "last month" : "this month"; // early in a month the advice is last month's, so quote last month's numbers
   const adv: Record<State, React.ReactNode> = {
-    add: <><b>Add a bin</b>{fmt(s.cpb!)} cans per bin a month is above {c.set.add}. Bins here fill up between pickups.</>,
-    pull: <><b>Take {n > 1 ? `${n - 1} bin${n - 1 > 1 ? "s" : ""} back, leave 1` : "the last bin back"}</b>{lowTxt(s)}{s.counted || s.prevCpb ? ", two months in a row" : ""}. {n > 1 ? "Leave 1 bin and see if it picks up." : "Take the last bin back and pause the venue."} {c.moves.some((t) => t.status === "planned" && t.venue_id === v.id && t.kind === "pull") ? "Already planned in Bin moves." : <Link className="linkb" href="/admin/moves">Plan it in Bin moves</Link>}</>,
-    watch: <><b>Low this month</b>{fmt(s.cpb!)} cans per bin a month, under {c.set.pull}. If next month is low too, it gets flagged to take a bin back.</>,
+    add: <><b>Add a bin</b>{fmt(j.cpb!)} cans per bin a month is above {c.set.add}. Bins here fill up between pickups.</>,
+    pull: <><b>Take {n > 1 ? `${n - 1} bin${n - 1 > 1 ? "s" : ""} back, leave 1` : "the last bin back"}</b>{lowTxt(s)}{j.counted || s.prevCpb ? ", two months in a row" : ""}. {n > 1 ? "Leave 1 bin and see if it picks up." : "Take the last bin back and pause the venue."} {c.moves.some((t) => t.status === "planned" && t.venue_id === v.id && t.kind === "pull") ? "Already planned in Bin moves." : <Link className="linkb" href="/admin/moves">Plan it in Bin moves</Link>}</>,
+    watch: <><b>Low {mo}</b>{fmt(j.cpb!)} cans per bin a month, under {c.set.pull}. If {s.early ? "this" : "next"} month is low too, it gets flagged to take a bin back.</>,
     kept: <><b>Kept for now</b>Low two months in a row, but you chose to keep the bin until {v.keep_until ? dnice(v.keep_until) : ""}.</>,
     waiting: <><b>Waiting for a bin</b>Signed {v.added ? dnice(v.added) : ""}, {v.promised || 1} bin{(v.promised || 1) > 1 ? "s" : ""} promised. {c.moves.some((t) => t.status === "planned" && t.venue_id === v.id) ? "A bin is planned in Bin moves." : <Link className="linkb" href="/admin/moves">See Bin moves</Link>}</>,
     new: <><b>Too new to judge</b>Bin placed on {s.since ? dnice(s.since) : ""}{v.bin_est ? " (estimated)" : ""}. It gets judged after {c.set.grace} days, on {s.since ? dnice(addDays(s.since, c.set.grace)) : ""}.</>,
     later: <><b>Bin not placed yet</b>The bin went out on {dnice(s.since || c.today)}, after this month.</>,
-    quiet: <><b>Gone quiet</b>No cans this month, {fmt(s.all)} before. Call them before moving the bin.</>,
+    quiet: <><b>Gone quiet</b>No cans {mo}, {fmt(s.all)} before. Call them before moving the bin.</>,
     idle: <><b>No cans yet</b>{s.since ? `Bins out since ${dnice(s.since)} but nothing collected.` : "Bins placed but nothing collected, and no bin date entered."} Check they are being used, or move them.</>,
     nobin: <><b>No bin record</b>Cans are coming in but no bins are recorded. Add the bin count.</>,
-    keep: <><b>Keep as is</b>{fmt(s.cpb || 0)} cans per bin a month is in the healthy range ({c.set.pull}–{c.set.add}).</>,
+    keep: <><b>Keep as is</b>{fmt(j.cpb || 0)} cans per bin a month is in the healthy range ({c.set.pull}–{c.set.add}).</>,
   };
   const pickups = (c.byV.get(v.id) ?? []).slice().reverse();
   const hist = s.picks.slice(-12); const mx = Math.max(...hist.map((p) => p.n), 1);
@@ -53,6 +54,7 @@ export default function VenueDrawer({ id, tab: tab0 = "sum" }: { id: number; tab
         <button className="btn btn-g btn-sm" onClick={async () => { if (await setVenueRemoved(c, v, false)) c.toast(`${v.name} restored`); }}>Restore venue</button></div>}
       {tab === "sum" && <>
         <div className={"advice a-" + s.st}>{adv[s.st]}</div>
+        {s.early && <p className="muted" style={{ fontSize: 13, margin: "-6px 0 12px" }}>This is last month&apos;s reading. {MONL[+c.today.slice(5, 7) - 1]} is judged from the {JUDGE_AFTER_DAYS}th, when it has enough days.</p>}
         <div className="facts">
           <div className="fact"><div className="l">{c.per.short} cans</div><div className="v">{fmt(s.cans)}</div></div>
           <div className="fact"><div className="l">All time</div><div className="v">{fmt(s.all)}</div></div>

@@ -39,6 +39,32 @@ export type Settings = {
   dieselDay?: number | null; // diesel for a collection day with no trip fuel logged (₹400 when not set)
 };
 
+// What each number in Settings may be. A blank, a zero or a minus in the wrong place turns every money screen into Infinity or NaN,
+// so these are checked before anything is saved. gt = must be above this, min = at least this, max = at most this, blank = may be left empty, whole = no decimals.
+type Rule = { name: string; gt?: number; min?: number; max?: number; blank?: boolean; whole?: boolean };
+export const SETTING_RULES: Record<string, Rule> = {
+  ubcRate: { name: "Can sale rate", gt: 0 }, cansPerKg: { name: "Cans per kg", gt: 0 }, plasticSale: { name: "Plastic sale rate", gt: 0, blank: true },
+  canRate: { name: "Default payout per can", min: 0 }, plasticBuy: { name: "Default plastic payout", min: 0 },
+  add: { name: "Add a bin at", gt: 0 }, pull: { name: "Take a bin back under", min: 0 }, grace: { name: "New venue grace days", min: 0, whole: true },
+  vehCap: { name: "Vehicle capacity", gt: 0, blank: true }, capSteel: { name: "Full steel bin holds", gt: 0 }, capPl: { name: "Full plastic bin holds", gt: 0 },
+  routeHours: { name: "Route length", gt: 0, max: 24 }, stopMin: { name: "Time per stop", gt: 0, max: 240 }, traffic: { name: "Traffic buffer", min: 0 },
+  fixedOther: { name: "Rent and other fixed costs", min: 0, blank: true }, kmCost: { name: "Vehicle cost per km", min: 0, blank: true }, hourCost: { name: "Route team cost per hour", min: 0, blank: true },
+  dieselDay: { name: "Diesel per collection day", min: 0, blank: true }, gstUBC: { name: "GST on cans", min: 0, max: 100, blank: true }, gstPlastic: { name: "GST on plastic", min: 0, max: 100, blank: true },
+  routeDays: { name: "Route days a week", min: 1, max: 6, whole: true, blank: true }, longDays: { name: "Long days allowed", min: 0, max: 6, whole: true, blank: true },
+  longHours: { name: "Longest day", gt: 0, max: 24, blank: true }, otwCans: { name: "Pick up on the way from", min: 0, blank: true },
+};
+// null when the value is fine, otherwise a sentence for the toast.
+export function checkSetting(key: string, v: unknown): string | null {
+  const r = SETTING_RULES[key]; if (!r) return null;
+  if (v == null || v === "") return r.blank ? null : `${r.name} can't be empty.`;
+  if (typeof v !== "number" || !Number.isFinite(v)) return `${r.name} must be a number.`;
+  if (r.gt != null && !(v > r.gt)) return `${r.name} must be more than ${r.gt}.`;
+  if (r.min != null && v < r.min) return `${r.name} can't be less than ${r.min}.`;
+  if (r.max != null && v > r.max) return `${r.name} can't be more than ${r.max}.`;
+  if (r.whole && !Number.isInteger(v)) return `${r.name} must be a whole number.`;
+  return null;
+}
+
 // ---------- dates (India time) ----------
 export const DATA_START = "2026-08"; // the Excel starts in August
 export const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -86,7 +112,10 @@ export type Stats = {
   cans: number; pl: number; all: number; first: string | null; bins: number; cpb: number | null; st: State; n: number;
   picks: { d: string; n: number }[]; since: string | null; days: number; counted: number; age: number | null;
   lowRaw: boolean; prevCpb: number | null; prevKey: string;
+  early?: boolean; // the month is too young to judge, so the advice is last month's
+  judged?: { cpb: number | null; counted: number }; // the numbers the advice was worked out from, when they are not this month's
 };
+export const JUDGE_AFTER_DAYS = 15; // a month is judged once this many of its days have passed; until then last month's advice stands
 
 // Pickups grouped by venue, oldest first, for fast per-venue stats.
 export function byVenue(pickups: Pickup[]) {
@@ -124,9 +153,14 @@ export function venueStats(v: Venue, p: Period, mine: Pickup[], set: Settings, t
   const base = { cans, pl, all, first, bins: b, cpb, n: inM.length, picks, since, days, counted, age };
   if (p.all) { // all months: numbers for the whole period, the action from the latest month
     const c = venueStats(v, period(monthOf(today), today), mine, set, today);
-    return { ...base, st: c.st, lowRaw: c.lowRaw, prevCpb: c.prevCpb, prevKey: c.prevKey };
+    return { ...base, st: c.st, lowRaw: c.lowRaw, prevCpb: c.prevCpb, prevKey: c.prevKey, early: c.early, judged: c.judged ?? { cpb: c.cpb, counted: c.counted } };
   }
   const lowRaw = b > 0 && (st === "pull" || st === "quiet" || st === "idle"), pm = shiftMonth(p.key, -1);
+  // The first two weeks of a month hold too few days to judge (one quiet week reads as "gone quiet"), so keep last month's advice until the 15th.
+  if (p.asOf < p.end && daysBetween(p.start, p.asOf) + 1 < JUDGE_AFTER_DAYS && pm >= DATA_START && (!since || since <= p.start)) {
+    const pr = venueStats(v, period(pm, today), mine, set, today);
+    if (pr.st !== "later") return { ...base, st: pr.st, lowRaw: pr.lowRaw, prevCpb: pr.prevCpb, prevKey: pr.prevKey, early: true, judged: { cpb: pr.cpb, counted: pr.counted } };
+  }
   let prevCpb: number | null = null;
   if (v.status === "Waiting") st = "waiting";
   else if (lowRaw && !noPrev) {
@@ -139,10 +173,10 @@ export function venueStats(v: Venue, p: Period, mine: Pickup[], set: Settings, t
 }
 
 export function lowTxt(s: Stats) {
-  const a = MON[+s.prevKey.slice(5, 7) - 1], b = MON[+shiftMonth(s.prevKey, 1).slice(5, 7) - 1];
-  return !s.counted && !s.prevCpb
+  const a = MON[+s.prevKey.slice(5, 7) - 1], b = MON[+shiftMonth(s.prevKey, 1).slice(5, 7) - 1], j = s.judged ?? s;
+  return !j.counted && !s.prevCpb
     ? `No cans in ${a} or ${b}${s.since ? "" : " · no bin date, check it wasn't just placed"}`
-    : `${a} ${fmt(s.prevCpb || 0)} · ${b} ${fmt(s.cpb || 0)} cans per bin a month`;
+    : `${a} ${fmt(s.prevCpb || 0)} · ${b} ${fmt(j.cpb || 0)} cans per bin a month`;
 }
 
 // ---------- money ----------

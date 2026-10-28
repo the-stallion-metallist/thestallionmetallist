@@ -5,6 +5,7 @@ import { removeTeamMember, setTeamPassword, syncAppPickups, teamLink } from "../
 import { type Settings, areaName, parsePin, saleMoney, vstatus } from "@/lib/admin/logic";
 import { downloadWorkbook } from "@/lib/admin/excel";
 import { vname } from "../forms";
+import { saveSettings } from "../forms2";
 
 type K = keyof Settings;
 export default function SettingsPage() {
@@ -12,18 +13,14 @@ export default function SettingsPage() {
   const [team, setTeam] = useState<{ name: string; role: string; email: string }[]>([]);
   useEffect(() => { c.db.from("team").select("name, role, email").order("created_at").then(({ data }) => setTeam(data ?? [])); }, [c.db]);
 
-  async function save(k: K, raw: string, dflt?: number) {
-    const before = c.set[k] ?? dflt ?? null; const val = raw === "" ? null : Number(raw);
-    if (val === before) return;
-    const data = { ...c.set, [k]: val };
-    const { error } = await c.db.from("settings").update({ data }).eq("id", 1);
-    if (c.fail(error)) return;
-    c.patch((d) => ({ ...d, set: data }));
-    await c.logIt("Edited", "Setting", LABEL[k] ?? String(k), `${before ?? "–"} → ${val ?? "–"}`);
-    c.toast("Saved. All numbers updated.");
+  async function save(k: K, input: HTMLInputElement, dflt?: number) {
+    const raw = input.value, before = c.set[k] ?? dflt ?? null; const val = raw === "" ? null : Number(raw);
+    if (raw === input.dataset.was || val === before) return; // untouched: never save a box nobody edited (it may be showing an older number)
+    if (await saveSettings(c, { [k]: val }, LABEL[k] ?? String(k), `${before ?? "–"} → ${val ?? "–"}`)) c.toast("Saved. All numbers updated.");
+    else input.value = String(before ?? ""); // refused (see the message): show the number that is still saved
   }
   const inp = (k: K, l: string, help: string, unit: string, dflt?: number) => <div className="field" key={k}><label htmlFor={"set_" + k}>{l}</label>
-    <div className="inrow"><input id={"set_" + k} type="number" step="any" inputMode="decimal" defaultValue={(c.set[k] as number | null) ?? dflt ?? ""} placeholder="Not set" onBlur={(e) => save(k, e.target.value, dflt)} /><span>{unit}</span></div>
+    <div className="inrow"><input key={String(c.set[k] ?? "")} id={"set_" + k} type="number" step="any" inputMode="decimal" defaultValue={(c.set[k] as number | null) ?? dflt ?? ""} placeholder="Not set" onFocus={(e) => { e.currentTarget.dataset.was = e.currentTarget.value; }} onBlur={(e) => save(k, e.currentTarget, dflt)} /><span>{unit}</span></div>
     {help && <span className="help">{help}</span>}</div>;
 
   return (
@@ -67,12 +64,11 @@ function Godown() {
   const c = usePanel(); const [err, setErr] = useState("");
   const g = c.set.godown ?? [30.27847, 78.00318];
   return <div className="field"><label htmlFor="set_godown">Godown location (start and end of every route)</label>
-    <input id="set_godown" defaultValue={g.join(", ")} placeholder="Paste a Google Maps link or 30.27, 78.00" onBlur={async (e) => {
+    <input key={g.join()} id="set_godown" defaultValue={g.join(", ")} placeholder="Paste a Google Maps link or 30.27, 78.00" onFocus={(e) => { e.currentTarget.dataset.was = e.currentTarget.value; }} onBlur={async (e) => {
+      if (e.target.value === e.target.dataset.was) return; // untouched
       const r = parsePin(e.target.value); if (r.err) { setErr(r.err); return; } setErr("");
       if (r.p!.join() === g.join()) return;
-      const data = { ...c.set, godown: r.p }; const { error } = await c.db.from("settings").update({ data }).eq("id", 1); if (c.fail(error)) return;
-      c.patch((d) => ({ ...d, set: data })); await c.logIt("Edited", "Setting", "Godown location", `${g.join(", ")} → ${r.p!.join(", ")}`);
-      c.toast("Godown saved. Refresh road data on Venue locations so routes use it.");
+      if (await saveSettings(c, { godown: r.p }, "Godown location", `${g.join(", ")} → ${r.p!.join(", ")}`)) c.toast("Godown saved. Refresh road data on Venue locations so routes use it.");
     }} />
     <span className="help">{c.set.godown ? "Set by the team." : "Approximate point on Turner Road. Paste the exact spot from Google Maps."}</span>{err && <span className="err">{err}</span>}</div>;
 }

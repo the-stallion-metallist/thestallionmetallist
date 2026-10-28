@@ -29,14 +29,18 @@ export default function Routes() {
   const save = M2.kmOld ? Math.round((1 - M2.kmSame / M2.kmOld) * 100) : 0;
   const movesOn = (vid: number, date: string) => c.moves.filter((t) => t.status === "planned" && t.venue_id === vid && moveDate(t, c.vmap.get(vid)!, P, c.today) === date);
   type NK = "routeHours" | "stopMin" | "traffic" | "vehCap" | "routeDays" | "longDays" | "longHours" | "otwCans";
-  const setNum = async (k: NK, raw: string) => {
-    let v: number | null = raw === "" ? null : Number(raw);
+  const setNum = async (k: NK, input: HTMLInputElement) => {
+    if (input.value === input.dataset.was) return; // untouched: never save a box nobody edited (it may be showing an older number)
+    let v: number | null = input.value === "" ? null : Number(input.value);
     if (k === "routeHours" && !(v! > 0)) v = 4.5; if (k === "stopMin" && !(v! > 0)) v = 15;
     if (k === "routeDays") v = Math.min(6, Math.max(3, Math.round(v || 6))); if (k === "longDays") v = Math.min(3, Math.max(0, Math.round(v || 0)));
-    if (v === c.set[k]) return; if (await saveSettings(c, { [k]: v }, LAB[k], `${c.set[k] ?? "–"} → ${v ?? "–"}`)) c.toast(k === "routeDays" || k === "longDays" || k === "longHours" ? "Saved. Press Rebuild zones to use it." : "Route plan updated");
+    input.value = String(v ?? ""); // always show the number that is (or stays) saved
+    if (v === c.set[k]) return;
+    if (await saveSettings(c, { [k]: v }, LAB[k], `${c.set[k] ?? "–"} → ${v ?? "–"}`)) c.toast(k === "routeDays" || k === "longDays" || k === "longHours" ? "Saved. Press Rebuild zones to use it." : "Route plan updated");
+    else input.value = String(c.set[k] ?? "");
   };
   const inp = (k: NK, l: string, u: string, step = 1) => <div className="rp-set" key={k}><label htmlFor={"rs_" + k}>{l}</label>
-    <div className="inrow"><input id={"rs_" + k} className="inl" type="number" inputMode="decimal" step={step} min={0} defaultValue={c.set[k] ?? ""} placeholder="Add" onBlur={(e) => setNum(k, e.target.value)} /><span>{u}</span></div></div>;
+    <div className="inrow"><input key={String(c.set[k] ?? "")} id={"rs_" + k} className="inl" type="number" inputMode="decimal" step={step} min={0} defaultValue={c.set[k] ?? ""} placeholder="Add" onFocus={(e) => { e.currentTarget.dataset.was = e.currentTarget.value; }} onBlur={(e) => setNum(k, e.currentTarget)} /><span>{u}</span></div></div>;
   const rebuild = () => { setBusy(true); setTimeout(async () => { const t0 = Date.now(); const z = buildZones({ venues: c.venues, byV: c.byV, set: c.set, matrix: c.matrix, zones: null, areaRule: c.areaRule, today: c.today, waitingWithBin: new Set() });
     if (z && await saveZones(c, z, `Rebuilt ${P.meta.nodes} venues`)) c.toast(`Zones rebuilt in ${((Date.now() - t0) / 1000).toFixed(1)} s`); setBusy(false); }, 30); };
   const swap = async (z: number, day: number) => { const zones = { ...c.zones!, day: c.zones!.day.slice() }; const other = zones.day.indexOf(day); if (other >= 0) zones.day[other] = zones.day[z]; zones.day[z] = day;
@@ -47,8 +51,8 @@ export default function Routes() {
   const settingsFold = (<details className="card fold"><summary><h2>Route settings</h2><span className="hint">{M2.routeDays} route days · {c.set.routeHours} h{c.set.longDays ? `, ${c.set.longDays} long up to ${c.set.longHours ?? c.set.routeHours} h` : ""} · {c.set.stopMin} min a stop · +{c.set.traffic || 0}% traffic · leave {c.set.depart} · {c.set.vehCap ? fmt(c.set.vehCap) + " cans a load" : "no vehicle limit set"}</span></summary>
       <div className="fold-b"><div className="rp-top">
         {inp("routeHours", "Route length", "hours", 0.5)}{inp("stopMin", "Time per stop", "min")}{inp("traffic", "Traffic buffer", "%", 5)}
-        <div className="rp-set"><label htmlFor="rs_depart">Leave godown</label><input id="rs_depart" className="inl" type="time" defaultValue={c.set.depart} style={{ width: 120, textAlign: "left" }}
-          onBlur={async (e) => { const v = e.target.value || "11:00"; if (v !== c.set.depart && await saveSettings(c, { depart: v }, "Leave godown", `${c.set.depart} → ${v}`)) c.toast("Route plan updated"); }} /></div>
+        <div className="rp-set"><label htmlFor="rs_depart">Leave godown</label><input key={c.set.depart} id="rs_depart" className="inl" type="time" defaultValue={c.set.depart} style={{ width: 120, textAlign: "left" }} onFocus={(e) => { e.currentTarget.dataset.was = e.currentTarget.value; }}
+          onBlur={async (e) => { const v = e.target.value || "11:00"; if (e.target.value !== e.target.dataset.was && v !== c.set.depart && await saveSettings(c, { depart: v }, "Leave godown", `${c.set.depart} → ${v}`)) c.toast("Route plan updated"); }} /></div>
         {inp("vehCap", "Vehicle capacity", "cans")}
         {inp("routeDays", "Route days a week", "days")}{inp("longDays", "Long days allowed", "days")}{inp("longHours", "Longest day", "hours", 0.5)}{inp("otwCans", "Pick up on the way from", "cans")}
       </div>

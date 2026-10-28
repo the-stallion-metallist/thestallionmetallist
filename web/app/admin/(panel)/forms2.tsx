@@ -4,7 +4,7 @@ import { useState } from "react";
 import { usePanel, type PanelCtxT } from "./Panel";
 import { FormModal, Field, Opts, VenuePicker, diffs, metaOf, vname, type Errs } from "./forms";
 import {
-  type Advance, type Expense, type Payment, type Sale, type Trip, CATS, FUEL_RS_PER_L, ITEMS, dnice, fmt, itemLabel, kg, lastUnitCost, monthLabel, rs, rsu, staffDue,
+  type Advance, type Expense, type Payment, type Sale, type Trip, CATS, FUEL_RS_PER_L, ITEMS, checkSetting, dnice, fmt, itemLabel, kg, lastUnitCost, monthLabel, rs, rsu, staffDue,
 } from "@/lib/admin/logic";
 
 type C = PanelCtxT;
@@ -235,11 +235,19 @@ export function EditAdvance({ rec }: { rec?: Advance }) {
 
 
 // ---------- settings ----------
+// Settings are one row shared by the whole team. Only the changed keys are merged into the row as it is in the database right now (not this browser's
+// older copy), and the write only goes through if nobody saved in between (same updated_at), so two people saving different settings never undo each other.
 export async function saveSettings(c: C, changes: Record<string, unknown>, label: string, detail: string) {
-  const data = { ...c.set, ...changes };
-  const { error } = await c.db.from("settings").update({ data }).eq("id", 1);
-  if (c.fail(error)) return false;
-  c.patch((d) => ({ ...d, set: data })); await c.logIt("Edited", "Setting", label, detail); return true;
+  for (const [k, v] of Object.entries(changes)) { const bad = checkSetting(k, v); if (bad) { c.toast("Not saved. " + bad); return false; } }
+  for (let tries = 0; tries < 4; tries++) {
+    const { data: cur, error: e1 } = await c.db.from("settings").select("data, updated_at").eq("id", 1).single();
+    if (c.fail(e1) || !cur) return false;
+    const base = c.db.from("settings").update({ data: { ...cur.data, ...changes } }).eq("id", 1);
+    const { data: rows, error } = await (cur.updated_at == null ? base.is("updated_at", null) : base.eq("updated_at", cur.updated_at)).select("data");
+    if (c.fail(error)) return false;
+    if (rows?.length) { c.patch((d) => ({ ...d, set: rows[0].data })); await c.logIt("Edited", "Setting", label, detail); return true; }
+  }
+  c.toast("Not saved. Someone else is changing settings right now. Try again."); return false;
 }
 export async function saveZones(c: C, zones: C["zones"], label: string, detail = "") {
   const { error } = await c.db.from("plan_state").update({ value: zones }).eq("key", "zones");

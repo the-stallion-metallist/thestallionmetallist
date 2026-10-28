@@ -83,7 +83,7 @@ export function VenuePicker({ id, name = "venue_id", initial, label = "Venue", e
   const start = initial != null ? c.vmap.get(initial) : undefined;
   const [q, setQ] = useState(start?.name ?? ""); const [picked, setPicked] = useState<number | "">(start?.id ?? "");
   const [open, setOpen] = useState(false); const [act, setAct] = useState(-1);
-  const items = open ? rankVenues(c.venues, q).slice(0, q.trim() ? 8 : 100) : [];
+  const ranked = open ? rankVenues(c.venues, q) : [], items = q.trim() ? ranked.slice(0, 8) : ranked; // an empty box lists every venue; the list scrolls
   const listRef = useRef<HTMLUListElement>(null);
   const pick = (v: Venue) => { setQ(v.name); setPicked(v.id); setOpen(false); onPick?.(v); };
   useEffect(() => { listRef.current?.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: "nearest" }); }, [act]);
