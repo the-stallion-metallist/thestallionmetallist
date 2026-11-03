@@ -1,10 +1,10 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { usePanel, warnNext } from "./Panel";
-import { adjustSpare } from "./moveslib";
+import type { Spare } from "@/lib/admin/moves";
 import { I } from "./icons";
 import { TYPES,
-  type Pickup, type Venue, AREAS, VSTATUS, bins, dnice, fmt, parsePin, pickupCost, rs,
+  type BinChange, type LogRow, type Payment, type Pickup, type Venue, AREAS, VSTATUS, bins, dnice, fmt, kg, parsePin, pickupCost, rs,
 } from "@/lib/admin/logic";
 
 type Ctx = ReturnType<typeof usePanel>;
@@ -36,7 +36,10 @@ export function FormModal({ title, onSave, children, meta, onDelete, saveLabel =
   return (<>
     <div className="dr-h"><h2>{title}</h2><button className="x" type="button" onClick={c.closeModal} aria-label="Close">{I.x}</button></div>
     <form ref={ref} noValidate onSubmit={async (e) => {
-      e.preventDefault(); if (busy) return; setBusy(true);
+      e.preventDefault(); if (busy) return;
+      const late = [...e.currentTarget.querySelectorAll<HTMLInputElement>("input[type=date][max]")].find((i) => i.value && i.max && i.value > i.max);
+      if (late) { c.toast("That date is in the future. Pick today or an earlier day."); late.focus(); return; }
+      setBusy(true);
       const r = await onSave(new FormData(e.currentTarget)); setBusy(false);
       if (r && typeof r === "object" && Object.keys(r).length) { setErrs(r); return; }
       if (r !== false) c.closeModal();
@@ -124,7 +127,7 @@ export function VenuePicker({ id, name = "venue_id", initial, label = "Venue", e
 export function openLogPickup(c: Ctx, venueId?: number, rec?: Pickup) { c.openModal(<LogPickup venueId={venueId} rec={rec} />); }
 
 function LogPickup({ venueId, rec }: { venueId?: number; rec?: Pickup }) {
-  const c = usePanel(); const app = rec && rec.venue_id == null;
+  const c = usePanel(); const app = rec && rec.venue_id == null; const sure = useRef(""); // the warnings already shown: tapping Save again accepts them
   return (
     <FormModal title={rec ? "Edit pickup" : "Log pickup"} meta={rec ? metaOf(rec) : undefined} onDelete={rec ? () => deletePickup(c, rec) : undefined}
       onSave={async (fd) => {
@@ -132,7 +135,16 @@ function LogPickup({ venueId, rec }: { venueId?: number; rec?: Pickup }) {
         if (!app && !fd.get("venue_id")) e.venue_id = "Type the venue name and pick it from the list.";
         if (fd.get("cans") === "") e.cans = "Enter how many cans. Use 0 if only plastic.";
         if (Object.keys(e).length) return e;
-        const vals = { d: String(fd.get("d") || c.today), venue_id: app ? null : Number(fd.get("venue_id")), cans: Number(fd.get("cans")), plastic_kg: Number(fd.get("pl")) || 0,
+        // things that are usually typos (not forbidden): the same text twice means "yes, it's right"
+        const day = String(fd.get("d") || c.today), vid = app ? null : Number(fd.get("venue_id")), nCans = Number(fd.get("cans")), nKg = Number(fd.get("pl")) || 0;
+        const seen = c.pickups.filter((p) => !p.deleted && p.venue_id != null), maxCans = Math.max(0, ...seen.map((p) => p.cans)), maxKg = Math.max(0, ...seen.map((p) => Number(p.plastic_kg || 0)));
+        const warns: string[] = [], twin = vid != null ? seen.find((p) => p.venue_id === vid && p.d === day && p.id !== rec?.id) : undefined;
+        if (nCans > Math.max(1500, 1.5 * maxCans)) warns.push(`${fmt(nCans)} cans is far more than any pickup so far (the biggest was ${fmt(maxCans)}).`);
+        if (nKg > Math.max(60, 1.5 * maxKg)) warns.push(`${kg(nKg)} kg of plastic is far more than any pickup so far (the biggest was ${kg(maxKg)} kg).`);
+        if (twin) warns.push(`${vname(c, vid)} already has a pickup on ${dnice(day)} (${cansTxt(twin.cans)}).`);
+        const key = warns.join(" ");
+        if (key && sure.current !== key) { sure.current = key; return { cans: key + " Tap Save again if that is right." }; }
+        const vals = { d: day, venue_id: app ? null : Number(fd.get("venue_id")), cans: Number(fd.get("cans")), plastic_kg: Number(fd.get("pl")) || 0,
           src: (String(fd.get("src")) || "Bin") as Pickup["src"], staff: String(fd.get("staff") || ""), fill: String(fd.get("fill") || "") };
         return savePickup(c, vals, rec, !!fd.get("paynow"), String(fd.get("paymode") || "Cash"));
       }}>
@@ -170,62 +182,43 @@ function LogPickup({ venueId, rec }: { venueId?: number; rec?: Pickup }) {
 }
 
 async function savePickup(c: Ctx, vals: Omit<Pickup, "id" | "deleted" | "created_at" | "created_by" | "updated_by" | "trip">, rec?: Pickup, paynow?: boolean, paymode = "Cash") {
+  // the pickup, the payment made at it (new pickup: paid on the spot; edit: follows the new amount, removed at ₹0) and the history line are ONE database step
   if (rec) {
-    const { data, error } = await c.db.from("pickups").update(vals).eq("id", rec.id).select().single();
-    if (c.fail(error)) return false;
-    const next = data as Pickup;
-    const ch = diffs(rec as unknown as Record<string, unknown>, next as unknown as Record<string, unknown>, [["d", "Date", dnice as never], ["venue_id", "Venue", ((x: number) => vname(c, x)) as never], ["cans", "Cans", fmt as never], ["plastic_kg", "Plastic kg"], ["fill", "Bin fill"], ["staff", "Staff"], ["src", "Source"]]);
-    // a payment made at this pickup follows the new amount
+    const next = { ...rec, ...vals } as Pickup, norm = (p: Pickup): Record<string, unknown> => ({ ...(p as unknown as Record<string, unknown>), plastic_kg: Number(p.plastic_kg || 0) });
+    const ch = diffs(norm(rec), norm(next), [["d", "Date", dnice as never], ["venue_id", "Venue", ((x: number) => vname(c, x)) as never], ["cans", "Cans", fmt as never], ["plastic_kg", "Plastic kg"], ["fill", "Bin fill"], ["staff", "Staff"], ["src", "Source"]]);
     const pay = c.payments.find((p) => p.pickup_id === rec.id && !p.deleted);
-    let payments = c.payments;
-    if (pay && next.venue_id != null) {
-      const amount = Math.round(pickupCost(next, c.vmap, c.set));
-      if (amount !== Number(pay.amount)) {
-        // a pickup now worth ₹0 (no cans, no plastic) has nothing to pay: its payment is removed instead of left behind
-        const { data: pd, error: pe } = await c.db.from("payments").update(amount > 0 ? { amount, venue_id: next.venue_id } : { deleted: true }).eq("id", pay.id).select().single();
-        if (pd) { payments = payments.map((p) => (p.id === pay.id ? (pd as typeof p) : p)); if (amount <= 0) warnNext(`Its ${rs(Number(pay.amount))} payment was removed, as the pickup is worth ₹0 now.`); }
-        else warnNext(`The payment did not follow the new amount${pe ? " (" + pe.message + ")" : ""}. Change it on Payouts.`);
-      }
-    }
-    c.patch((d) => ({ ...d, pickups: d.pickups.map((p) => (p.id === rec.id ? next : p)), payments }));
-    if (ch) { await c.logIt("Edited", "Pickup", pickupLabel(c, next), ch, { table: "pickups", id: rec.id }); c.toast("Pickup updated"); }
+    const amount = pay && next.venue_id != null ? Math.round(pickupCost(next, c.vmap, c.set)) : null; // a pickup now worth ₹0 has nothing to pay: its payment is removed, not left behind
+    const { data, error } = await c.db.rpc("save_pickup", { p_id: rec.id, p_vals: vals, p_pay_amount: pay && amount !== Number(pay.amount) ? amount : null, p_pay_mode: null, p_label: pickupLabel(c, next), p_changes: ch });
+    if (c.fail(error)) return false;
+    const r = data as { pickup: Pickup; payment: Payment | null; log: LogRow | null };
+    if (r.payment && r.payment.deleted && pay && !pay.deleted) warnNext(`Its ${rs(Number(pay.amount))} payment was removed, as the pickup is worth ₹0 now.`);
+    c.patch((d) => ({ ...d, pickups: d.pickups.map((p) => (p.id === rec.id ? r.pickup : p)), payments: r.payment ? d.payments.map((p) => (p.id === r.payment!.id ? r.payment! : p)) : d.payments, log: r.log ? [r.log, ...d.log] : d.log }));
+    if (ch) c.toast("Pickup updated");
     return;
   }
-  const { data, error } = await c.db.from("pickups").insert(vals).select().single();
+  const cost = vals.venue_id != null ? Math.round(pickupCost({ ...vals, plastic_rate: null }, c.vmap, c.set)) : 0, payNow = !!paynow && vals.venue_id != null && cost > 0;
+  const { data, error } = await c.db.rpc("save_pickup", { p_id: null, p_vals: vals, p_pay_amount: payNow ? cost : null, p_pay_mode: paymode,
+    p_label: `${vname(c, vals.venue_id)} · ${cansTxt(vals.cans)}`, p_changes: payNow ? `Paid ${rs(cost)} on the spot` : "" });
   if (c.fail(error)) return false;
-  const p = data as Pickup; let msg = `Pickup saved: ${cansTxt(p.cans)} from ${vname(c, p.venue_id)}`;
-  let payRow: typeof c.payments[number] | null = null;
-  const cost = Math.round(pickupCost(p, c.vmap, c.set));
-  if (paynow && p.venue_id != null && cost > 0) {
-    const { data: pd, error: pe } = await c.db.from("payments").insert({ d: p.d, venue_id: p.venue_id, amount: cost, mode: paymode, note: "Paid on the spot", pickup_id: p.id }).select().single();
-    if (!pe && pd) { payRow = pd as typeof payRow; msg += `, ${rs(cost)} paid`; } else msg += ". Payment not saved: " + pe?.message;
-  }
-  c.patch((d) => ({ ...d, pickups: [...d.pickups, p], payments: payRow ? [...d.payments, payRow] : d.payments }));
-  await c.logIt("Added", "Pickup", pickupLabel(c, p), payRow ? `Paid ${rs(cost)} on the spot` : "", { table: "pickups", id: p.id });
-  c.toast(msg);
+  const r = data as { pickup: Pickup; payment: Payment | null; log: LogRow };
+  c.patch((d) => ({ ...d, pickups: [...d.pickups, r.pickup], payments: r.payment ? [...d.payments, r.payment] : d.payments, log: [r.log, ...d.log] }));
+  c.toast(`Pickup saved: ${cansTxt(r.pickup.cans)} from ${vname(c, r.pickup.venue_id)}${r.payment ? `, ${rs(cost)} paid` : ""}`);
 }
 
+// Delete / restore: the pickup, its payments and the history line change together. Restoring brings back the payments that went with it.
+async function pickupDeleted(c: Ctx, rec: Pickup, deleted: boolean) {
+  const { data, error } = await c.db.rpc("delete_pickup", { p_id: rec.id, p_deleted: deleted, p_label: pickupLabel(c, rec) });
+  if (c.fail(error)) return false;
+  const r = data as { pickup: Pickup; payments: Payment[]; log: LogRow };
+  c.patch((d) => ({ ...d, pickups: d.pickups.map((p) => (p.id === rec.id ? r.pickup : p)), payments: d.payments.map((p) => r.payments.find((x) => x.id === p.id) ?? p), log: [r.log, ...d.log] }));
+  return true;
+}
 export async function deletePickup(c: Ctx, rec: Pickup) {
-  const set = async (deleted: boolean) => {
-    const { error } = await c.db.from("pickups").update({ deleted }).eq("id", rec.id);
-    if (c.fail(error)) return false;
-    const { error: pe } = await c.db.from("payments").update({ deleted }).eq("pickup_id", rec.id);
-    if (pe) warnNext(`The pickup's payment could not be ${deleted ? "removed" : "restored"} (${pe.message}). Check it on Payouts.`);
-    c.patch((d) => ({ ...d, pickups: d.pickups.map((p) => (p.id === rec.id ? { ...p, deleted } : p)), payments: pe ? d.payments : d.payments.map((p) => (p.pickup_id === rec.id ? { ...p, deleted } : p)) }));
-    await c.logIt(deleted ? "Deleted" : "Restored", "Pickup", pickupLabel(c, rec), "", { table: "pickups", id: rec.id });
-    return true;
-  };
-  if (await set(true)) c.toast("Pickup deleted", async () => { if (await set(false)) c.toast("Pickup restored"); });
+  if (await pickupDeleted(c, rec, true)) c.toast("Pickup deleted", async () => { if (await pickupDeleted(c, rec, false)) c.toast("Pickup restored"); });
 }
 export async function restorePickup(c: Ctx, id: number) {
   const rec = c.pickups.find((p) => p.id === id); if (!rec) return;
-  const { error } = await c.db.from("pickups").update({ deleted: false }).eq("id", id);
-  if (c.fail(error)) return;
-  const { error: pe } = await c.db.from("payments").update({ deleted: false }).eq("pickup_id", id);
-  if (pe) warnNext(`The pickup's payment could not be restored (${pe.message}). Check it on Payouts.`);
-  c.patch((d) => ({ ...d, pickups: d.pickups.map((p) => (p.id === id ? { ...p, deleted: false } : p)), payments: pe ? d.payments : d.payments.map((p) => (p.pickup_id === id ? { ...p, deleted: false } : p)) }));
-  await c.logIt("Restored", "Pickup", pickupLabel(c, rec), "", { table: "pickups", id });
-  c.toast("Pickup restored");
+  if (await pickupDeleted(c, rec, false)) c.toast("Pickup restored");
 }
 
 // ---------- venues ----------
@@ -241,10 +234,15 @@ function BroughtBy({ id, value }: { id: string; value?: string | null }) {
   const c = usePanel();
   return <Field id={id} label="Brought in by" help="Who got this venue on board. Counts on the People screen."><select id={id} name="by" defaultValue={value ?? ""}><option value="">Not set</option>{broughtNames(c).map((n) => <option key={n}>{n}</option>)}</select></Field>;
 }
+// Another venue whose pin is within 30 m of this one (two venues on one pin is usually a copy-paste mistake, or the same venue twice).
+export function pinTwin(c: Ctx, p: [number, number], exceptId?: number) {
+  const m = (a: number, b: number, k = 1) => (a - b) * 111000 * k;
+  return [...c.vmap.values()].find((x) => !x.deleted && x.id !== exceptId && x.lat != null && x.lng != null && Math.hypot(m(Number(x.lat), p[0]), m(Number(x.lng), p[1], Math.cos((p[0] * Math.PI) / 180))) < 30);
+}
 const pinErr = (raw: string) => (raw ? parsePin(raw) : { p: undefined, err: undefined });
 
 export function EditVenue({ v }: { v: Venue }) {
-  const c = usePanel(); const [status, setStatus] = useState(v.status);
+  const c = usePanel(); const sure = useRef(""); const [status, setStatus] = useState(v.status);
   const block = removeBlock(c, v);
   return (
     <FormModal title={"Edit " + v.name} deleteLabel="Remove venue" onDelete={block ? undefined : () => removeVenue(c, v)} onSave={async (fd) => {
@@ -255,6 +253,8 @@ export function EditVenue({ v }: { v: Venue }) {
       const pp = raw && raw !== cur ? pinErr(raw) : { p: undefined as [number, number] | undefined, err: undefined as string | undefined };
       if (pp.err) e.pin = pp.err;
       if (Object.keys(e).length) return e;
+      const twin = pp.p ? pinTwin(c, pp.p, v.id) : undefined, tmsg = twin ? `${twin.name} is already on this exact spot. Two venues on one pin is usually a mistake (or the same venue twice).` : "";
+      if (tmsg && sure.current !== tmsg) { sure.current = tmsg; return { pin: tmsg + " Tap Save again if it is right." }; }
       const vals: Partial<Venue> = {
         name, type: String(fd.get("type")) || null, area: String(fd.get("area")) || null, status: String(fd.get("status")) as Venue["status"],
         promised: String(fd.get("status")) === "Waiting" ? Math.max(1, Number(fd.get("promised")) || 1) : v.promised,
@@ -320,7 +320,7 @@ async function removeVenue(c: Ctx, v: Venue) {
 }
 
 export function AddVenue() {
-  const c = usePanel(); const [wait, setWait] = useState(false);
+  const c = usePanel(); const [wait, setWait] = useState(false); const sure = useRef("");
   return (
     <FormModal title="Add venue" onSave={async (fd) => {
       const e: Errs = {}; const name = String(fd.get("name")).trim();
@@ -330,6 +330,8 @@ export function AddVenue() {
       if (hasBins && !fd.get("bin")) e.bin = "Enter the day the bin was placed.";
       const pp = pinErr(String(fd.get("pin")).trim()); if (pp.err) e.pin = pp.err;
       if (Object.keys(e).length) return e;
+      const twin = pp.p ? pinTwin(c, pp.p) : undefined, tmsg = twin ? `${twin.name} is already on this exact spot. Two venues on one pin is usually a mistake (or the same venue twice).` : "";
+      if (tmsg && sure.current !== tmsg) { sure.current = tmsg; return { pin: tmsg + " Tap Save again if it is right." }; }
       const row = {
         name, type: String(fd.get("type")), area: String(fd.get("area")) || null, status: wait ? "Waiting" : "Active", promised: wait ? Math.max(1, Number(fd.get("promised")) || 1) : 0,
         steel, plastic_bins: pb, added: String(fd.get("added")), bin_since: hasBins ? String(fd.get("bin")) : null,
@@ -417,21 +419,12 @@ export function BinChangeForm({ venueId }: { venueId?: number }) {
       const steel = sign < 0 ? Math.min(v.steel, Number(fd.get("steel")) || 0) : Number(fd.get("steel")) || 0;
       const pb = sign < 0 ? Math.min(v.plastic_bins, Number(fd.get("pb")) || 0) : Number(fd.get("pb")) || 0;
       if (!steel && !pb) return { steel: sign < 0 ? `${v.name} has ${v.steel} steel and ${v.plastic_bins} plastic bins.` : "Enter at least 1 bin." };
-      const vals: Partial<Venue> = { steel: v.steel + sign * steel, plastic_bins: v.plastic_bins + sign * pb };
-      if (sign > 0 && (!v.bin_since || bins(v) === 0)) Object.assign(vals, { bin_since: d, bin_est: false });
-      if (sign > 0 && v.status === "Waiting") Object.assign(vals, { status: "Active", promised: 0 });
-      // the venue's bins change first, and only if they are still what this screen showed; the spare count and the history follow
-      const { data: vr, error } = await c.db.from("venues").update(vals).eq("id", v.id).eq("steel", v.steel).eq("plastic_bins", v.plastic_bins).select();
+      // one database step: the venue's bins (only if they are still what this screen showed), the spare count, the bin log and the history line, all or nothing
+      const { data, error } = await c.db.rpc("record_bin_change", { p_venue: v.id, p_sign: sign, p_steel: steel, p_pb: pb, p_d: d, p_exp_steel: v.steel, p_exp_pb: v.plastic_bins });
       if (c.fail(error)) return false;
-      if (!vr?.length) { c.toast(`The bins at ${v.name} changed while you were working. Reloading. Check the numbers and try again.`); await c.reload(); return false; }
-      c.patch((x) => ({ ...x, venues: x.venues.map((y) => (y.id === v.id ? (vr[0] as Venue) : y)) }));
-      const lost: string[] = [];
-      // bins taken back go to the spare count at the godown; bins placed come out of it
-      if (!(await adjustSpare(c, -sign * steel, -sign * pb))) lost.push("the spare bin count did not change (set it again on Bin moves)");
-      const { data: b, error: be } = await c.db.from("bin_log").insert({ d, venue_id: v.id, change: sign, steel, plastic: pb }).select().single();
-      if (be || !b) lost.push("the bin history line was not saved"); else c.patch((x) => ({ ...x, binlog: [...x.binlog, b as typeof x.binlog[number]] }));
-      await c.logIt(sign > 0 ? "Placed" : "Took back", "Bins", `${v.name} · ${steel} steel, ${pb} plastic`, "", { table: "venues", id: v.id });
-      if (lost.length) warnNext(`The bins were changed, but ${lost.join(" and ")}.`);
+      const r = data as { result: string; venue?: Venue; spare?: Spare; binlog?: BinChange; log?: LogRow };
+      if (r.result === "changed") { c.toast(`The bins at ${v.name} changed while you were working. Reloading. Check the numbers and try again.`); await c.reload(); return false; }
+      c.patch((x) => ({ ...x, venues: x.venues.map((y) => (y.id === v.id ? r.venue! : y)), spare: r.spare!, binlog: [...x.binlog, r.binlog!], log: [r.log!, ...x.log] }));
       c.toast(`Bins updated at ${v.name}`);
     }}>
       {(errs) => <>

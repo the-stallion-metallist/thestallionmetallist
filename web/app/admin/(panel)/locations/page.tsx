@@ -1,8 +1,9 @@
 "use client";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { usePanel } from "../Panel";
 import { Empty } from "../icons";
+import { pinTwin } from "../forms";
 import { refreshRoads } from "../../actions";
 import { type Venue, areaName, dnice, parsePin } from "@/lib/admin/logic";
 import { pinOf, pinSig } from "@/lib/admin/routes";
@@ -12,7 +13,7 @@ const stOf = (v: Venue): St => (v.pin_src === "manual" ? "done" : v.pin_src === 
 
 export default function Locations() {
   const c = usePanel(); const [f, setF] = useState<St | "all">("check"); const [q, setQ] = useState("");
-  const [vals, setVals] = useState<Record<number, string>>({}); const [errs, setErrs] = useState<Record<number, string>>({}); const [busy, setBusy] = useState(false);
+  const [vals, setVals] = useState<Record<number, string>>({}); const [errs, setErrs] = useState<Record<number, string>>({}); const [busy, setBusy] = useState(false); const sure = useRef<Record<number, string>>({}); // pin warnings already shown: pressing Save again accepts them
   const act = c.venues.filter((v) => v.status !== "Pulled" && (v.steel + v.plastic_bins > 0 || v.status === "Waiting"));
   const cnt = (k: St | "all") => (k === "all" ? act.length : act.filter((v) => stOf(v) === k).length);
   const list = act.filter((v) => f === "all" || stOf(v) === f).filter((v) => !q || v.name.toLowerCase().includes(q.toLowerCase())).sort((a, b) => a.name.localeCompare(b.name));
@@ -62,7 +63,10 @@ export default function Locations() {
             {(s === "check" || s === "found") && p && <><a className="btn btn-g btn-sm" href={`https://www.google.com/maps?q=${p.join(",")}`} target="_blank" rel="noopener">See pin</a>
               <button className="btn btn-g btn-sm" onClick={() => setPin(v, null, "manual", "Confirmed")}>Yes, correct</button></>}
             <span className="lr-in"><input className="inl" placeholder="Paste numbers or link" aria-label={`Location for ${v.name}`} value={vals[v.id] ?? ""} onChange={(e) => setVals({ ...vals, [v.id]: e.target.value })} />
-              <button className="btn btn-p btn-sm" onClick={() => { const r = parsePin(vals[v.id] ?? ""); if (r.err) { setErrs({ ...errs, [v.id]: r.err }); return; } setErrs({ ...errs, [v.id]: "" }); setVals({ ...vals, [v.id]: "" }); setPin(v, r.p!, "manual", "Edited"); }}>Save</button></span></div>
+              <button className="btn btn-p btn-sm" onClick={() => { const r = parsePin(vals[v.id] ?? ""); if (r.err) { setErrs({ ...errs, [v.id]: r.err }); return; }
+                const twin = pinTwin(c, r.p!, v.id), tmsg = twin ? `${twin.name} is already on this exact spot. Two venues on one pin is usually a mistake (or the same venue twice).` : "";
+                if (tmsg && sure.current[v.id] !== tmsg) { sure.current[v.id] = tmsg; setErrs({ ...errs, [v.id]: tmsg + " Press Save again if it is right." }); return; }
+                setErrs({ ...errs, [v.id]: "" }); setVals({ ...vals, [v.id]: "" }); setPin(v, r.p!, "manual", "Edited"); }}>Save</button></span></div>
           <div className="err">{errs[v.id]}</div></div>; })
         : <Empty title="No venues here" text="Pick another filter." />}
     </div>

@@ -13,7 +13,8 @@ export default function History() {
   // the panel loads the newest 500 lines; this screen keeps every line it has seen and can fetch older ones
   const [rows, setRows] = useState<LogRow[]>(c.log); const [total, setTotal] = useState<number | null>(null); const [busy, setBusy] = useState(false);
   useEffect(() => { setRows((r) => byNewest(r, c.log)); }, [c.log]);
-  useEffect(() => { c.db.from("change_log").select("id", { count: "exact", head: true }).then(({ count }) => setTotal(count)); }, [c.db, c.log[0]?.id]);
+  const newest = c.log[0]?.id; // a new line anywhere in the panel changes the total
+  useEffect(() => { c.db.from("change_log").select("id", { count: "exact", head: true }).then(({ count }) => setTotal(count)); }, [c.db, newest]);
   async function older() {
     setBusy(true);
     const { data, error } = await c.db.from("change_log").select("*").lt("id", rows[rows.length - 1].id).order("id", { ascending: false }).limit(500);

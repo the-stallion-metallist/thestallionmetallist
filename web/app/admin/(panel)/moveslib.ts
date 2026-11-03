@@ -1,7 +1,7 @@
 "use client";
-import { type PanelCtxT, warnNext } from "./Panel";
-import type { BinChange, Venue } from "@/lib/admin/logic";
-import { type Move, binsTxt } from "@/lib/admin/moves";
+import type { PanelCtxT } from "./Panel";
+import type { BinChange, LogRow, Venue } from "@/lib/admin/logic";
+import type { Move, Spare } from "@/lib/admin/moves";
 import { dnice, monthDays, monthOf, shiftMonth } from "@/lib/admin/logic";
 
 type C = PanelCtxT;
@@ -45,39 +45,16 @@ export async function doMove(c: C, t: Move, d = c.today) {
   try { return await carryOut(c, t, d); } finally { moving.delete(t.id); }
 }
 
-// The move is claimed first, so only one tap (or one phone) can carry it out; a second one finds it already done.
-// If the bins can't be changed the claim is given back and nothing has changed. After the bins change, any step that fails is reported by name.
+// One database step does the whole move (the venue's bins, the spare count, the bin log, the move itself and the history line), all or nothing.
+// The move is locked while it runs, so a second tap or another phone finds it already done.
 async function carryOut(c: C, t: Move, d: string) {
-  const v = c.vmap.get(t.venue_id)!;
-  let steel: number, pb: number, vals: Partial<Venue>, left = 0;
-  if (t.kind === "pull") {
-    pb = Math.min(t.plastic, v.plastic_bins); steel = Math.min(t.steel, v.steel);
-    left = v.steel - steel + v.plastic_bins - pb;
-    vals = { steel: v.steel - steel, plastic_bins: v.plastic_bins - pb, ...(left === 0 ? { status: "Paused" as const } : { cut_on: d }) };
-  } else {
-    const { data: sp } = await c.db.from("spare_bins").select("steel, plastic").eq("id", 1).single(); // the count right now, not this screen's older copy
-    const spare = { ...c.spare, ...sp }, have = spare.steel + spare.plastic;
-    if (have < t.n) { c.toast(`Only ${have} spare bin${have === 1 ? "" : "s"} at the godown. Take bins back first, or add bins you bought.`); return false; }
-    steel = Math.min(spare.steel, t.n); pb = t.n - steel;
-    vals = { steel: v.steel + steel, plastic_bins: v.plastic_bins + pb, ...(v.status === "Waiting" ? { status: "Active" as const, bin_since: d, bin_est: false, promised: 0 } : {}) };
-  }
-  const { data: claimed, error: ce } = await c.db.from("bin_moves").update({ status: "done", done_on: d, done_by: c.me.name }).eq("id", t.id).eq("status", "planned").select();
-  if (c.fail(ce)) return false;
-  if (!claimed?.length) { c.toast("This bin move was already done or cancelled. Reloading."); await c.reload(); return false; }
-  // the venue's bins change only if they are still what this screen showed
-  const { data: vr, error: ve } = await c.db.from("venues").update(vals).eq("id", v.id).eq("steel", v.steel).eq("plastic_bins", v.plastic_bins).select();
-  if (ve || !vr?.length) {
-    await c.db.from("bin_moves").update({ status: "planned", done_on: null, done_by: null }).eq("id", t.id);
-    if (ve) c.fail(ve); else { c.toast(`The bins at ${v.name} changed while you were working. Reloading. Check the numbers and try again.`); await c.reload(); }
-    return false;
-  }
-  c.patch((x) => ({ ...x, venues: x.venues.map((y) => (y.id === v.id ? (vr[0] as Venue) : y)), moves: x.moves.map((m) => (m.id === t.id ? (claimed[0] as Move) : m)) }));
-  const pull = t.kind === "pull", lost: string[] = [];
-  if (!(await adjustSpare(c, pull ? steel : -steel, pull ? pb : -pb))) lost.push("the spare bin count did not change (set it again on Bin moves)");
-  const { data: bl, error: be } = await c.db.from("bin_log").insert({ d, venue_id: v.id, change: pull ? -1 : 1, steel, plastic: pb, note: "Bin move" }).select().single();
-  if (be || !bl) lost.push("the bin history line was not saved"); else c.patch((x) => ({ ...x, binlog: [...x.binlog, bl as BinChange] }));
-  await c.logIt(pull ? "Took back" : "Placed", "Bins", `${v.name} · ${binsTxt(steel, pb)}${pull && left === 0 ? " · venue paused" : ""}`, "", { table: "venues", id: v.id });
-  if (lost.length) warnNext(`The bins were moved, but ${lost.join(" and ")}.`);
+  const { data, error } = await c.db.rpc("do_bin_move", { p_move: t.id, p_d: d });
+  if (c.fail(error)) return false;
+  const r = data as { result: string; have?: number; move?: Move; venue?: Venue; spare?: Spare; binlog?: BinChange; log?: LogRow };
+  if (r.result === "gone") { c.toast("This bin move was already done or cancelled. Reloading."); await c.reload(); return false; }
+  if (r.result === "nospare") { const have = r.have ?? 0; c.toast(`Only ${have} spare bin${have === 1 ? "" : "s"} at the godown. Take bins back first, or add bins you bought.`); return false; }
+  c.patch((x) => ({ ...x, venues: x.venues.map((y) => (y.id === r.venue!.id ? r.venue! : y)), moves: x.moves.map((m) => (m.id === t.id ? r.move! : m)),
+    spare: r.spare!, binlog: [...x.binlog, r.binlog!], log: [r.log!, ...x.log] }));
   return true;
 }
 

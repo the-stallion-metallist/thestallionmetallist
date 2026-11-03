@@ -4,6 +4,7 @@ import { usePanel } from "../Panel";
 import { Empty, I } from "../icons";
 import { PhFold, PhHead, PhRow, SplitBar, priceNote } from "../bits";
 import { EditExpense, EditPayment, EditSale } from "../forms2";
+import { BuyersOwe, HowPaid, MonthByMonth, buyersOweTotal } from "./views";
 import { CATS, collectionDays, dieselOf, dnice, fmt, godownOn, inP, saleMoney, saleTransport, itemLabel, kg, lastUnitCost, monthOf, rs, rsu, staffDue, totals } from "@/lib/admin/logic";
 
 export default function Money() {
@@ -69,6 +70,7 @@ export default function Money() {
       </div>{!expTot && <p className="muted" style={{ fontSize: 13.5, marginTop: 10 }}>Add salaries and rent as expenses to see real profit. Diesel is counted for each collection day.</p>}</div>
       <div className="ph-list">
         <PhRow lead={owedN ? owedN : I.tick} tone={od.length ? "bad" : owedN ? "warn" : "good"} title="Venues owed" sub={owedN ? `${rs(owedTot)} to pay${od.length ? ` · ${od.length} not paid on time` : ""}` : "Everyone is paid"} href="/admin/payouts" />
+        {buyersOweTotal(c).total > 0 && <PhRow lead={buyersOweTotal(c).rows.length} tone="warn" title="Buyers owe you" sub={`${rs(buyersOweTotal(c).total)} on ${buyersOweTotal(c).rows.length} sale${buyersOweTotal(c).rows.length === 1 ? "" : "s"} not paid yet`} href="/admin/stock" />}
         <PhRow lead={I.stock} title="In the godown" sub={`${fmt(cansNow)} cans + ${kg(g.pl)} kg plastic · worth ${rs(gWorth)}`} href="/admin/stock" />
         <PhRow lead={I.staff} title="Staff pay" sub={!salSet ? `${active.length} staff · salaries not set yet` : toPay ? `${rs(toPay)} to pay this month` : "Nothing to pay this month"} href="/admin/staff" />
       </div>
@@ -83,6 +85,9 @@ export default function Money() {
         <div><span>Cost per pickup</span><b>{costPick != null ? `₹${fmt(Math.round(costPick))}` : "–"}</b></div>
         {plRows}
       </div></PhFold>
+      <PhFold title="Month by month" sub="Earned, costs and profit for each month"><MonthByMonth /></PhFold>
+      <PhFold title="How it was paid" sub={`Cash, UPI and bank · ${p.label}`}><HowPaid /></PhFold>
+      <PhFold title="Buyers owe you" sub={buyersOweTotal(c).total ? rs(buyersOweTotal(c).total) + " waiting" : "Every sale is paid"}><BuyersOwe /></PhFold>
       <PhFold title="Expenses" sub={exps.length ? `${exps.length} in ${p.label} · ${rs(expTot)}` : `Nothing entered in ${p.label}`}>
         {exps.length ? <div className="ph-list flat">{exps.slice().sort((a, b) => (a.d < b.d ? 1 : -1)).map((e) => <PhRow key={e.id} title={e.category === "Salaries" ? "Salary · " + sname(e.staff_id) : e.qty ? itemLabel(e) : e.category} sub={`${dnice(e.d)} · ${e.mode}`} right={<b className="ph-amt">{rs(Number(e.amount))}</b>} onClick={() => c.openModal(<EditExpense rec={e} />)} />)}</div>
           : <p className="muted">Add salaries, rent, new bins and phone bills here.</p>}
@@ -132,6 +137,13 @@ export default function Money() {
             <b>{rs(Number(e.amount))}</b></button>)}</div>
             : <Empty title="No expenses in this period" text="Add salaries, rent, new bins and phone bills to see real profit." />}
         </div>
+      </div>
+    </section>
+    <section className="grid2">
+      <div className="card"><div className="card-h"><h2>Month by month</h2><span className="hint">Earned, costs and profit for each month</span></div><MonthByMonth /></div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 18, minWidth: 0 }}>
+        <div className="card"><div className="card-h"><h2>Buyers owe you</h2><span className="hint">Sales not paid yet</span></div><BuyersOwe /></div>
+        <div className="card"><div className="card-h"><h2>How it was paid</h2><span className="hint">{p.label}</span></div><HowPaid /></div>
       </div>
     </section>
   </>);
