@@ -8,7 +8,7 @@ import {
   type Settings, type StaffRow, type Stats, type Trip, type Venue, type PayState, type Prices,
   DATA_START, MON, areaName, byVenue, monthOf, monthsSince, payState, period, salePrices, todayIST, valued, venueStats,
 } from "@/lib/admin/logic";
-import { type AreaRule, type Matrix, type Pin, type Plan, type Zones, buildZones, optimisePlan } from "@/lib/admin/routes";
+import type { Pin } from "@/lib/admin/areas";
 import { type Move, type Spare, type Suggestion, movePlan } from "@/lib/admin/moves";
 import { I } from "./icons";
 import { openLogPickup } from "./forms";
@@ -16,18 +16,16 @@ import { openSearch } from "./Search";
 import { syncAppPickups } from "../actions";
 
 export type Member = { name: string; role: string; email: string };
-export type RunStop = { vid: number; exp: number; extra: boolean; added?: boolean; mode: "todo" | "done" | "skip"; fill: string; reason: string; cans?: number; pl?: number; paid?: boolean; cost?: number; pid?: number; payId?: number; movesTxt?: string };
-export type Run = { id: number; day: number; week: "A" | "B"; label: string; staff: string; plan_min: number | null; started_at: string; finished_at: string | null; stops: RunStop[]; trip_id: number | null };
 export type Data = {
   venues: Venue[]; pickups: Pickup[]; binlog: BinChange[]; payments: Payment[]; log: LogRow[]; set: Settings & { godown?: Pin };
   trips: Trip[]; sales: Sale[]; expenses: Expense[]; staff: StaffRow[]; marks: Mark[]; advances: Advance[];
-  moves: Move[]; spare: Spare; run: Run | null; zones: Zones; areaRule: AreaRule; matrix: Matrix;
+  moves: Move[]; spare: Spare;
 };
 type Ctx = Data & {
   me: Member; today: string; db: ReturnType<typeof adminDb>;
   vmap: Map<number, Venue>; byV: Map<number, Pickup[]>;
   month: string; setMonth: (m: string) => void; per: Period; now: Period; stats: (v: Venue, p?: Period) => Stats;
-  plan: Plan | null; sug: Suggestion; pay: (v: Venue) => PayState; god: Pin;
+  sug: Suggestion; pay: (v: Venue) => PayState; god: Pin;
   patch: (fn: (d: Data) => Data) => void; reload: () => Promise<void>;
   logIt: (action: string, what: string, label: string, changes?: string, ref?: { table: string; id: number }) => Promise<void>;
   toast: (msg: string, undo?: () => void | Promise<void>) => void;
@@ -61,7 +59,7 @@ export const SCREENS = [
   { href: "/admin/venues", t: "Venues & bins", grp: "Daily", icon: "venues", sub: "Cans per bin per month, counted from the day the bin was placed" },
   { href: "/admin/moves", t: "Bin moves", grp: "Daily", icon: "moves", sub: "Take bins back from venues that stay low, and give them to venues that need one" },
   { href: "/admin/pickups", t: "Pickups", grp: "Daily", icon: "pickups", sub: "Every collection, from bins, the app and walk-ins" },
-  { href: "/admin/routes", t: "Route planner", grp: "Daily", icon: "routes", sub: "Smart zones on real roads. Every route starts and ends at the godown on Turner Road." },
+  { href: "/admin/routes", t: "Areas", grp: "Daily", icon: "routes", sub: "Which venues were collected this week, where cans are waiting, and which area to go to next" },
   { href: "/admin/locations", t: "Venue locations", grp: "Daily", icon: "locations", sub: "Exact points for each venue, so routes use the right roads" },
   { href: "/admin/trips", t: "Collection days", grp: "Daily", icon: "trips", sub: "Which venues were collected together on each day, and the diesel" },
   { href: "/admin/growth", t: "Growth", grp: "Money", icon: "growth", sub: "Cans lost to full bins, bins likely full now, and how each week compares" },
@@ -73,7 +71,6 @@ export const SCREENS = [
   { href: "/admin/staff", t: "Staff", grp: "Team", icon: "staff", sub: "Attendance, salaries and advances" },
   { href: "/admin/history", t: "Change history", grp: "Team", icon: "history", sub: "Every add, edit and delete, and who made it" },
   { href: "/admin/settings", t: "Settings", grp: "Team", icon: "settings", sub: "Rates, bin rules, routes, team and Excel" },
-  { href: "/admin/run", t: "Route in progress", grp: "Daily", icon: "run", sub: "", hidden: true },
 ] as const;
 const MONTH_SCREENS = ["/admin", "/admin/venues", "/admin/pickups", "/admin/trips", "/admin/stock", "/admin/money", "/admin/profit", "/admin/growth"];
 const HIDE_MENU = ["/admin/moves", "/admin/payouts"]; // hidden from the menus; the screens still open from links on Overview
@@ -108,7 +105,7 @@ export default function Panel({ children }: { children: React.ReactNode }) {
       const { data: m } = await db.from("team").select("name, role, email").eq("user_id", session.user.id).maybeSingle();
       if (!m) { setOutsider(session.user.email ?? "this account"); return; }
       setMe(m as Member);
-      const [venues, pickups, binlog, payments, log, s, trips, sales, expenses, staff, marks, advances, moves, spare, runs, ps, matrix] = await Promise.all([
+      const [venues, pickups, binlog, payments, log, s, trips, sales, expenses, staff, marks, advances, moves, spare] = await Promise.all([
         fetchAll<Venue>(db, "venues", "id"), fetchAll<Pickup>(db, "pickups", "id"), fetchAll<BinChange>(db, "bin_log", "id"), fetchAll<Payment>(db, "payments", "id"),
         one<LogRow[]>(db.from("change_log").select("*").order("id", { ascending: false }).limit(500)),
         one<{ data: Data["set"] }>(db.from("settings").select("data").eq("id", 1).single()),
@@ -116,13 +113,8 @@ export default function Panel({ children }: { children: React.ReactNode }) {
         one<StaffRow[]>(db.from("staff").select("id, name, salary, active").order("id")),
         fetchAll<Mark>(db, "attendance", "d,staff_id"), fetchAll<Advance>(db, "advances", "id"), fetchAll<Move>(db, "bin_moves", "id"),
         one<Spare>(db.from("spare_bins").select("steel, plastic, counted").eq("id", 1).single()),
-        one<Run[]>(db.from("route_runs").select("*").is("finished_at", null).limit(1)),
-        one<{ key: string; value: unknown }[]>(db.from("plan_state").select("key, value")),
-        one<Matrix>(db.from("road_matrix").select("pts, dur, dist, fetched_at").eq("id", 1).single()),
       ]);
-      const st = Object.fromEntries(ps.map((r) => [r.key, r.value]));
-      setData({ venues, pickups, binlog, payments, log, set: s.data, trips, sales, expenses, staff, marks, advances, moves, spare, run: runs[0] ?? null,
-        zones: (st.zones as Zones) ?? null, areaRule: (st.areaRule as AreaRule) ?? null, matrix });
+      setData({ venues, pickups, binlog, payments, log, set: s.data, trips, sales, expenses, staff, marks, advances, moves, spare });
       setLoadErr(""); lastLoad.current = Date.now();
     } catch (e) { setLoadErr((e as Error).message); }
   }, [db]);
@@ -190,23 +182,10 @@ function Loaded(props: {
   }, [db, patch, toast]);
   const fail = useCallback((e: { message: string } | null) => { if (e) { toast("Not saved: " + e.message); return true; } return false; }, [toast]);
 
-  // the route plan: zones are built once from road times and kept, so venues keep their day
   const god: Pin = data.set.godown ?? [30.27847, 78.00318];
-  const waitingWithBin = useMemo(() => new Set(data.moves.filter((t) => t.status === "planned" && t.kind === "place").map((t) => t.venue_id)), [data.moves]);
-  const rctx = useMemo(() => ({ venues, byV, set: data.set, matrix: data.matrix, zones: data.zones, areaRule: data.areaRule, today, waitingWithBin }),
-    [venues, byV, data.set, data.matrix, data.zones, data.areaRule, today, waitingWithBin]);
-  const plan = useMemo(() => optimisePlan(rctx, areaName), [rctx]);
-  const building = useRef(false);
-  useEffect(() => { // first time (or after the road data arrives): build zones and save them for everyone
-    if (data.zones || building.current || data.matrix.pts.length < 7) return;
-    building.current = true;
-    const z = buildZones(rctx);
-    if (z) db.from("plan_state").update({ value: z }).eq("key", "zones").then(({ error }) => { if (!error) patch((d) => ({ ...d, zones: z })); building.current = false; });
-    else building.current = false; // not enough venues yet: try again when the venues or road data change
-  }, [data.zones, data.matrix, rctx, db, patch]);
   const pay = useCallback((v: Venue) => payState(v, byV.get(v.id) ?? [], data.payments, vmap, data.set, today), [byV, data.payments, vmap, data.set, today]);
-  const sug = useMemo(() => movePlan({ venues, stats, now, set: data.set, plan, moves: data.moves, spare: data.spare, today, vmap }),
-    [venues, stats, now, data.set, plan, data.moves, data.spare, today, vmap]);
+  const sug = useMemo(() => movePlan({ venues, stats, now, set: data.set, moves: data.moves, spare: data.spare, today, vmap }),
+    [venues, stats, now, data.set, data.moves, data.spare, today, vmap]);
 
   const badges = useMemo(() => {
     const b: Record<string, number | string> = {};
@@ -214,12 +193,11 @@ function Loaded(props: {
     const loc = venues.filter((v) => v.status !== "Pulled" && v.steel + v.plastic_bins > 0 && v.pin_src !== "google" && v.pin_src !== "manual").length; if (loc) b["/admin/locations"] = loc;
     const act = venues.filter((v) => ["add", "pull", "quiet"].includes(stats(v, now).st)).length; if (act) b["/admin/venues"] = act;
     const mv = sug.pulls.length + sug.give.length; if (mv) b["/admin/moves"] = mv;
-    if (data.run) b["/admin/routes"] = "●";
     return b;
-  }, [venues, data.run, pay, stats, now, sug]);
+  }, [venues, pay, stats, now, sug]);
 
   const price = useMemo(() => salePrices(data.sales, data.set), [data.sales, data.set]), vset = useMemo(() => valued(data.set, price), [data.set, price]);
-  const ctx: Ctx = { ...data, venues, me, today, db, vmap, byV, month, setMonth, per, now, stats, plan, sug, pay, god, patch, reload, logIt, toast,
+  const ctx: Ctx = { ...data, venues, me, today, db, vmap, byV, month, setMonth, per, now, stats, sug, pay, god, patch, reload, logIt, toast,
     openDrawer: props.openDrawer, openModal: props.openModal, closeModal, closeLayers, fail, badges, phone, price, vset };
 
   useEffect(() => { // "/" opens search
@@ -233,11 +211,9 @@ function Loaded(props: {
   const monthBtn = (m: string) => <button key={m} aria-pressed={month === m} onClick={() => setMonth(m)} title={m === "all" ? "All months together" : undefined}>
     {m === "all" ? (nMonths === 2 ? "Both" : "All") : MON[+m.slice(5, 7) - 1]}</button>;
   const sub = scr.href === "/admin" ? `${per.label}${per.end >= today ? " · as of " + new Date(today + "T00:00:00").getDate() + " " + MON[+today.slice(5, 7) - 1] : ""}`
-    : scr.href === "/admin/money" ? `Profit and costs for ${per.label}`
-    : scr.href === "/admin/run" ? (data.run ? `${["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][data.run.day]}'s route · tap each stop as you go` : "Nothing running right now") : scr.sub;
+    : scr.href === "/admin/money" ? `Profit and costs for ${per.label}` : scr.sub;
   const logOut = async () => { await db.auth.signOut(); location.href = "/admin/login"; };
-  const routeHref = data.run ? "/admin/run" : "/admin/routes";
-  const isCur = (h: string) => path === h || (h === "/admin/routes" && path === "/admin/run");
+  const isCur = (h: string) => path === h;
   const nb = (h: string) => (ctx.badges[h] ? <span className="nb" aria-label={ctx.badges[h] === "●" ? "running" : `${ctx.badges[h]} to do`}>{ctx.badges[h]}</span> : null);
   const inMore = MORE.includes(path);
   const moreDot = MORE.some((h) => ctx.badges[h]);
@@ -257,7 +233,7 @@ function Loaded(props: {
               return <div className="ngrp" key={g}>
                 {g === "Daily" ? <div className="grp">{g}</div>
                   : <button type="button" className="grp grpb" aria-expanded={!closed} onClick={() => setShut((x) => x.includes(g) ? x.filter((y) => y !== g) : [...x, g])}>{g}<span aria-hidden>{closed ? "+" : "−"}</span></button>}
-                {!closed && items.map((s) => <Link key={s.href} href={s.href === "/admin/routes" ? routeHref : s.href} className="navb" aria-current={isCur(s.href) ? "page" : undefined}>{I[s.icon]}{s.t}{nb(s.href)}</Link>)}
+                {!closed && items.map((s) => <Link key={s.href} href={s.href} className="navb" aria-current={isCur(s.href) ? "page" : undefined}>{I[s.icon]}{s.t}{nb(s.href)}</Link>)}
               </div>;
             })}
           </nav>
@@ -280,8 +256,8 @@ function Loaded(props: {
         </div>
       </div>
       <nav className="bnav" aria-label="Sections">
-        {[["/admin", "Home", "home"], [routeHref, "Route", "routes"], ["/admin/venues", "Venues", "venues"], ["/admin/money", "Money", "money"]].map(([h, l, ic]) =>
-          <Link key={l} href={h} className="navb" aria-current={isCur(h === routeHref ? "/admin/routes" : h) ? "page" : undefined}>{I[ic]}{l}{nb(h === routeHref ? "/admin/routes" : h)}</Link>)}
+        {[["/admin", "Home", "home"], ["/admin/routes", "Areas", "routes"], ["/admin/venues", "Venues", "venues"], ["/admin/money", "Money", "money"]].map(([h, l, ic]) =>
+          <Link key={l} href={h} className="navb" aria-current={isCur(h) ? "page" : undefined}>{I[ic]}{l}{nb(h)}</Link>)}
         <button className="navb" aria-current={inMore ? "page" : undefined} onClick={() => ctx.openModal(<MoreSheet onLogOut={logOut} />)}>{I.more}More{moreDot && <span className="nb dot" aria-label="Something in More needs a look" />}</button>
       </nav>
       <div className={"scrim" + (layers.drawerOn || layers.modalOn ? " on" : "")} onClick={closeLayers} />

@@ -1,30 +1,7 @@
 "use server";
 import { headers } from "next/headers";
 import { adminDbSecret, currentMember } from "@/lib/admin/supabase-server";
-import { roadMatrix } from "@/lib/admin/roads";
 import { createClient } from "@supabase/supabase-js";
-
-// Any team member: fetch fresh road times between the godown and every venue with a map location.
-export async function refreshRoads(): Promise<{ ok?: number; err?: string }> {
-  const { member } = await currentMember();
-  if (!member) return { err: "Log in again." };
-  const db = adminDbSecret();
-  const [{ data: set }, { data: venues }] = await Promise.all([
-    db.from("settings").select("data").eq("id", 1).single(),
-    db.from("venues").select("lat, lng").not("lat", "is", null).neq("status", "Pulled").eq("deleted", false), // removed venues are not routed
-  ]);
-  const god = (set?.data?.godown ?? [30.27847, 78.00318]) as [number, number];
-  const key = (p: [number, number]) => p[0].toFixed(5) + "," + p[1].toFixed(5);
-  const seen = new Set([key(god)]); const pts: [number, number][] = [god];
-  for (const v of venues ?? []) { const p: [number, number] = [Number(v.lat), Number(v.lng)]; if (!seen.has(key(p))) { seen.add(key(p)); pts.push(p); } }
-  try {
-    const { dur, dist } = await roadMatrix(pts);
-    const { error } = await db.from("road_matrix").update({ pts, dur, dist, fetched_at: new Date().toISOString(), updated_by: member.name }).eq("id", 1);
-    if (error) return { err: error.message };
-    await db.from("change_log").insert({ action: "Refreshed", what: "Road data", label: `${pts.length - 1} venue locations`, who: member.name });
-    return { ok: pts.length - 1 };
-  } catch (e) { return { err: (e as Error).message }; }
-}
 
 // Copy collected household pickups from the customer app into the panel (one way; the app is never changed).
 // Runs when the panel opens, at most every 5 minutes. Needs APP_SUPABASE_URL and APP_SUPABASE_SECRET_KEY on the server.

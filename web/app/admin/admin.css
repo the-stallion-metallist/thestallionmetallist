@@ -647,6 +647,61 @@ details.fold>summary{list-style:none;cursor:pointer;display:flex;align-items:bas
 .adm .be-note{margin:0;font-size:13px;color:var(--muted)}
 .adm .be-more summary{cursor:pointer;font-size:13.5px;font-weight:600;color:var(--copper-dk);min-height:40px;display:flex;align-items:center}
 .adm .be-more .be-note{margin-top:6px}
+/* Areas map (3 Nov): map, colour key, area list and the area sheet. Phone row/card styles are reused on laptops inside these containers. */
+.adm .ar-map{height:min(52vh,460px);min-height:300px;width:100%;border-radius:14px;overflow:hidden;background:var(--paper-2);position:relative;z-index:0}
+.adm .ar-mapcard .ar-map{height:min(70vh,620px)}
+.adm .ar-wait{display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:13.5px}
+.adm .leaflet-container{font:inherit}
+.adm .ar-key{display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px;margin-top:10px;font-size:12.5px;color:var(--muted)}
+.adm .ar-key span{display:inline-flex;align-items:center;gap:6px}
+.adm .ar-key i,.adm .ar-dot{width:11px;height:11px;border-radius:50%;flex:none;display:inline-block;box-shadow:0 0 0 2px var(--card)}
+.adm .ar-key .linkb{margin-left:auto}
+.adm .ar-dot.sm{width:9px;height:9px;margin-right:6px;vertical-align:middle;box-shadow:none}
+.adm .ar-god span{display:block;width:16px;height:16px;border-radius:4px;background:#17140f;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35)}
+.adm .ar-grid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(320px,1fr);gap:18px;align-items:start;margin-bottom:18px}
+.adm .ar-side{display:flex;flex-direction:column;gap:18px;min-width:0}
+.adm .ar-nopin{margin-top:18px}
+.adm .ar-tot{position:sticky;top:0;z-index:1;display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 12px;padding:10px 12px;margin-bottom:8px;border-radius:12px;background:var(--copper-tint);font-size:13.5px}
+.adm .ar-list{display:flex;flex-direction:column}
+.adm .ar-v{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:4px 12px;align-items:start;padding:12px 0;border-top:1px solid var(--line-2)}
+.adm .ar-v:first-child{border-top:0}
+.adm .ar-v input[type=checkbox]{width:22px;height:22px;margin:2px 0 0;accent-color:var(--copper)}
+.adm .ar-v>.ar-dot{margin-top:6px}
+.adm .ar-vn{font-weight:700;font-size:14.5px;text-align:left;padding:0}
+.adm .ar-vm .d{font-size:12.5px;color:var(--muted);margin-top:2px}
+.adm .ar-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.adm .ar-vr{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.adm .ar-vr>b{font:600 16px/1 var(--f-disp);font-variant-numeric:tabular-nums}
+.adm .ar-act{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.adm .ar-h{font:600 15px/1.2 var(--f-disp);margin:18px 0 6px}
+@media (max-width:1100px){.adm .ar-grid{grid-template-columns:1fr}}
+@media (max-width:480px){.adm .ar-v{grid-template-columns:auto minmax(0,1fr)}.adm .ar-vr{grid-column:2;flex-direction:row;align-items:center;justify-content:space-between}}
+.adm :is(.ar-side,.ar-nopin,.ar-near) .ph-today{background:var(--char);color:var(--on-char);border-radius:22px;padding:18px 16px 16px;display:flex;flex-direction:column;gap:12px}
+.adm :is(.ar-side,.ar-nopin,.ar-near) .ph-today .k{font-size:14px;color:var(--on-char-mut)}
+.adm :is(.ar-side,.ar-nopin,.ar-near) .ph-today .z{font:600 22px/1.2 var(--f-disp);color:#fff;margin-top:2px}
+.adm :is(.ar-side,.ar-nopin,.ar-near) .ph-facts{display:flex;gap:20px;font-size:14.5px;color:var(--on-char-mut)}
+.adm :is(.ar-side,.ar-nopin,.ar-near) .ph-facts b{display:block;color:#fff;font:600 19px/1.2 var(--f-disp)}
+.adm :is(.ar-side,.ar-nopin,.ar-near) .ph-btn{min-height:50px;border-radius:14px;border:0;font-weight:700;font-size:16px;display:flex;align-items:center;justify-content:center;gap:8px;padding:0 12px;white-space:nowrap;text-decoration:none;flex:1}
+.adm :is(.ar-side,.ar-nopin,.ar-near) .ph-btn svg{width:20px;height:20px;flex:none}
+.adm :is(.ar-side,.ar-nopin,.ar-near) .ph-btn.p{background:var(--copper);color:#fff}
+.adm :is(.ar-side,.ar-nopin,.ar-near) .ph-list{background:var(--card);border-radius:20px;overflow:hidden;box-shadow:var(--shadow);margin:0;padding:0;list-style:none}
+.adm :is(.ar-side,.ar-nopin,.ar-near) .ph-list.flat{box-shadow:none;background:var(--paper)}
+.adm :is(.ar-side,.ar-nopin,.ar-near) .ph-row{width:100%;border:0;background:none;display:flex;align-items:center;gap:12px;padding:13px 16px;min-height:64px;text-align:left;color:var(--ink);text-decoration:none;border-top:1px solid var(--line-2)}
+.adm :is(.ar-side,.ar-nopin,.ar-near) .ph-list>.ph-row:first-child{border-top:0}
+.adm :is(.ar-side,.ar-nopin,.ar-near) .ph-m{flex:1;min-width:0;display:flex;flex-direction:column}
+.adm :is(.ar-side,.ar-nopin,.ar-near) .ph-t{font-weight:700;font-size:16px;line-height:1.25}
+.adm :is(.ar-side,.ar-nopin,.ar-near) .ph-d{font-size:14px;color:var(--muted);margin-top:2px}
+.adm :is(.ar-side,.ar-nopin,.ar-near) .ph-chev{flex:none;color:var(--muted);display:grid;place-items:center}
+.adm :is(.ar-side,.ar-nopin,.ar-near) .ph-chev svg{width:18px;height:18px}
+.adm :is(.ar-side,.ar-nopin,.ar-near) .ph-cnt{min-width:44px;height:44px;border-radius:12px;display:grid;place-items:center;font:600 19px/1 var(--f-disp);flex:none;padding:0 6px;background:var(--idle-bg);color:var(--idle);font-variant-numeric:tabular-nums}
+.adm :is(.ar-side,.ar-nopin,.ar-near) .ph-cnt svg{width:22px;height:22px}
+.adm :is(.ar-side,.ar-nopin,.ar-near) .ph-cnt.bad{background:var(--bad-bg);color:var(--bad)}
+.adm :is(.ar-side,.ar-nopin,.ar-near) .ph-cnt.good{background:var(--good-bg);color:var(--good)}
+.adm :is(.ar-side,.ar-nopin,.ar-near) .ph-cnt.warn{background:var(--warn-bg);color:var(--warn)}
+.adm :is(.ar-side,.ar-nopin,.ar-near) .ph-cnt.icon{background:var(--card);color:var(--copper)}
+.adm :is(.ar-side,.ar-nopin,.ar-near) .ph-cans{flex:none;text-align:right;min-width:56px}
+.adm :is(.ar-side,.ar-nopin,.ar-near) .ph-cans b{display:block;font:600 20px/1.1 var(--f-disp);font-variant-numeric:tabular-nums}
+.adm :is(.ar-side,.ar-nopin,.ar-near) .ph-cans span{font-size:12.5px;color:var(--muted)}
 /* break-even: one money bar, cans (copper) + plastic (sea-glass teal), a key, and compact rows */
 .adm{--pet:#3f7480}
 .adm .be-top{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 16px}

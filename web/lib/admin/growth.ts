@@ -1,6 +1,6 @@
 // Growth: cans waiting at a venue now, cans lost to full bins, and the week-by-week trend.
 import { DATA_START, addDays, collectionDays, daysBetween, inP, type Period, type Pickup, type Settings, type Trip, type Venue } from "./logic";
-import { weeklyCans } from "./routes";
+import { weeklyCans } from "./areas";
 
 export const FULL_AT = 0.9; // a pickup that brings back 90% of what the bins hold means the bins were full
 export const holdOf = (v: Venue, set: Settings) => v.steel * (set.capSteel || 150) + v.plastic_bins * (set.capPl || 150);

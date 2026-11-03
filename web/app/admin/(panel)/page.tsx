@@ -7,10 +7,9 @@ import { I, Empty } from "./icons";
 import BarChart, { type Bar } from "./BarChart";
 import VenueDrawer from "./VenueDrawer";
 import { openLogPickup } from "./forms";
-import { BreakEven, MonthSeg, PhFold, PhHead, PhRow, RunBar, areaOnly } from "./bits";
-import { startRun } from "./runlib";
+import { BreakEven, MonthSeg, PhFold, PhHead, PhRow } from "./bits";
 import { MON, MONL, addDays, collectionDays, dayName, dieselOf, dnice, fmt, kg, monthOf, rs, saleTransport, shiftMonth, totals, DATA_START } from "@/lib/admin/logic";
-import { weekOf } from "@/lib/admin/routes";
+import { areaBoard } from "@/lib/admin/areas";
 
 export default function Overview() {
   const c = usePanel(); const router = useRouter(); const p = c.per;
@@ -25,7 +24,9 @@ export default function Overview() {
   const todays = c.pickups.filter((x) => !x.deleted && x.d === c.today);
   const od = c.venues.map((v) => c.pay(v)).filter((s) => s.st === "overdue");
   const mvBins = c.sug.pulls.reduce((a, x) => a + x.n, 0), mvOpen = c.moves.filter((t) => t.status === "planned").length;
-  const di = (new Date(c.today + "T00:00:00").getDay() + 6) % 7, wk = weekOf(c.today), route = di < 6 && c.plan ? c.plan.weeks[wk][di] : null;
+  // the area to go to next (most cans waiting among areas with venues due), from the Areas map
+  const board = useMemo(() => areaBoard(c.venues, c.byV, c.set, c.today), [c.venues, c.byV, c.set, c.today]), nx = board.next;
+  const nxHref = nx ? `/admin/routes?area=${nx.id}` : "/admin/routes", nxTop = nx ? nx.rows.filter((r) => r.st === "due" || r.st === "full").slice(0, 5) : [];
   const tripCost = dieselOf(collectionDays(c.pickups, c.trips, c.set, p)) + saleTransport(c.sales, p); // diesel plus what it cost to ship sales
   const go = (href: string) => () => router.push(href);
   const row = (key: string, n: number, cls: string, t: string, d: string, onClick: () => void) => n ? <button key={key} className="arow" onClick={onClick}>
@@ -33,10 +34,10 @@ export default function Overview() {
   const attention = [
     row("pay", od.length, "neg", "Venue payouts not paid on time", `${rs(od.reduce((a, s) => a + s.owed, 0))} not paid on the spot`, go("/admin/payouts")),
     row("mv", c.sug.pulls.length + c.sug.give.length, "", "Bin moves to plan", `${mvBins} bin${mvBins === 1 ? "" : "s"} to take back · ${c.sug.give.length} venue${c.sug.give.length === 1 ? "" : "s"} to give one`, go("/admin/moves")),
-    row("mvo", mvOpen, "", "Bin moves planned", "Ticked off on the route checklist", go("/admin/moves")),
+    row("mvo", mvOpen, "", "Bin moves planned", "Done on the next visit to each venue", go("/admin/moves")),
     row("quiet", cnt("quiet"), "neg", "Gone quiet", "Gave cans before, nothing this month. Call them.", go("/admin/venues?f=quiet")),
     row("watch", cnt("watch"), "", "Low this month", `Under ${c.set.pull} cans per bin. A second low month flags a take-back.`, go("/admin/venues?f=watch")),
-    row("loc", Number(c.badges["/admin/locations"] || 0), "", "Locations to check", "So routes use the right roads", go("/admin/locations")),
+    row("loc", Number(c.badges["/admin/locations"] || 0), "", "Locations to check", "So every venue shows on the Areas map", go("/admin/locations")),
   ].filter(Boolean);
 
   const days: Bar[] = useMemo(() => {
@@ -58,14 +59,13 @@ export default function Overview() {
     const prevCans = !p.all && prevMo >= DATA_START ? mc(prevMo) : null, prevName = MONL[+prevMo.slice(5, 7) - 1];
     const vsPrev = prevCans == null ? (p.all ? "All months together" : "First month") : prevCans && (p.end < c.today || T.cans >= prevCans)
       ? <><b className={T.cans >= prevCans ? "up" : "down"}>{T.cans >= prevCans ? "+" : "−"}{Math.abs(Math.round((T.cans / prevCans - 1) * 100))}%</b> on {prevName}</> : <>{prevName}: {fmt(prevCans)}</>;
-    const done = c.run ? c.run.stops.filter((s) => s.mode === "done" || s.mode === "skip").length : 0;
     const todo = [
       { n: od.length, tone: "bad", t: "Pay venues", d: `${rs(od.reduce((a, s) => a + s.owed, 0))} not paid on the spot`, href: "/admin/payouts" },
       { n: cnt("pull"), tone: "bad", t: "Take bins back", d: "Low 2 months in a row", href: "/admin/venues?f=pull" },
       { n: cnt("add"), tone: "good", t: "Add a bin", d: "Bins filling up fast", href: "/admin/venues?f=add" },
       { n: cnt("quiet") + cnt("nobin"), tone: "warn", t: "Call or check", d: "Gone quiet, or bins not counted", href: "/admin/venues?f=act" },
-      { n: mvOpen, tone: "idle", t: "Bin moves planned", d: "Ticked off on the route", href: "/admin/moves" },
-      { n: Number(c.badges["/admin/locations"] || 0), tone: "idle", t: "Check map locations", d: "Needed for the route", href: "/admin/locations" },
+      { n: mvOpen, tone: "idle", t: "Bin moves planned", d: "Done on the next visit", href: "/admin/moves" },
+      { n: Number(c.badges["/admin/locations"] || 0), tone: "idle", t: "Check map locations", d: "Needed for the Areas map", href: "/admin/locations" },
     ].filter((x) => x.n > 0);
     return (<div className="ph">
       <PhHead title={p.all ? "All months" : MONL[+p.key.slice(5, 7) - 1]} sub={p.end >= c.today ? `Up to ${dnice(c.today)}` : "Full month"} right={<MonthSeg />} />
@@ -77,17 +77,13 @@ export default function Overview() {
       </div>
       <BreakEven />
       <div className="ph-today">
-        {c.run ? <>
-          <div><div className="k">Route in progress</div><div className="z">{areaOnly(c.run.label)}</div></div>
-          <div className="ph-facts"><span><b>{done} of {c.run.stops.length}</b>stops done</span></div>
-          <Link className="ph-btn p" href="/admin/run">{I.play}Continue route</Link>
-        </> : route && route.stops.length ? <>
-          <div><div className="k">Today · {dayName(c.today)} {dnice(c.today)}</div><div className="z">{areaOnly(route.label)}</div></div>
-          <div className="ph-facts"><span><b>{route.stops.length}</b>stops</span><span><b>{Math.round(route.km)} km</b>driving</span><span><b>{route.end}</b>back by</span></div>
-          <div className="ph-brow"><button className="ph-btn p" onClick={async () => { if (await startRun(c, di, wk)) router.push("/admin/run"); }}>{I.play}Start route</button><Link className="ph-btn dim" href="/admin/routes">See stops</Link></div>
+        {nx ? <>
+          <div><div className="k">Go next</div><div className="z">{nx.name}</div></div>
+          <div className="ph-facts"><span><b>~{fmt(nx.cans)}</b>cans waiting</span><span><b>{nx.due}</b>venues due</span><span><b>{nx.full}</b>with full bins</span></div>
+          <Link className="ph-btn p" href={nxHref}>{I.map}See the venues</Link>
         </> : <>
-          <div><div className="k">Today · {dayName(c.today)} {dnice(c.today)}</div><div className="z">{di === 6 ? "No route on Sunday" : c.plan ? "Nothing planned today" : "Routes need road data"}</div></div>
-          <Link className="ph-btn dim" href={c.plan ? "/admin/routes" : "/admin/locations"}>{c.plan ? "See the week" : "Open Venue locations"}</Link>
+          <div><div className="k">This week</div><div className="z">Nothing due right now</div></div>
+          <Link className="ph-btn dim" href="/admin/routes">Open Areas</Link>
         </>}
         {todays.length > 0 && <div className="k">{todays.length} pickup{todays.length === 1 ? "" : "s"} logged today · {fmt(todays.reduce((a, x) => a + x.cans, 0))} cans</div>}
       </div>
@@ -100,21 +96,17 @@ export default function Overview() {
   }
 
   return (<>
-    <RunBar />
     <div className="sec-h"><h2>Today</h2><span>{dayName(c.today)} {dnice(c.today)} · {todays.length} pickup{todays.length === 1 ? "" : "s"} logged so far</span></div>
     <section className="grid2">
-      <div className="card"><div className="card-h"><h2>Today&apos;s route</h2>{route && route.stops.length > 0 && <span className="hint">{route.label} · {route.stops.length} stops · ~{fmt(route.load)} cans · back by {route.end}</span>}</div>
-        {route && route.stops.length ? <>
-          <div className="due">{route.stops.slice(0, 5).map((s, k) => <div key={k} className="due-row"><div><div className="t">{k + 1}. {s.v.name}</div><div className="d">{s.eta}{s.exp ? ` · ~${fmt(s.exp)} cans` : ""}{s.extra ? " · extra visit" : ""}</div></div>
-            <button className="btn btn-g btn-sm" onClick={() => openLogPickup(c, s.v.id)}>Log</button></div>)}</div>
+      <div className="card"><div className="card-h"><h2>Go next</h2>{nx && <span className="hint">{nx.name} · ~{fmt(nx.cans)} cans waiting · {nx.due} venues due{nx.full ? ` · ${nx.full} with full bins` : ""}</span>}</div>
+        {nx ? <>
+          <div className="due">{nxTop.map((r) => <div key={r.v.id} className="due-row"><div><div className="t">{r.v.name}</div><div className="d">{r.st === "full" ? "Bins likely full" : "Due"} · ~{fmt(r.cans)} cans{r.last ? ` · last collected ${dnice(r.last)}` : ""}</div></div>
+            <button className="btn btn-g btn-sm" onClick={() => openLogPickup(c, r.v.id)}>Log</button></div>)}</div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12 }}>
-            {c.run ? <Link className="btn btn-p" href="/admin/run">Continue route</Link>
-              : <button className="btn btn-p" onClick={async () => { if (await startRun(c, di, wk)) router.push("/admin/run"); }}>Start today&apos;s route</button>}
-            <Link className="btn btn-g" href="/admin/routes">See full route{route.stops.length > 5 ? ` (${route.stops.length - 5} more)` : ""}</Link>
+            <Link className="btn btn-p" href={nxHref}>See {nx.name}{nx.rows.length > nxTop.length ? ` (${nx.rows.length} venues)` : ""}</Link>
+            <Link className="btn btn-g" href="/admin/routes">Open the Areas map</Link>
           </div></>
-          : di === 6 ? <Empty title="No route today" text="Sunday is off. The next route is on Monday."><Link className="btn btn-g btn-sm" href="/admin/routes">Open route planner</Link></Empty>
-          : c.plan ? <Empty title="No stops planned today" text="Nothing is planned for today."><Link className="btn btn-g btn-sm" href="/admin/routes">Open route planner</Link></Empty>
-          : <Empty title="Routes need road data" text="Load road data once from Venue locations."><Link className="btn btn-g btn-sm" href="/admin/locations">Open Venue locations</Link></Empty>}
+          : <Empty title="Nothing due right now" text="No area has venues with cans waiting. The Areas map shows what was collected this week."><Link className="btn btn-g btn-sm" href="/admin/routes">Open the Areas map</Link></Empty>}
         {todays.length > 0 && <p className="muted" style={{ fontSize: 12.5, marginTop: 10 }}>{fmt(todays.reduce((a, x) => a + x.cans, 0))} cans logged today. <Link className="linkb" href="/admin/pickups">See them</Link></p>}
       </div>
       <div className="card"><div className="card-h"><h2>Needs attention</h2></div>

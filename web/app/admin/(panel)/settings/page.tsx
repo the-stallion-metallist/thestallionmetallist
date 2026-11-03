@@ -46,15 +46,12 @@ export default function SettingsPage() {
         {inp("pull", "Take a bin back under", "Two months in a row under this flags a take-back (leaving 1 bin). Bottom quarter of venues.", "cans per bin / month")}
         {inp("grace", "Give new venues", "New venues are not judged until their bin has been out this long.", "days")}
       </div>
-      <div className="card"><div className="card-h"><h2>Route planner</h2></div>
-        {inp("vehCap", "Vehicle capacity", "How many cans the vehicle carries in one run. Days above this get an unload stop.", "cans")}
-        {inp("capSteel", "Full steel bin holds", "Used to add extra visits before a bin overflows.", "cans")}
+      <div className="card"><div className="card-h"><h2>Areas map</h2></div>
+        {inp("otwCans", "Due at", "A venue turns amber on the Areas map when about this many cans are likely waiting.", "cans", 40)}
+        {inp("capSteel", "Full steel bin holds", "A venue turns red when its bins are likely this full.", "cans")}
         {inp("capPl", "Full plastic bin holds", "", "cans")}
-        {inp("routeHours", "Route length", "Half a day by default.", "hours")}
-        {inp("stopMin", "Time per stop", "Emptying bins, counting and paying.", "minutes")}
-        {inp("traffic", "Traffic buffer", "Road times assume empty roads. This adds time on top.", "%")}
+        {inp("stopMin", "Time per stop", "Emptying bins, counting and paying. Used for Venue profit.", "minutes")}
         <Godown />
-        <div className="kv"><div><span>Working days</span><b>Mon–Sat, 1 run a day</b></div><div><span>Road data</span><b>OpenRouteService</b></div></div>
       </div>
       <TeamCard team={team} onAdded={(t) => setTeam((l) => [...l.filter((x) => x.email !== t.email), t])} onRemoved={(email) => setTeam((l) => l.filter((x) => x.email !== email))} />
       <ExcelCard />
@@ -106,7 +103,7 @@ function AppSyncCard() {
     {msg && <p className="muted" style={{ fontSize: 12.5, marginTop: 8 }}>{msg}</p>}</div>;
 }
 
-const LABEL: Partial<Record<K, string>> = { gstUBC: "GST on cans", gstPlastic: "GST on plastic", ubcRate: "Can sale rate", cansPerKg: "Cans per kg", plasticSale: "Plastic sale rate", canRate: "Default payout per can", plasticBuy: "Default plastic payout", add: "Add a bin at", pull: "Take a bin back under", grace: "New venue grace days", vehCap: "Vehicle capacity", capSteel: "Full steel bin holds", capPl: "Full plastic bin holds", routeHours: "Route length", stopMin: "Time per stop", traffic: "Traffic buffer", fixedOther: "Rent and other fixed costs", kmCost: "Vehicle cost per km", hourCost: "Route team cost per hour", dieselDay: "Diesel per collection day", fuelPrice: "Fuel price" };
+const LABEL: Partial<Record<K, string>> = { otwCans: "Due at (Areas map)", gstUBC: "GST on cans", gstPlastic: "GST on plastic", ubcRate: "Can sale rate", cansPerKg: "Cans per kg", plasticSale: "Plastic sale rate", canRate: "Default payout per can", plasticBuy: "Default plastic payout", add: "Add a bin at", pull: "Take a bin back under", grace: "New venue grace days", vehCap: "Vehicle capacity", capSteel: "Full steel bin holds", capPl: "Full plastic bin holds", routeHours: "Route length", stopMin: "Time per stop", traffic: "Traffic buffer", fixedOther: "Rent and other fixed costs", kmCost: "Vehicle cost per km", hourCost: "Route team cost per hour", dieselDay: "Diesel per collection day", fuelPrice: "Fuel price" };
 
 function TeamCard({ team, onAdded, onRemoved }: { team: { name: string; role: string; email: string }[]; onAdded: (t: { name: string; role: string; email: string }) => void; onRemoved: (email: string) => void }) {
   const c = usePanel(); const owner = c.me.role === "Owner";

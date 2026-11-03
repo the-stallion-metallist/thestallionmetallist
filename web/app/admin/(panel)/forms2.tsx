@@ -253,8 +253,3 @@ export async function saveSettings(c: C, changes: Record<string, unknown>, label
   }
   c.toast("Not saved. Someone else is changing settings right now. Try again."); return false;
 }
-export async function saveZones(c: C, zones: C["zones"], label: string, detail = "") {
-  const { error } = await c.db.from("plan_state").update({ value: zones }).eq("key", "zones");
-  if (c.fail(error)) return false;
-  c.patch((d) => ({ ...d, zones })); await c.logIt(label.startsWith("Rebuilt") ? "Rebuilt" : "Edited", "Zones", label.replace(/^Rebuilt /, ""), detail); return true;
-}

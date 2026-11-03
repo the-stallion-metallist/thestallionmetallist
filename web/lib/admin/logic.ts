@@ -35,7 +35,7 @@ export type Settings = {
   gstUBC?: number | null; gstPlastic?: number | null; // GST % added on top of the sale rate; blank = no GST (rates to be confirmed by the CA)
   kmCost?: number | null; hourCost?: number | null; // what a km of driving and an hour of the route team cost (Venue profit)
   routeDays?: number | null; longDays?: number | null; longHours?: number | null; // route days a week, how many may run long, and how long
-  otwCans?: number | null; // pick up a venue the route passes when its bins should hold at least this many cans (0 = off)
+  otwCans?: number | null; // a venue is "due" on the Areas map when about this many cans are likely waiting (40 when not set)
   dieselDay?: number | null; // diesel for a collection day with no trip fuel logged (₹400 when not set)
   fuelPrice?: number | null; // ₹ per litre of the fuel put in the vehicle (₹104 until set), used to cost the fuel on a trip
 };
@@ -52,7 +52,7 @@ export const SETTING_RULES: Record<string, Rule> = {
   fixedOther: { name: "Rent and other fixed costs", min: 0, blank: true }, kmCost: { name: "Vehicle cost per km", min: 0, blank: true }, hourCost: { name: "Route team cost per hour", min: 0, blank: true },
   dieselDay: { name: "Diesel per collection day", min: 0, blank: true }, fuelPrice: { name: "Fuel price per litre", gt: 0, blank: true }, gstUBC: { name: "GST on cans", min: 0, max: 100, blank: true }, gstPlastic: { name: "GST on plastic", min: 0, max: 100, blank: true },
   routeDays: { name: "Route days a week", min: 1, max: 6, whole: true, blank: true }, longDays: { name: "Long days allowed", min: 0, max: 6, whole: true, blank: true },
-  longHours: { name: "Longest day", gt: 0, max: 24, blank: true }, otwCans: { name: "Pick up on the way from", min: 0, blank: true },
+  longHours: { name: "Longest day", gt: 0, max: 24, blank: true }, otwCans: { name: "Due at", gt: 0, blank: true },
 };
 // null when the value is fine, otherwise a sentence for the toast.
 export function checkSetting(key: string, v: unknown): string | null {

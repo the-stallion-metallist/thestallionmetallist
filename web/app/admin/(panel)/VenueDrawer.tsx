@@ -6,16 +6,7 @@ import { usePanel } from "./Panel";
 import { I, Empty } from "./icons";
 import { BinChangeForm, DatesForm, EditVenue, openLogPickup, setVenueRemoved, setVisit } from "./forms";
 import { JUDGE_AFTER_DAYS, MONL, PST, ST, addDays, areaName, bins, dayName, dnice, fmt, kg, lowTxt, rs, vstatus, type State, type Venue } from "@/lib/admin/logic";
-import type { Plan } from "@/lib/admin/routes";
 import { waiting } from "@/lib/admin/growth";
-
-// "Mon, Thu · every week" or "Mon wk A · every 2 weeks"
-function planInfo(v: Venue, plan: Plan | null) {
-  if (!plan) return null; const where: Record<"A" | "B", string[]> = { A: [], B: [] };
-  for (const w of ["A", "B"] as const) for (const d of plan.weeks[w]) for (const s of d.stops) if (s.v.id === v.id) where[w].push(d.d + (s.extra ? " (extra)" : s.otw ? " (on the way)" : ""));
-  if (!where.A.length && !where.B.length) return null;
-  return where.A.join() === where.B.join() ? `${where.A.join(", ")} · every week` : `${[...where.A.map((x) => x + " wk A"), ...where.B.map((x) => x + " wk B")].join(", ")} · every 2 weeks`;
-}
 
 export const Chip = ({ st }: { st: State }) => <span className={"chip " + ST[st][1]}>{ST[st][0]}</span>;
 export const Est = ({ t = "est." }: { t?: string }) => <span className="est">{t}</span>;
@@ -64,9 +55,8 @@ export default function VenueDrawer({ id, tab: tab0 = "sum" }: { id: number; tab
           <div><span>Last collected</span><b>{w.last ? `${dnice(w.last)} · ${w.ago === 0 ? "today" : w.ago === 1 ? "yesterday" : w.ago + " days ago"}` : "No pickups yet"}</b></div>
           <div><span>Cans waiting now</span><b>{w.est == null ? "–" : w.full ? <span className="neg">{fmt(w.hold)}+ · bins likely full, cans being lost</span>
             : <>About {fmt(w.est)}{w.hold ? <span className="muted"> of {fmt(w.hold)} the bins hold</span> : null}</>}{w.est != null && <span className="muted"> · {w.pace.toFixed(1)} cans a day, last 4 weeks</span>}</b></div>
-          <div><span>Pickup day</span><b>{v.visit === "call" ? "On request, not on the route" : planInfo(v, c.plan) || "Not on the route yet"}</b></div>
           <div><span>Visits</span><b>{v.visit === "call" ? <>On request <button className="linkb" onClick={() => setVisit(c, v, null)}>Put back on the route</button></>
-            : <>{v.visit === "fortnight" ? "Every 2 weeks (your choice)" : "Planner decides"} <button className="linkb" onClick={() => setVisit(c, v, v.visit === "fortnight" ? null : "fortnight")}>{v.visit === "fortnight" ? "Back to weekly" : "Every 2 weeks"}</button>
+            : <>{v.visit === "fortnight" ? "Every 2 weeks (your choice)" : "Every week"} <button className="linkb" onClick={() => setVisit(c, v, v.visit === "fortnight" ? null : "fortnight")}>{v.visit === "fortnight" ? "Back to weekly" : "Every 2 weeks"}</button>
               {" · "}<button className="linkb" onClick={() => setVisit(c, v, "call")}>On request only</button></>}</b></div>
           <div><span>Area</span><b>{v.area ? <>{areaName(v.area)}{v.area_est && <Est t="example" />}</> : <span className="missing">Not set</span>}</b></div>
           <div><span>Contact</span><b>{v.contact || v.phone ? <>{v.contact}{v.phone && <> · <a href={`tel:${v.phone}`}>{v.phone}</a></>}</> : <span className="missing">Add name &amp; number</span>}</b></div>
