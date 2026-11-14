@@ -22,6 +22,7 @@ export type Pickup = {
   created_at: string; created_by: string; updated_by: string | null;
   app_id?: string | null; app_payout?: number | null; // household pickups copied from the customer app
   plastic_rate?: number | null; // ₹/kg paid for this pickup's plastic, kept so a later rate change doesn't rewrite it
+  can_rate?: number | null; // ₹ per can paid for this pickup, kept the same way (October stays at its rate when the rate changes)
 };
 export type BinChange = { id: number; d: string; venue_id: number; change: 1 | -1; steel: number; plastic: number; note: string; created_by: string };
 export type Payment = { id: number; d: string; venue_id: number; amount: number; mode: string; note: string; pickup_id: number | null; deleted: boolean; created_by: string };
@@ -184,10 +185,14 @@ export function lowTxt(s: Stats) {
 // ₹/kg for a pickup's plastic: the rate it was paid at, else the venue's rate, else the Settings default.
 export const plRate = (p: { plastic_rate?: number | null }, v: Venue | null | undefined, set: Settings) =>
   p.plastic_rate != null ? Number(p.plastic_rate) : Number((v && v.plastic_rate) || set.plasticBuy);
-export function pickupCost(p: Pick<Pickup, "venue_id" | "cans" | "plastic_kg"> & { app_payout?: number | null; plastic_rate?: number | null }, venues: Map<number, Venue>, set: Settings) {
+// ₹ per can for a pickup: the rate it was paid at (kept on the pickup), else the venue's rate now, else the Settings default.
+export const canRateOf = (p: { can_rate?: number | null }, v: Venue | null | undefined, set: Settings) => (p.can_rate != null ? Number(p.can_rate) : v ? Number(v.can_rate) : set.canRate);
+// What was paid per can on average over some pickups (the Settings default when there are none): the honest "paid per can" for a month or a mix of months.
+export const paidPerCan = (T: { cans: number; paidV: number }, set: Settings) => (T.cans ? T.paidV / T.cans : set.canRate);
+export function pickupCost(p: Pick<Pickup, "venue_id" | "cans" | "plastic_kg"> & { app_payout?: number | null; plastic_rate?: number | null; can_rate?: number | null }, venues: Map<number, Venue>, set: Settings) {
   if (p.venue_id == null) return p.app_payout != null ? Number(p.app_payout) : p.cans * set.canRate;
   const v = venues.get(p.venue_id)!;
-  return p.cans * Number(v.can_rate) + Number(p.plastic_kg || 0) * plRate(p, v, set);
+  return p.cans * canRateOf(p, v, set) + Number(p.plastic_kg || 0) * plRate(p, v, set);
 }
 
 export function totals(p: Period, pickups: Pickup[], venues: Map<number, Venue>, set: Settings) {
@@ -196,7 +201,7 @@ export function totals(p: Period, pickups: Pickup[], venues: Map<number, Venue>,
   let paidV = 0, paidPl = 0;
   for (const x of ps) {
     const v = x.venue_id != null ? venues.get(x.venue_id) : null;
-    paidV += v ? x.cans * Number(v.can_rate) : x.app_payout != null ? Number(x.app_payout) : x.cans * set.canRate;
+    paidV += v ? x.cans * canRateOf(x, v, set) : x.app_payout != null ? Number(x.app_payout) : x.cans * set.canRate;
     paidPl += Number(x.plastic_kg || 0) * plRate(x, v, set);
   }
   const canValue = (cans / set.cansPerKg) * set.ubcRate, plValue = set.plasticSale ? pl * set.plasticSale : 0;
@@ -302,7 +307,8 @@ export const visitCost = (set: Settings, addKm: number, addMin: number) => addKm
 export function venueEarn(v: Venue, ps: Pickup[], set: Settings) {
   const cans = ps.reduce((a, x) => a + x.cans, 0), kgs = ps.reduce((a, x) => a + Number(x.plastic_kg || 0), 0);
   const plPaid = ps.reduce((a, x) => a + Number(x.plastic_kg || 0) * plRate(x, v, set), 0);
-  return { cans, kgs, earn: cans * (set.ubcRate / set.cansPerKg - Number(v.can_rate)) + (set.plasticSale ? kgs * set.plasticSale - plPaid : 0) };
+  const perCan = set.ubcRate / set.cansPerKg; // each pickup is paid at its own rate, so a month before and after a rate change both come out right
+  return { cans, kgs, earn: ps.reduce((a, x) => a + x.cans * (perCan - canRateOf(x, v, set)), 0) + (set.plasticSale ? kgs * set.plasticSale - plPaid : 0) };
 }
 
 // ---------- collection days ----------

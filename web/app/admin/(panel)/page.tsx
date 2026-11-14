@@ -8,7 +8,7 @@ import BarChart, { type Bar } from "./BarChart";
 import VenueDrawer from "./VenueDrawer";
 import { openLogPickup } from "./forms";
 import { BreakEven, MonthSeg, PhFold, PhHead, PhRow } from "./bits";
-import { MON, MONL, addDays, collectionDays, dayName, dieselOf, dnice, fmt, kg, monthOf, rs, saleTransport, shiftMonth, totals, DATA_START } from "@/lib/admin/logic";
+import { MON, MONL, paidPerCan, addDays, collectionDays, dayName, dieselOf, dnice, fmt, kg, monthOf, rs, saleTransport, shiftMonth, totals, DATA_START } from "@/lib/admin/logic";
 import { areaBoard } from "@/lib/admin/areas";
 
 export default function Overview() {
@@ -117,7 +117,7 @@ export default function Overview() {
     <section className="kpis">
       <div className="kpi"><div className="l">Cans collected</div><div className="v">{fmt(T.cans)}</div><div className="s">{prev} · plus {kg(T.pl)} kg plastic</div></div>
       <div className="kpi"><div className="l">Pickups</div><div className="v">{T.n}</div><div className="s">{T.n ? fmt(T.cans / T.n) : 0} cans per pickup</div></div>
-      <div className="kpi"><div className="l">Paid to venues</div><div className="v">{rs(T.paid)}</div><div className="s">₹{c.set.canRate.toFixed(2)} per can + plastic per kg</div></div>
+      <div className="kpi"><div className="l">Paid to venues</div><div className="v">{rs(T.paid)}</div><div className="s">₹{paidPerCan(T, c.set).toFixed(2)} per can + plastic per kg</div></div>
       <div className="kpi hero"><div className="l">Profit before salaries &amp; rent</div><div className="v">{rs(T.canValue + T.plValue - T.paid - tripCost)}</div><div className="s">Cans at ₹{c.vset.ubcRate}/kg and plastic at ₹{c.vset.plasticSale ?? 0}/kg (last sales), minus payouts, diesel and sale transport</div></div>
     </section>
     <section className="grid2">

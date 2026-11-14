@@ -5,7 +5,7 @@ import { MonthSeg, PhHead, PhRow } from "../bits";
 import { Empty, I } from "../icons";
 import { EditTrip } from "../forms2";
 import { cansTxt } from "../forms";
-import { collectionDays, dayName, dieselDay, dieselOf, dnice, fmt, kg, rs, totals, type CDay } from "@/lib/admin/logic";
+import { collectionDays, dayName, dieselDay, dieselOf, dnice, fmt, kg, paidPerCan, rs, totals, type CDay } from "@/lib/admin/logic";
 
 // Collection days: every date with venue pickups is one trip. Shows which venues were collected together, and the diesel.
 export default function CollectionDays() {
@@ -14,7 +14,7 @@ export default function CollectionDays() {
   const diesel = dieselOf(days), visits = days.reduce((a, g) => a + g.venues, 0), cans = days.reduce((a, g) => a + g.cans, 0), real = days.filter((g) => g.real).length;
   // what a can earns after its payout, plus the plastic that comes in with it (this period average)
   const T = totals(p, c.pickups, c.vmap, c.vset), plPerCan = T.cans ? (T.plValue - T.paidPl) / T.cans : 0;
-  const perCan = c.vset.ubcRate / c.set.cansPerKg - c.set.canRate + plPerCan, need = perCan > 0 ? Math.ceil(dieselDay(c.set) / perCan) : null;
+  const perCan = c.vset.ubcRate / c.set.cansPerKg - paidPerCan(T, c.set) + plPerCan, need = perCan > 0 ? Math.ceil(dieselDay(c.set) / perCan) : null;
   const n = days.length, open = (g: CDay) => c.openDrawer(<Day g={g} />);
   const dsub = `₹${fmt(dieselDay(c.set))} a day${real ? ` · ${real} with real fuel` : ""}`;
   const empty = <Empty title="No collection days in this period" text="A day shows here once pickups from venues are logged for it." />;

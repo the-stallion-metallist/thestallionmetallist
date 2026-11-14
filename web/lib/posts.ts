@@ -11,6 +11,7 @@ import { REL, ubcGuide, petGuide, type GuideData } from "./guides";
 
 const PUBLISHED = "2026-10-27";
 const UPDATED = "27 October 2026";
+const RATE_UPDATED = "15 November 2026"; // posts that quote the can rate
 
 const canRs = parseFloat(RATE_CAN.replace(/[^\d.]/g, ""));
 const inr = (n: number) => `₹${Number.isInteger(n) ? n : n.toFixed(2).replace(/0$/, "")}`;
@@ -113,7 +114,7 @@ const kilo: GuideData = {
   sub: "Can makers publish the weights. Used cans from real bins come out heavier, and that changes the count.",
   crumb: "Cans in a kilo",
   published: PUBLISHED,
-  updatedLabel: UPDATED,
+  updatedLabel: RATE_UPDATED,
   ogHeading: "Cans in a kilo",
   ogSub: "Weights by size, and the maths",
   answer: `A 330 ml can weighs about 9.5 to 10 g new, so a kilo is roughly 100 cans. A 500 ml can weighs about 12 to 13 g, so a kilo is roughly 80. Used cans from collection come out heavier, and our working figure is about 65 cans to the kilo.`,
@@ -365,7 +366,7 @@ const cansIndia: GuideData = {
   sub: "Brewers say demand is shifting from bottles to cans faster than factories can keep up. Every can sold becomes a can to collect.",
   crumb: "Why India is switching to cans",
   published: PUBLISHED,
-  updatedLabel: UPDATED,
+  updatedLabel: RATE_UPDATED,
   ogHeading: "India loves cans",
   ogSub: "Bottles to cans, and the scrap",
   answer:
@@ -678,7 +679,7 @@ const venueRules: GuideData = {
   sub: "The 2026 solid waste rules apply from 1 April. They cover segregation, bulk generators and dry waste like cans and bottles.",
   crumb: "Waste rules for venues, 2026",
   published: PUBLISHED,
-  updatedLabel: UPDATED,
+  updatedLabel: RATE_UPDATED,
   ogHeading: "Venue waste rules",
   ogSub: "SWM Rules 2026, in plain words",
   answer:
@@ -768,7 +769,7 @@ const whereSell: GuideData = {
   sub: "A local kabadiwala, a doorstep collector, or an NGO programme. What each is good at, and the questions worth asking.",
   crumb: "Where to sell in Dehradun",
   published: PUBLISHED,
-  updatedLabel: UPDATED,
+  updatedLabel: RATE_UPDATED,
   ogHeading: "Where to sell",
   ogSub: "Cans and PET in Dehradun",
   answer:
@@ -855,7 +856,7 @@ const compare: GuideData = {
   sub: "Every industry has a study showing its own packaging wins. The numbers differ by who paid for them and what they count.",
   crumb: "Can vs PET vs glass",
   published: PUBLISHED,
-  updatedLabel: UPDATED,
+  updatedLabel: RATE_UPDATED,
   ogHeading: "Can, PET or glass",
   ogSub: "Who paid for the studies",
   answer:

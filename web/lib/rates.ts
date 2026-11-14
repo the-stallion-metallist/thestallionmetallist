@@ -5,6 +5,6 @@
  * Cans are counted per can; PET (plastic) is weighed per kg.
  * ========================================================================== */
 
-export const RATE_CAN = "₹1.5"; // paid per aluminium can
+export const RATE_CAN = "₹2"; // paid per aluminium can (₹1.5 until 31 October 2026)
 export const RATE_PET = "₹18"; // paid per kg of PET bottles
-export const RATES_AS_OF = "26 October 2026";
+export const RATES_AS_OF = "15 November 2026"; // the can rate of ₹2 applies from 1 November 2026

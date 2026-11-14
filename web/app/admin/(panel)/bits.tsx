@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePanel } from "./Panel";
 import { type Move, binsTxt } from "@/lib/admin/moves";
 import { I } from "./icons";
-import { DATA_START, MON, MONL, breakEven, collectionDays, dieselOf, dnice, fmt, godownOn, inP, kg, monthOf, monthsSince, rs, saleTransport, totals, type State } from "@/lib/admin/logic";
+import { DATA_START, MON, MONL, breakEven, collectionDays, dieselOf, dnice, fmt, godownOn, inP, kg, monthOf, monthsSince, paidPerCan, period, rs, saleTransport, totals, type State } from "@/lib/admin/logic";
 
 
 // "Take back 1 steel bin" / "Place 2 bins" chips on a stop.
@@ -70,7 +70,7 @@ function GodownRow() {
   const c = usePanel();
   const now = godownOn(c.pickups, c.sales, c.set, null, null), cans = now.cans, pl = now.pl;
   if (cans <= 0 && pl <= 0) return null;
-  const worth = (cans / c.set.cansPerKg) * c.vset.ubcRate + (c.vset.plasticSale ? pl * c.vset.plasticSale : 0), paid = cans * c.set.canRate + pl * c.set.plasticBuy;
+  const worth = (cans / c.set.cansPerKg) * c.vset.ubcRate + (c.vset.plasticSale ? pl * c.vset.plasticSale : 0), paid = cans * paidPerCan(totals(period("all", c.today), c.pickups, c.vmap, c.vset), c.set) + pl * c.set.plasticBuy; // cans at what was paid per can on average, since the rate changed over time
   return <div><span className="k">In the godown</span>
     <span className="d"><b>{fmt(cans)} cans</b> (≈{kg(cans / c.set.cansPerKg)} kg){pl > 0 ? <> and <b>{kg(pl)} kg plastic</b></> : null}, worth about <b>{rs(worth)}</b>. About {rs(paid)} was paid to venues for it.
       {!c.price.ubcSale && <> No cans sold yet, so ₹{c.vset.ubcRate}/kg is a guess.</>}</span>

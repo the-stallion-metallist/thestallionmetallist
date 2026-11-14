@@ -184,7 +184,7 @@ function LogPickup({ venueId, rec }: { venueId?: number; rec?: Pickup }) {
 async function savePickup(c: Ctx, vals: Omit<Pickup, "id" | "deleted" | "created_at" | "created_by" | "updated_by" | "trip">, rec?: Pickup, paynow?: boolean, paymode = "Cash") {
   // the pickup, the payment made at it (new pickup: paid on the spot; edit: follows the new amount, removed at ₹0) and the history line are ONE database step
   if (rec) {
-    const next = { ...rec, ...vals } as Pickup, norm = (p: Pickup): Record<string, unknown> => ({ ...(p as unknown as Record<string, unknown>), plastic_kg: Number(p.plastic_kg || 0) });
+    const next = { ...rec, ...vals, ...(vals.venue_id !== rec.venue_id ? { can_rate: null } : {}) } as Pickup, norm = (p: Pickup): Record<string, unknown> => ({ ...(p as unknown as Record<string, unknown>), plastic_kg: Number(p.plastic_kg || 0) });
     const ch = diffs(norm(rec), norm(next), [["d", "Date", dnice as never], ["venue_id", "Venue", ((x: number) => vname(c, x)) as never], ["cans", "Cans", fmt as never], ["plastic_kg", "Plastic kg"], ["fill", "Bin fill"], ["staff", "Staff"], ["src", "Source"]]);
     const pay = c.payments.find((p) => p.pickup_id === rec.id && !p.deleted);
     const amount = pay && next.venue_id != null ? Math.round(pickupCost(next, c.vmap, c.set)) : null; // a pickup now worth ₹0 has nothing to pay: its payment is removed, not left behind
@@ -287,7 +287,7 @@ export function EditVenue({ v }: { v: Venue }) {
           <Field id="evPh" label="Phone"><input id="evPh" name="phone" type="tel" inputMode="tel" defaultValue={v.phone ?? ""} /></Field>
         </div>
         <div className="two">
-          <Field id="evR" label="Payout per can (₹)"><input id="evR" name="rate" type="number" step="any" defaultValue={v.can_rate} /></Field>
+          <Field id="evR" label="Payout per can (₹)" help="For new pickups. Pickups already logged keep the rate they were paid at."><input id="evR" name="rate" type="number" step="any" defaultValue={v.can_rate} /></Field>
           <Field id="evPr" label="Plastic payout (₹/kg)"><input id="evPr" name="pr" type="number" step="any" defaultValue={v.plastic_rate ?? ""} placeholder={`Default ₹${c.set.plasticBuy}`} /></Field>
         </div>
         <BroughtBy id="evBy" value={v.brought_by} />

@@ -5,7 +5,7 @@ import { Empty, I } from "../icons";
 import { PhFold, PhHead, PhRow, SplitBar, priceNote } from "../bits";
 import { EditExpense, EditPayment, EditSale } from "../forms2";
 import { BuyersOwe, HowPaid, MonthByMonth, buyersOweTotal } from "./views";
-import { CATS, collectionDays, dieselOf, dnice, fmt, godownOn, inP, saleMoney, saleTransport, itemLabel, kg, lastUnitCost, monthOf, rs, rsu, staffDue, totals } from "@/lib/admin/logic";
+import { CATS, paidPerCan, collectionDays, dieselOf, dnice, fmt, godownOn, inP, saleMoney, saleTransport, itemLabel, kg, lastUnitCost, monthOf, rs, rsu, staffDue, totals } from "@/lib/admin/logic";
 
 export default function Money() {
   const c = usePanel(); const p = c.per;
@@ -34,7 +34,7 @@ export default function Money() {
     <div><span>Earned per can, with its plastic<br /><small className="muted">₹{T.cans ? (canProfit / T.cans).toFixed(2) : "0"} from the can + ₹{T.cans ? (plProfit / T.cans).toFixed(2) : "0"} from plastic. Break-even uses this.</small></span><b>{T.cans ? `₹${(both / T.cans).toFixed(2)}` : "–"}</b></div>
   </>;
   const costSplit = [["salaries", catSum("Salaries")], ["rent", catSum("Rent")], ["diesel", tripCost], ["other", costAll - catSum("Salaries") - catSum("Rent") - tripCost]].map(([l, v]) => `${l} ₹${fmt(Math.round(Number(v)))}`).join(" · ");
-  const margin = c.vset.ubcRate / c.set.cansPerKg - c.set.canRate;
+  const paidCan = paidPerCan(T, c.set), margin = c.vset.ubcRate / c.set.cansPerKg - paidCan; // what was actually paid per can in this period
   // earnings (cans + plastic, after paying venues) against the costs entered for this period: diesel and expenses
   const cEarn = Math.max(0, T.canValue - T.paidV), pEarn = Math.max(0, T.plValue - T.paidPl), earnedAll = cEarn + pEarn;
   const coveredAll = costAll > 0 && earnedAll >= costAll, pctAll = costAll ? Math.round((earnedAll / costAll) * 100) : null;
@@ -76,7 +76,7 @@ export default function Money() {
       </div>
       <PhFold title="Per can and per kg" sub="Cans, plastic, diesel, all costs"><div className="ph-stmt">
         <div><span>Sale value per can</span><b>₹{(c.vset.ubcRate / c.set.cansPerKg).toFixed(2)}</b></div>
-        <div><span>Paid per can</span><b>₹{c.set.canRate.toFixed(2)}</b></div>
+        <div><span>Paid per can</span><b>₹{paidCan.toFixed(2)}</b></div>
         <div><span>Margin per can</span><b className="pos">₹{margin.toFixed(2)}</b></div>
         <div><span>Diesel per can</span><b>{T.cans ? `₹${(tripCost / T.cans).toFixed(2)}` : "–"}</b></div>
         <div><span>Cans per pickup</span><b>{T.n ? fmt(T.cans / T.n) : "–"}</b></div>
@@ -103,7 +103,7 @@ export default function Money() {
           <div className="srow"><span className="lbl">Cans collected<span className="note">{fmt(T.cans)} cans ≈ {kg(T.cans / c.set.cansPerKg)} kg</span></span><span className="a">{rs(T.canValue)}</span></div>
           <div className="srow"><span className="lbl">Plastic collected<span className="note">{kg(T.pl)} kg</span></span><span className="a">{c.vset.plasticSale ? rs(T.plValue) : <Link className="missing" href="/admin/settings">Set plastic sale rate</Link>}</span></div>
           <div className="srow h">Money out</div>
-          <div className="srow"><span className="lbl">Paid to venues for cans<span className="note">Mostly ₹{c.set.canRate.toFixed(2)} per can</span></span><span className="a neg">{rs(-T.paidV)}</span></div>
+          <div className="srow"><span className="lbl">Paid to venues for cans<span className="note">₹{paidCan.toFixed(2)} per can on average</span></span><span className="a neg">{rs(-T.paidV)}</span></div>
           <div className="srow"><span className="lbl">Paid for plastic<span className="note">Per kg, depends on venue</span></span><span className="a neg">{rs(-T.paidPl)}</span></div>
           <div className="srow"><span className="lbl">Diesel<span className="note">{days.length} collection day{days.length === 1 ? "" : "s"}</span></span><span className="a neg">{rs(-tripCost)}</span></div>
           {saleTr > 0 && <div className="srow"><span className="lbl">Transport on sales<span className="note">Shipping the stock sold</span></span><span className="a neg">{rs(-saleTr)}</span></div>}
@@ -116,7 +116,7 @@ export default function Money() {
         <details className="card fold"><summary><h2>Unit economics</h2><span className="hint">Cans, plastic, diesel, bin payback</span></summary>
           <div className="fold-b"><div className="kv">
             <div><span>Sale value per can</span><b>₹{(c.vset.ubcRate / c.set.cansPerKg).toFixed(2)}</b></div>
-            <div><span>Paid per can</span><b>₹{c.set.canRate.toFixed(2)}</b></div>
+            <div><span>Paid per can</span><b>₹{paidCan.toFixed(2)}</b></div>
             <div><span>Margin per can before costs</span><b>₹{margin.toFixed(2)}</b></div>
             <div><span>Diesel per can</span><b>{T.cans ? `₹${(tripCost / T.cans).toFixed(2)}` : "–"}</b></div>
             <div><span>Cans per pickup</span><b>{T.n ? fmt(T.cans / T.n) : "–"}</b></div>

@@ -1,7 +1,7 @@
 // Tests for the money and advice rules in logic.ts. Run with: npm test
 // These are the numbers the team acts on (payouts, profit, stock, "take a bin back"), so a change that moves them should fail here first.
 import { describe, expect, it } from "vitest";
-import { breakEven, byVenue, checkSetting, collectionDays, dieselOf, godownOn, period, pickupCost, saleMoney, salePrices, saleTransport, staffDue, totals, venueStats } from "./logic";
+import { breakEven, byVenue, canRateOf, checkSetting, collectionDays, dieselOf, godownOn, paidPerCan, period, pickupCost, saleMoney, salePrices, saleTransport, staffDue, totals, venueEarn, venueStats } from "./logic";
 import type { Pickup, Sale, Settings, Venue } from "./logic";
 
 const set = { ubcRate: 210, cansPerKg: 65, plasticSale: 40, canRate: 1.5, plasticBuy: 18, add: 310, pull: 90, grace: 14, vehCap: null, capSteel: 150, capPl: 150, routeHours: 4.5, stopMin: 15, traffic: 50, depart: "11:00", goLive: null } as Settings;
@@ -40,6 +40,31 @@ describe("what a pickup costs", () => {
   it("a household pickup from the app uses the payout the app paid", () => {
     expect(pickupCost({ venue_id: null, cans: 50, plastic_kg: 0, app_payout: 80 }, vm, set)).toBe(80);
     expect(pickupCost({ venue_id: null, cans: 50, plastic_kg: 0 }, vm, set)).toBe(50 * 1.5);
+  });
+});
+
+describe("payout per can changes over time", () => {
+  // the venue's rate is now ₹2; October pickups were saved at ₹1.50 and November's at ₹2
+  const v = venue({ can_rate: 2 }), vm = new Map([[1, v]]);
+  const oct = pickup({ d: "2026-10-20", cans: 100, can_rate: 1.5 }), nov = pickup({ d: "2026-11-03", cans: 100, can_rate: 2 });
+  it("a pickup is paid at the rate saved on it, not at the venue's rate today", () => {
+    expect(canRateOf(oct, v, set)).toBe(1.5);
+    expect(pickupCost(oct, vm, set)).toBe(150);
+    expect(pickupCost(nov, vm, set)).toBe(200);
+  });
+  it("a pickup with no saved rate falls back to the venue's rate", () => {
+    expect(pickupCost({ venue_id: 1, cans: 100, plastic_kg: 0 }, vm, set)).toBe(200);
+  });
+  it("October stays at ₹1.50 and November is ₹2 in the monthly totals, and paid per can follows", () => {
+    const o = totals(period("2026-10", "2026-11-15"), [oct, nov], vm, set), n = totals(period("2026-11", "2026-11-15"), [oct, nov], vm, set);
+    expect(o.paidV).toBe(150); expect(n.paidV).toBe(200);
+    expect(paidPerCan(o, set)).toBe(1.5); expect(paidPerCan(n, set)).toBe(2);
+    expect(paidPerCan(totals(period("all", "2026-11-15"), [oct, nov], vm, set), set)).toBe(1.75); // a mix of both months
+    expect(paidPerCan({ cans: 0, paidV: 0 }, set)).toBe(set.canRate); // nothing collected: the default
+  });
+  it("what a venue earns uses each pickup's own rate", () => {
+    const perCan = 210 / 65;
+    expect(venueEarn(v, [oct, nov], set).earn).toBeCloseTo(100 * (perCan - 1.5) + 100 * (perCan - 2), 6);
   });
 });
 

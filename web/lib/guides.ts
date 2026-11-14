@@ -54,7 +54,7 @@ export const ubcGuide: GuideData = {
   sub: "UBC means used beverage cans. Here is what that means, how the cans are recycled, and how to sell yours in Dehradun.",
   crumb: "What is UBC scrap",
   published: "2026-10-27",
-  updatedLabel: "27 October 2026",
+  updatedLabel: "15 November 2026",
   answer:
     "UBC stands for used beverage cans. In the scrap trade it is the name for empty aluminium drink cans, which are collected, baled and sold by weight to recyclers who melt them into new aluminium.",
   sections: [
