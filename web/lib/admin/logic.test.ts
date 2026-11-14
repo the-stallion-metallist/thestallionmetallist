@@ -1,7 +1,7 @@
 // Tests for the money and advice rules in logic.ts. Run with: npm test
 // These are the numbers the team acts on (payouts, profit, stock, "take a bin back"), so a change that moves them should fail here first.
 import { describe, expect, it } from "vitest";
-import { breakEven, byVenue, canRateOf, checkSetting, collectionDays, dieselOf, godownOn, paidPerCan, period, pickupCost, saleMoney, salePrices, saleTransport, staffDue, totals, venueEarn, venueStats } from "./logic";
+import { breakEven, byVenue, canRateOf, checkSetting, collectionDays, dieselOf, godownOn, paidPerCan, payState, period, pickupCost, saleMoney, salePrices, saleTransport, staffDue, totals, venueEarn, venueStats } from "./logic";
 import type { Pickup, Sale, Settings, Venue } from "./logic";
 
 const set = { ubcRate: 210, cansPerKg: 65, plasticSale: 40, canRate: 1.5, plasticBuy: 18, add: 310, pull: 90, grace: 14, vehCap: null, capSteel: 150, capPl: 150, routeHours: 4.5, stopMin: 15, traffic: 50, depart: "11:00", goLive: null } as Settings;
@@ -65,6 +65,22 @@ describe("payout per can changes over time", () => {
   it("what a venue earns uses each pickup's own rate", () => {
     const perCan = 210 / 65;
     expect(venueEarn(v, [oct, nov], set).earn).toBeCloseTo(100 * (perCan - 1.5) + 100 * (perCan - 2), 6);
+  });
+});
+
+describe("payouts owed", () => {
+  const v = venue({ can_rate: 2 }), vm = new Map([[1, v]]);
+  it("pickups paid on the spot (each rounded to the rupee) leave nothing owed, even when the exact costs have fractions", () => {
+    const ps = [pickup({ d: "2026-10-12", cans: 100, plastic_kg: 8.4, can_rate: 1.5 }), pickup({ d: "2026-11-12", cans: 100, plastic_kg: 8.4, can_rate: 2 })]; // 301.2 and 351.2
+    const pays = [{ id: 1, d: "2026-10-12", venue_id: 1, amount: 301, mode: "Cash", note: "", pickup_id: ps[0].id, deleted: false, created_by: "" }, { id: 2, d: "2026-11-12", venue_id: 1, amount: 351, mode: "Cash", note: "", pickup_id: ps[1].id, deleted: false, created_by: "" }];
+    const s = { ...set, goLive: "2026-09-25" } as Settings;
+    expect(payState(v, ps, pays as never, vm, s, "2026-11-15").owed).toBe(0);
+  });
+  it("a real shortfall is still owed", () => {
+    const ps = [pickup({ d: "2026-11-12", cans: 100, can_rate: 2 })];
+    const pays = [{ id: 1, d: "2026-11-12", venue_id: 1, amount: 150, mode: "Cash", note: "", pickup_id: ps[0].id, deleted: false, created_by: "" }]; // paid at the old rate
+    const r = payState(v, ps, pays as never, vm, { ...set, goLive: "2026-09-25" } as Settings, "2026-11-15");
+    expect(r.owed).toBe(50); expect(r.st).toBe("overdue");
   });
 });
 

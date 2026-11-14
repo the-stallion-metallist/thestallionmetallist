@@ -346,7 +346,8 @@ const nextMonth7 = (d: string) => { const [y, m] = d.split("-").map(Number); ret
 export type PayState = { cost: number; paid: number; owed: number; oldest: string | null; unpaidN: number; due: string | null; st: "overdue" | "due" | "paid"; last: string | null };
 export function payState(v: Venue, mine: Pickup[], payments: Payment[], vmap: Map<number, Venue>, set: Settings, today: string): PayState {
   const from = set.goLive || today; // before go-live is set, only pickups from today count
-  const ps = [...(Number(v.opening) > 0 ? [{ d: from, c: Number(v.opening) }] : []), ...mine.filter((p) => !p.deleted && p.d >= from).map((p) => ({ d: p.d, c: pickupCost(p, vmap, set) }))].sort((a, b) => (a.d < b.d ? -1 : 1));
+  // each pickup to the rupee, the way it is paid on the spot, so rounding never shows up as a few rupees owed
+  const ps = [...(Number(v.opening) > 0 ? [{ d: from, c: Number(v.opening) }] : []), ...mine.filter((p) => !p.deleted && p.d >= from).map((p) => ({ d: p.d, c: Math.round(pickupCost(p, vmap, set)) }))].sort((a, b) => (a.d < b.d ? -1 : 1));
   const cost = ps.reduce((a, p) => a + p.c, 0);
   const pays = payments.filter((p) => !p.deleted && p.venue_id === v.id), paid = pays.reduce((a, p) => a + Number(p.amount), 0);
   let rem = paid, oldest: string | null = null, unpaidN = 0;
