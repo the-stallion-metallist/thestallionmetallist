@@ -5,13 +5,13 @@ import { usePanel, warnNext, type PanelCtxT } from "./Panel";
 import { adjustSpare } from "./moveslib";
 import { FormModal, Field, Opts, VenuePicker, diffs, metaOf, vname, type Errs } from "./forms";
 import {
-  type Advance, type Expense, type Payment, type Sale, type Trip, CATS, ITEMS, checkSetting, dnice, fuelPrice, fmt, itemLabel, kg, lastUnitCost, monthLabel, rs, rsu, staffDue,
+  type Advance, type Expense, type Payment, type Sale, type StockAdj, type Trip, CATS, ITEMS, checkSetting, dnice, fuelPrice, fmt, itemLabel, kg, lastUnitCost, monthLabel, rs, rsu, staffDue,
 } from "@/lib/admin/logic";
 
 type C = PanelCtxT;
-type Table = "payments" | "expenses" | "sales" | "trips" | "advances";
-const KEY: Record<Table, keyof C> = { payments: "payments", expenses: "expenses", sales: "sales", trips: "trips", advances: "advances" };
-const WHAT: Record<Table, string> = { payments: "Payment", expenses: "Expense", sales: "Sale", trips: "Trip", advances: "Advance" };
+type Table = "payments" | "expenses" | "sales" | "trips" | "advances" | "stock_adjustments";
+const KEY: Record<Table, keyof C> = { payments: "payments", expenses: "expenses", sales: "sales", trips: "trips", advances: "advances", stock_adjustments: "adjustments" };
+const WHAT: Record<Table, string> = { payments: "Payment", expenses: "Expense", sales: "Sale", trips: "Trip", advances: "Advance", stock_adjustments: "Stock adjustment" };
 type Row = { id: number; deleted: boolean };
 const R = (x: unknown) => x as Record<string, unknown>;
 
@@ -167,6 +167,32 @@ export function EditSale({ rec }: { rec?: Sale }) {
           <Field id="sTr" label="Transport cost (₹)"><input id="sTr" name="tr" type="number" inputMode="numeric" min={0} defaultValue={rec?.transport ?? 0} /></Field>
           <Field id="sPaid" label={<>Payment received on <span className="muted">(leave empty if waiting)</span></>}><input id="sPaid" name="paid" type="date" defaultValue={rec?.paid_on ?? ""} /></Field>
         </div>
+      </>}
+    </FormModal>
+  );
+}
+
+// ---------- stock adjustments (plastic taken off or added to the godown, no sale and no pickup) ----------
+export const adjLabel = (a: StockAdj) => `${Number(a.kg) < 0 ? "−" : "+"}${kg(Math.abs(Number(a.kg)))} kg plastic · ${a.note}`;
+export function EditAdjustment({ rec }: { rec?: StockAdj }) {
+  const c = usePanel();
+  return (
+    <FormModal title={rec ? "Edit stock adjustment" : "Plastic stock adjustment"} meta={rec ? metaOf(rec) : undefined} onDelete={rec ? () => softDelete(c, "stock_adjustments", rec, adjLabel(rec)) : undefined}
+      onSave={async (fd) => {
+        const e: Errs = {}, n = Number(fd.get("kg")); if (!(n > 0)) e.kg = "Enter how many kg."; if (!String(fd.get("note")).trim()) e.note = "Say why, so the history makes sense later.";
+        if (Object.keys(e).length) return e;
+        const vals = { d: String(fd.get("d")), kg: (String(fd.get("dir")) === "Add" ? 1 : -1) * n, note: String(fd.get("note")).trim() };
+        const row = await saveRow<StockAdj>(c, "stock_adjustments", vals, adjLabel, rec, [["d", "Date", dnice as never], ["kg", "Kg"], ["note", "Why"]], "Collected kg and venue payouts are unchanged");
+        if (!row) return false; if (!rec) c.toast("Adjustment saved. The godown count changed.");
+      }}>
+      {(errs) => <>
+        <p className="muted" style={{ fontSize: 13 }}>Changes only the plastic in the godown. What was collected and what venues were paid stay as they are.</p>
+        <div className="two">
+          <Field id="aDate" label="Date"><input id="aDate" name="d" type="date" defaultValue={rec?.d ?? c.today} max={c.today} /></Field>
+          <Field id="aKg" label="Weight (kg)" err={errs.kg}><input id="aKg" name="kg" type="number" step="any" inputMode="decimal" min={0} defaultValue={rec ? Math.abs(Number(rec.kg)) : ""} /></Field>
+        </div>
+        <Field label="Take off or add"><Opts name="dir" values={["Take off", "Add"]} initial={rec && Number(rec.kg) > 0 ? "Add" : "Take off"} /></Field>
+        <Field id="aNote" label="Why" err={errs.note}><input id="aNote" name="note" placeholder="e.g. water weight counted when weighing" defaultValue={rec?.note ?? ""} /></Field>
       </>}
     </FormModal>
   );

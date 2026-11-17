@@ -107,6 +107,12 @@ describe("the godown", () => {
     const g = godownOn([pickup({ cans: 6500, plastic_kg: 12 }), pickup({ cans: 100, deleted: true })], [sale({ kg: 10 }), sale({ material: "Plastic", kg: 4 })], set, null, null);
     expect(g).toMatchObject({ cansIn: 6500, cansOut: 650, cans: 5850, plIn: 12, plOut: 4, pl: 8 });
   });
+  it("plastic adjustments change the godown, not what was collected", () => {
+    const adj = (kg: number, d = "2026-11-17", deleted = false) => ({ id: 1, d, kg, note: "x", deleted, created_by: "t", updated_by: null, created_at: "" });
+    const g = godownOn([pickup({ cans: 0, plastic_kg: 700 })], [sale({ material: "Plastic", kg: 220 })], set, null, null, [adj(-100), adj(-50, "2026-11-17", true)]);
+    expect(g).toMatchObject({ plIn: 700, plOut: 220, plAdj: -100, pl: 380 });
+    expect(godownOn([pickup({ plastic_kg: 5 })], [], set, null, "2026-11-16", [adj(-100)]).pl).toBe(5); // dated after the range
+  });
   it("respects the date range", () => {
     const ps = [pickup({ d: "2026-09-30", cans: 10 }), pickup({ d: "2026-10-01", cans: 20 })];
     expect(godownOn(ps, [], set, "2026-10-01", "2026-10-31").cansIn).toBe(20);

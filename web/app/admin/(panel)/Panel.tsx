@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { adminDb } from "@/lib/admin/supabase-browser";
 import {
   type Advance, type BinChange, type Expense, type LogRow, type Mark, type Payment, type Period, type Pickup, type Sale,
-  type Settings, type StaffRow, type Stats, type Trip, type Venue, type PayState, type Prices,
+  type Settings, type StaffRow, type StockAdj, type Stats, type Trip, type Venue, type PayState, type Prices,
   DATA_START, MON, areaName, byVenue, monthOf, monthsSince, payState, period, salePrices, todayIST, valued, venueStats,
 } from "@/lib/admin/logic";
 import type { Pin } from "@/lib/admin/areas";
@@ -19,7 +19,7 @@ export type Member = { name: string; role: string; email: string };
 export type Data = {
   venues: Venue[]; pickups: Pickup[]; binlog: BinChange[]; payments: Payment[]; log: LogRow[]; set: Settings & { godown?: Pin };
   trips: Trip[]; sales: Sale[]; expenses: Expense[]; staff: StaffRow[]; marks: Mark[]; advances: Advance[];
-  moves: Move[]; spare: Spare;
+  moves: Move[]; spare: Spare; adjustments: StockAdj[];
 };
 type Ctx = Data & {
   me: Member; today: string; db: ReturnType<typeof adminDb>;
@@ -105,7 +105,7 @@ export default function Panel({ children }: { children: React.ReactNode }) {
       const { data: m } = await db.from("team").select("name, role, email").eq("user_id", session.user.id).maybeSingle();
       if (!m) { setOutsider(session.user.email ?? "this account"); return; }
       setMe(m as Member);
-      const [venues, pickups, binlog, payments, log, s, trips, sales, expenses, staff, marks, advances, moves, spare] = await Promise.all([
+      const [venues, pickups, binlog, payments, log, s, trips, sales, expenses, staff, marks, advances, moves, spare, adjustments] = await Promise.all([
         fetchAll<Venue>(db, "venues", "id"), fetchAll<Pickup>(db, "pickups", "id"), fetchAll<BinChange>(db, "bin_log", "id"), fetchAll<Payment>(db, "payments", "id"),
         one<LogRow[]>(db.from("change_log").select("*").order("id", { ascending: false }).limit(500)),
         one<{ data: Data["set"] }>(db.from("settings").select("data").eq("id", 1).single()),
@@ -113,8 +113,9 @@ export default function Panel({ children }: { children: React.ReactNode }) {
         one<StaffRow[]>(db.from("staff").select("id, name, salary, active").order("id")),
         fetchAll<Mark>(db, "attendance", "d,staff_id"), fetchAll<Advance>(db, "advances", "id"), fetchAll<Move>(db, "bin_moves", "id"),
         one<Spare>(db.from("spare_bins").select("steel, plastic, counted").eq("id", 1).single()),
+        fetchAll<StockAdj>(db, "stock_adjustments", "id"),
       ]);
-      setData({ venues, pickups, binlog, payments, log, set: s.data, trips, sales, expenses, staff, marks, advances, moves, spare });
+      setData({ venues, pickups, binlog, payments, log, set: s.data, trips, sales, expenses, staff, marks, advances, moves, spare, adjustments });
       setLoadErr(""); lastLoad.current = Date.now();
     } catch (e) { setLoadErr((e as Error).message); }
   }, [db]);

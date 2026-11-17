@@ -51,7 +51,7 @@ export default function Money() {
 
   if (c.phone) { // phone: the three money jobs, a plain summary, and where to look next
     const expTot = exps.reduce((a, e) => a + Number(e.amount), 0), costs = tripCost + saleTr + expTot, owedTot = owed.reduce((a, s) => a + s.owed, 0), owedN = owed.filter((s) => s.owed > 0).length;
-    const g = godownOn(c.pickups, c.sales, c.set, null, null), cansNow = g.cans, gWorth = (g.cans / c.set.cansPerKg) * c.vset.ubcRate + g.pl * (c.vset.plasticSale ?? 0);
+    const g = godownOn(c.pickups, c.sales, c.set, null, null, c.adjustments), cansNow = g.cans, gWorth = (g.cans / c.set.cansPerKg) * c.vset.ubcRate + g.pl * (c.vset.plasticSale ?? 0);
     const mo = monthOf(c.today), active = c.staff.filter((s) => s.active), salSet = active.filter((s) => s.salary).length;
     const toPay = active.reduce((a, s) => a + Math.max(0, staffDue(s, mo, c.marks, c.advances, c.expenses).pay ?? 0), 0);
     return (<div className="ph">

@@ -1,7 +1,7 @@
 "use client";
 import { usePanel } from "../Panel";
 import { Empty } from "../icons";
-import { EditSale } from "../forms2";
+import { EditAdjustment, EditSale, adjLabel } from "../forms2";
 import { priceNote } from "../bits";
 import { DATA_START, addDays, dnice, fmt, godownOn, inP, kg, monthOf, monthsSince, period, rs, saleMoney } from "@/lib/admin/logic";
 
@@ -9,15 +9,15 @@ import { DATA_START, addDays, dnice, fmt, godownOn, inP, kg, monthOf, monthsSinc
 // The cards are always "today". The month table shows each month's start, in, out and end; the month switch picks the sales listed below.
 export default function Stock() {
   const c = usePanel();
-  const now = godownOn(c.pickups, c.sales, c.set, null, null);
+  const now = godownOn(c.pickups, c.sales, c.set, null, null, c.adjustments);
   const val = (now.cans / c.set.cansPerKg) * c.vset.ubcRate;
   const months = monthsSince(DATA_START, monthOf(c.today));
   const rows = months.map((m) => {
     const p = period(m, c.today);
-    return { m, label: p.label, open: godownOn(c.pickups, c.sales, c.set, null, addDays(p.start, -1)), flow: godownOn(c.pickups, c.sales, c.set, p.start, p.end), end: godownOn(c.pickups, c.sales, c.set, null, p.asOf) };
+    return { m, label: p.label, open: godownOn(c.pickups, c.sales, c.set, null, addDays(p.start, -1), c.adjustments), flow: godownOn(c.pickups, c.sales, c.set, p.start, p.end, c.adjustments), end: godownOn(c.pickups, c.sales, c.set, null, p.asOf, c.adjustments) };
   });
   const sales = c.sales.filter((s) => !s.deleted && inP(s.d, c.per)).sort((a, b) => (a.d < b.d ? 1 : -1));
-  const total = godownOn(c.pickups, c.sales, c.set, DATA_START + "-01", c.today);
+  const total = godownOn(c.pickups, c.sales, c.set, DATA_START + "-01", c.today, c.adjustments), adjs = c.adjustments.filter((a) => !a.deleted).sort((a, b) => (a.d < b.d ? 1 : a.d > b.d ? -1 : b.id - a.id));
   const plVal = now.pl * (c.vset.plasticSale ?? 0);
   // every sale so far, per material: kg, money before GST, average and latest price per kg
   const sold = (["UBC", "Plastic"] as const).map((m) => { const ss = c.sales.filter((s) => !s.deleted && s.material === m), kgs = ss.reduce((a, s) => a + Number(s.kg), 0), money = ss.reduce((a, s) => a + saleMoney(s, c.set).taxable, 0);
@@ -30,7 +30,7 @@ export default function Stock() {
         <p className="muted" style={{ fontSize: 12.5, marginTop: 12 }}>Buyers pay by kg, so each sale removes {c.set.cansPerKg} cans per kg (Settings). Changing that number changes the count for every sale, past months included.</p></div>
       <div className="card stock"><div className="l muted" style={{ fontSize: 12, letterSpacing: ".06em", textTransform: "uppercase" }}>Plastic in godown today</div>
         <div className="big">{kg(now.pl)} <small>kg</small></div>
-        <div className="flow"><span>Collected<b>{kg(total.plIn)} kg</b></span><span>Sold<b>{kg(total.plOut)} kg</b></span><span>Worth now<b>{c.vset.plasticSale ? rs(plVal) : "Price not set"}</b></span></div>
+        <div className="flow"><span>Collected<b>{kg(total.plIn)} kg</b></span><span>Sold<b>{kg(total.plOut)} kg</b></span>{total.plAdj !== 0 && <span>Adjusted<b>{total.plAdj < 0 ? "−" : "+"}{kg(Math.abs(total.plAdj))} kg</b></span>}<span>Worth now<b>{c.vset.plasticSale ? rs(plVal) : "Price not set"}</b></span></div>
         <p className="muted" style={{ fontSize: 12.5, marginTop: 12 }}>Valued at the last sale prices: {priceNote(c)}. Together the godown is worth about {rs(val + plVal)}.</p></div>
     </section>
     <div className="card"><div className="card-h"><h2>Godown by month</h2><span className="hint">Cans, from the first pickup. Plastic in kg.</span></div>
@@ -40,6 +40,10 @@ export default function Stock() {
           <td className="n">{fmt(r.open.cans)}</td><td className="n">{fmt(r.flow.cansIn)}</td><td className="n">{fmt(r.flow.cansOut)}</td><td className="n"><b>{fmt(r.end.cans)}</b></td><td className="n">{kg(r.end.pl)} kg</td></tr>)}
         <tr style={{ borderTop: "1px solid var(--line)" }}><td><b>All months</b></td><td className="n">0</td><td className="n">{fmt(total.cansIn)}</td><td className="n">{fmt(total.cansOut)}</td><td className="n"><b>{fmt(now.cans)}</b></td><td className="n">{kg(now.pl)} kg</td></tr>
       </tbody></table></div>
+    </div>
+    <div className="card"><div className="card-h"><h2>Stock adjustments</h2><span className="hint">Plastic taken off or added to the godown without a sale or a pickup. Collected kg and payouts do not change.</span><span className="sp" /><button className="btn btn-g btn-sm" onClick={() => c.openModal(<EditAdjustment />)}>+ Adjust plastic</button></div>
+      {adjs.length ? <div className="tbl-wrap"><table><thead><tr><th>Date</th><th className="n">Kg</th><th>Why</th><th>By</th></tr></thead><tbody>{adjs.map((a) => <tr key={a.id} className="click" onClick={() => c.openModal(<EditAdjustment rec={a} />)}><td>{dnice(a.d)}</td><td className={"n" + (Number(a.kg) < 0 ? " neg" : "")}><b>{Number(a.kg) < 0 ? "−" : "+"}{kg(Math.abs(Number(a.kg)))}</b></td><td>{a.note}</td><td>{a.created_by}</td></tr>)}</tbody></table></div>
+        : <p className="muted" style={{ fontSize: 13 }}>None yet. Use this when the godown count is off for a reason that is not a sale, like water weight counted when weighing.</p>}
     </div>
     <div className="card"><div className="card-h"><h2>Sold so far</h2><span className="hint">Every sale since the start, before GST. The latest price is what the panel values stock and margins at.</span></div>
       <div className="tbl-wrap"><table><thead><tr><th>Material</th><th className="n">Sales</th><th className="n">Kg sold</th><th className="n">Money before GST</th><th className="n">Average per kg</th><th className="n">Latest price</th></tr></thead><tbody>

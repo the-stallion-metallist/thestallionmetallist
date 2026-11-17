@@ -68,7 +68,7 @@ export function SplitBar({ canEarn, plEarn, plKg, target, mark, markNote, label 
 // Cash sitting in the godown: unsold cans and plastic, what they are worth at the last sale prices, and what was paid for them.
 function GodownRow() {
   const c = usePanel();
-  const now = godownOn(c.pickups, c.sales, c.set, null, null), cans = now.cans, pl = now.pl;
+  const now = godownOn(c.pickups, c.sales, c.set, null, null, c.adjustments), cans = now.cans, pl = now.pl;
   if (cans <= 0 && pl <= 0) return null;
   const worth = (cans / c.set.cansPerKg) * c.vset.ubcRate + (c.vset.plasticSale ? pl * c.vset.plasticSale : 0), paid = cans * paidPerCan(totals(period("all", c.today), c.pickups, c.vmap, c.vset), c.set) + pl * c.set.plasticBuy; // cans at what was paid per can on average, since the rate changed over time
   return <div><span className="k">In the godown</span>

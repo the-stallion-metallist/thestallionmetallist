@@ -230,16 +230,20 @@ export function saleMoney(s: Sale, set: Settings) {
   return { taxable, pct, gst, total: taxable + gst };
 }
 
-// The godown: cans and plastic collected minus what was sold, between two dates (inclusive; null = no limit).
+// Plastic added to or taken off the godown without a pickup or a sale (e.g. water weight counted when weighing). kg < 0 = taken off.
+export type StockAdj = { id: number; d: string; kg: number; note: string; deleted: boolean; created_by: string; updated_by: string | null; created_at: string };
+
+// The godown: cans and plastic collected minus what was sold, plus plastic adjustments, between two dates (inclusive; null = no limit).
 // Used by Stock, Home and Money so they always agree. A sale removes its kg × cans per kg from the count.
-export function godownOn(pickups: Pickup[], sales: Sale[], set: Settings, from: string | null, to: string | null) {
+export function godownOn(pickups: Pickup[], sales: Sale[], set: Settings, from: string | null, to: string | null, adj: StockAdj[] = []) {
   const inR = (d: string) => (from == null || d >= from) && (to == null || d <= to);
   const cansIn = pickups.filter((x) => !x.deleted && inR(x.d)).reduce((a, x) => a + x.cans, 0);
   const plIn = pickups.filter((x) => !x.deleted && inR(x.d)).reduce((a, x) => a + Number(x.plastic_kg || 0), 0);
   const ss = sales.filter((s) => !s.deleted && inR(s.d));
   const cansOut = ss.filter((s) => s.material === "UBC").reduce((a, s) => a + Number(s.kg), 0) * set.cansPerKg;
   const plOut = ss.filter((s) => s.material === "Plastic").reduce((a, s) => a + Number(s.kg), 0);
-  return { cansIn, cansOut, cans: cansIn - cansOut, plIn, plOut, pl: plIn - plOut };
+  const plAdj = adj.filter((a) => !a.deleted && inR(a.d)).reduce((s, a) => s + Number(a.kg), 0);
+  return { cansIn, cansOut, cans: cansIn - cansOut, plIn, plOut, plAdj, pl: plIn - plOut + plAdj };
 }
 
 export const TYPES = ["Bar", "Club / lounge", "Cafe", "Restaurant", "College", "Hostel", "Hotel / Airbnb", "Shop", "Other"];
